@@ -27,7 +27,7 @@ class PitchOutOfEncodeRangeError(Exception):
   pass
 
 
-def get_pianoroll_encoder_decoder(hparams,programs= [69, 70, 72, 71]):
+def get_pianoroll_encoder_decoder(hparams):
   encoder_decoder = PianorollEncoderDecoder(
       shortest_duration=hparams.shortest_duration,
       min_pitch=hparams.min_pitch,
@@ -35,7 +35,7 @@ def get_pianoroll_encoder_decoder(hparams,programs= [69, 70, 72, 71]):
       separate_instruments=hparams.separate_instruments,
       num_instruments=hparams.num_instruments,
       quantization_level=hparams.quantization_level,
-      programs=programs)
+      programs=[hparams.program1,hparams.program2,hparams.program3,hparams.program4])
   return encoder_decoder
 
 
@@ -46,7 +46,7 @@ class PianorollEncoderDecoder(object):
   # Oboe, English horn, clarinet, bassoon, sounds better on timidity.
 
   def __init__(self,
-               programs,
+               programs= [69, 70, 72, 71],
                shortest_duration=0.125,
                min_pitch=36,
                max_pitch=81,
@@ -60,6 +60,7 @@ class PianorollEncoderDecoder(object):
     self.separate_instruments = separate_instruments
     self.num_instruments = num_instruments
     self.quantization_level = quantization_level
+    self.programs = programs
     if quantization_level is None:
       quantization_level = self.shortest_duration
 
