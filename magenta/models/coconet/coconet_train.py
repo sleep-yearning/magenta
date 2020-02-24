@@ -367,7 +367,8 @@ def _hparams_from_flags():
       repeat_last_dilation_level num_layers num_filters use_residual
       batch_size maskout_method mask_indicates_context optimize_mask_only
       rescale_loss patience corrupt_ratio eval_freq run_id
-      num_pointwise_splits interleave_split_every_n_layers
+      num_pointwise_splits interleave_split_every_n_layers program1 program2
+      program3 program4
       """.split())
   hparams = lib_hparams.Hyperparameters(**dict(
       (key, getattr(FLAGS, key)) for key in keys))

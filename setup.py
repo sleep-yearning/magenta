@@ -42,7 +42,7 @@ REQUIRED_PACKAGES = [
     'joblib >= 0.12',
     'librosa >= 0.6.2',
     'matplotlib >= 1.5.3',
-    'mido == 1.2.6',
+    'mido >= 1.2.6',
     'mir_eval >= 0.4',
     'numpy >= 1.14.6',  # 1.14.6 is required for colab compatibility.
     'pandas >= 0.18.1',

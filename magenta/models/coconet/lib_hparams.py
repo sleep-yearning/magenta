@@ -99,7 +99,11 @@ class Hyperparameters(object):
       run_dir=None,
       log_process=True,
       save_model_secs=30,
-      run_id='')
+      run_id='',
+      program1=69,
+      program2=70,
+      program3=72,
+      program4=71,)
 
   def __init__(self, *unused_args, **init_hparams):
     """Update the default parameters through string or keyword arguments.
