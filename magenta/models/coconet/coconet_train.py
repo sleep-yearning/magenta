@@ -27,6 +27,7 @@ from magenta.models.coconet import lib_util
 import numpy as np
 import tensorflow as tf
 
+
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
 flags.DEFINE_string('data_dir', None,
@@ -58,6 +59,17 @@ flags.DEFINE_bool('separate_instruments', True,
                   'maps or not.')
 flags.DEFINE_integer('crop_piece_len', 64, 'The number of time steps '
                      'included in a crop')
+flags.DEFINE_integer('program1', 69, 'midi program to be assigned to '
+                                     'data channel 1')
+flags.DEFINE_integer('program2', 70, 'midi program to be assigned to '
+                                     'data channel 2')
+flags.DEFINE_integer('program3', 72, 'midi program to be assigned to '
+                                     'data channel 3')
+flags.DEFINE_integer('program4', 71, 'midi program to be assigned to '
+                                     'data channel 4')
+flags.DEFINE_bool('rhythmProgramChannel10', True, 'tells the Generator'
+                                                  'which midi channel to'
+                                                  'put the rhythm in')
 
 # Model architecture.
 flags.DEFINE_string('architecture', 'straight',
@@ -201,7 +213,7 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
   # Make summaries.
   if FLAGS.log_progress:
     summaries = tf.Summary()
-    for stat_name, stat in run_stats.iteritems():
+    for stat_name, stat in run_stats.items():
       value = summaries.value.add()
       value.tag = '%s_%s' % (stat_name, experiment_type)
       value.simple_value = stat
@@ -368,7 +380,7 @@ def _hparams_from_flags():
       batch_size maskout_method mask_indicates_context optimize_mask_only
       rescale_loss patience corrupt_ratio eval_freq run_id
       num_pointwise_splits interleave_split_every_n_layers program1 program2
-      program3 program4
+      program3 program4 rhythmProgramChannel10
       """.split())
   hparams = lib_hparams.Hyperparameters(**dict(
       (key, getattr(FLAGS, key)) for key in keys))

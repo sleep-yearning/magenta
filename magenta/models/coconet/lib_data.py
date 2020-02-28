@@ -58,8 +58,8 @@ class Dataset(lib_util.Factory):
     data_path = os.path.join(tf.resource_loader.get_data_files_path(),
                              self.basepath, "%s.npz" % self.name)
     print("Loading data from", data_path)
-    with tf.gfile.Open(data_path, "r") as p:
-      self.data = np.load(p)[fold]
+    with tf.gfile.Open(data_path, "rb") as p:
+      self.data = np.load(p, allow_pickle=True, encoding='latin1')[fold]
 
   @property
   def name(self):
@@ -172,7 +172,8 @@ class Batch(object):
     """
     assert set(kwargs.keys()) == self.keys
     assert all(
-        len(value) == len(kwargs.values()[0]) for value in kwargs.values())
+        len(value) == len(list(kwargs.values())[0]) 
+        for value in list(kwargs.values()))
     self.features = kwargs
 
   def get_feed_dict(self, placeholders):
