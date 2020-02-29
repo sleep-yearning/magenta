@@ -52,6 +52,8 @@ class Dataset(lib_util.Factory):
                         self.hparams.quantization_level))
 
     # Update the default pitch ranges in hparams to reflect that of dataset.
+    self.min_pitch=hparams.min_pitch
+    self.max_pitch=hparams.max_pitch
     hparams.pitch_ranges = [self.min_pitch, self.max_pitch]
     hparams.shortest_duration = self.shortest_duration
     self.encoder = lib_pianoroll.get_pianoroll_encoder_decoder(hparams)
@@ -158,8 +160,8 @@ class TestData(Dataset):
   
 class TrainData(Dataset):
   key = "MidiTrainData"
-  min_pitch = tf.flags.FLAGS.min_pitch
-  max_pitch = tf.flags.FLAGS.max_pitch
+  min_pitch = 0
+  max_pitch = 127
   shortest_duration = 0.125
   num_instruments = 4
   qpm = 60
