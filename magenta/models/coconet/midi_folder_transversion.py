@@ -79,7 +79,7 @@ def convert_file(pm_file, interpret_programs):
         outcol.append(col4)
     else:
         outcol.append(np.zeros(array_length))
-    return np.array(outcol)
+    return np.array(outcol).T
 
 
 def instrument_to_column(instrument, array_length, song_row):
@@ -116,7 +116,7 @@ def convert_folder(path, grouped_instruments):
             pm_file = pm.PrettyMIDI(path + filename, clip=True)
             print(filename)
             converted_data.append(convert_file(pm_file, [p1, p2, p3, rhythm_in_channel10]))
-    converted_array = np.array(converted_data)
+    converted_array = np.asarray(converted_data)
     num_data_points=converted_array.shape[0]
     test_set_index=int(num_data_points/5)
     valid_set_index=int(test_set_index*4)
