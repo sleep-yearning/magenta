@@ -7,7 +7,6 @@ from magenta.models.coconet.instrument_groups import groups, rhythm_in_normal_ch
 # finds the most common (groups of) instruments for a given folder of midi files
 # and writes them into a file in that folder
 def find_frequent_programs(folder, grouped):
-    print(grouped)
     filename_specifier = ''
     programs = {}
     rhythm = {}
