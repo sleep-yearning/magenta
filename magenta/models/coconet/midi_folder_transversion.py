@@ -2,7 +2,7 @@ import numpy as np
 import math
 import os
 import pretty_midi as pm
-from InstrumentGroups import rhythm_in_normal_channels, groups
+from magenta.models.coconet.instrument_groups import rhythm_in_normal_channels, groups
 
 
 # selects instruments to use and converts single file into 4 note-arrays
