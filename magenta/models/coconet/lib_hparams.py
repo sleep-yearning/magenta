@@ -51,8 +51,6 @@ class Hyperparameters(object):
       corrupt_ratio=0.25,
       # Input dimensions.
       batch_size=20,
-      min_pitch=36,
-      max_pitch=81,
       crop_piece_len=64,
       num_instruments=4,
       separate_instruments=True,
