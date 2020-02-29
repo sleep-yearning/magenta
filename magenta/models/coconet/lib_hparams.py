@@ -103,7 +103,10 @@ class Hyperparameters(object):
       program1=69,
       program2=70,
       program3=72,
-      program4=71,)
+      program4=71,
+      rhythmProgramChannel10=True,
+      min_pitch=0,
+      max_pitch=127)
 
   def __init__(self, *unused_args, **init_hparams):
     """Update the default parameters through string or keyword arguments.
