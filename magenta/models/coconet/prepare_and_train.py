@@ -6,8 +6,8 @@ def prepare(path,grouped):
     interpret_instruments = analyze_instruments.find_frequent_programs(path, grouped)
     converted_data = midi_folder_transversion.convert_folder(path, grouped)
     
-    min_pitch = np.amin(converted_data.flatten())
-    max_pitch = np.amax(converted_data.flatten())
+    min_pitch = min(np.amin(file) for file in converted_data)
+    max_pitch = max(np.amax(file) for file in converted_data)
     return interpret_instruments,min_pitch,max_pitch
 
 def train(path,epochs,modelpath,interpret_instruments,min_pitch,max_pitch):
