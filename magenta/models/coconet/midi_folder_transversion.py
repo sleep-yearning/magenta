@@ -79,7 +79,7 @@ def convert_file(pm_file, interpret_programs):
         outcol.append(col4)
     else:
         outcol.append(np.zeros(array_length))
-    return outcol
+    return np.array(outcol)
 
 
 def instrument_to_column(instrument, array_length, song_row):
