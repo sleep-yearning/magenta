@@ -70,6 +70,8 @@ flags.DEFINE_integer('program4', 71, 'midi program to be assigned to '
 flags.DEFINE_bool('rhythmProgramChannel10', True, 'tells the Generator'
                                                   'which midi channel to'
                                                   'put the rhythm in')
+flags.DEFINE_integer('min_pitch', 0, 'minimal pitch value of current dataset')
+flags.DEFINE_integer('max_pitch', 127, 'maximal pitch value of current dataset')
 
 # Model architecture.
 flags.DEFINE_string('architecture', 'straight',
@@ -380,7 +382,7 @@ def _hparams_from_flags():
       batch_size maskout_method mask_indicates_context optimize_mask_only
       rescale_loss patience corrupt_ratio eval_freq run_id
       num_pointwise_splits interleave_split_every_n_layers program1 program2
-      program3 program4 rhythmProgramChannel10
+      program3 program4 rhythmProgramChannel10 min_pitch max_pitch
       """.split())
   hparams = lib_hparams.Hyperparameters(**dict(
       (key, getattr(FLAGS, key)) for key in keys))
