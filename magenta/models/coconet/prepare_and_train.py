@@ -1,13 +1,15 @@
 from magenta.models.coconet import analyze_instruments, midi_folder_transversion, coconet_train
 import tensorflow as tf
 
-def main(path,epochs,grouped,modelpath):
-    
+def prepare(path,grouped):        
     interpret_instruments = analyze_instruments.find_frequent_programs(path, grouped)
     converted_data = midi_folder_transversion.convert_folder(path, grouped)
     
     min_pitch = min(converted_data)
     max_pitch = max(converted_data)
+    return interpret_instruments,min_pitch,max_pitch
+
+def train(path,epochs,modelpath,interpret_instruments,min_pitch,max_pitch):
     
     train_args = [
     'logdir=' + path + 'log/',
@@ -42,6 +44,9 @@ def main(path,epochs,grouped,modelpath):
 
     tf.app.run(main=coconet_train.main(), argv=train_args)
 
+def main(path,epochs,grouped,modelpath):
+    instruments, min_pitch, max_pitch = prepare(path,grouped)
+    train(path,epochs,modelpath,instruments,min_pitch,max_pitch)
 
 if __name__ == '__main__':
     import sys
