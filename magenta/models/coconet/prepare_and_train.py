@@ -4,7 +4,7 @@ import tensorflow as tf
 def main(path,epochs,grouped,modelpath):
     
     interpret_instruments = analyze_instruments.find_frequent_programs(path, grouped)
-    converted_data = midi_folder_transversion.convert_folder(path)
+    converted_data = midi_folder_transversion.convert_folder(path, grouped)
     
     min_pitch = min(converted_data)
     max_pitch = max(converted_data)
