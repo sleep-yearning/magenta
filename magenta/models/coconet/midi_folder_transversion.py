@@ -118,7 +118,7 @@ def convert_folder(path, grouped_instruments):
             converted_data.append(convert_file(pm_file, [p1, p2, p3, rhythm_in_channel10]))
     converted_array = np.array(converted_data)
     num_data_points=converted_array.shape[0]
-    test_set_index=num_data_points/5
+    test_set_index=int(num_data_points/5)
     valid_set_index=test_set_index*4
     np.savez(path + 'train_data.npz', test=converted_array[0:test_set_index], train=converted_array[test_set_index:valid_set_index],
              valid=converted_array[valid_set_index:num_data_points])
