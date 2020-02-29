@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import pretty_midi as pm
-from InstrumentGroups import groups, rhythm_in_normal_channels
+from magenta.models.coconet.instrument_groups import groups, rhythm_in_normal_channels
 
 
 # finds the most common (groups of) instruments for a given folder of midi files
