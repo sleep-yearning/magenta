@@ -1,9 +1,6 @@
 
 <img src="magenta-logo-bg.png" height="75">
 
-[![Build Status](https://travis-ci.org/tensorflow/magenta.svg?branch=master)](https://travis-ci.org/tensorflow/magenta)
- [![PyPI version](https://badge.fury.io/py/magenta.svg)](https://badge.fury.io/py/magenta)
-
 **Magenta** is a research project exploring the role of machine learning
 in the process of creating art and music. This Fork was made to build on top of the coconet music generation model and expand it.
 
@@ -13,7 +10,6 @@ Notably, the ability to train a model from a folder of midi files has been devel
 
 * [Requirements & Installation](#installation)
 * [Using the coconet GUI training](#using-coconet-gui)
-* [Playing a MIDI Instrument](#playing-a-midi-instrument)
 
 ## Installation
 
@@ -25,7 +21,7 @@ We recommend to create an anaconda environment (python 3.5-3.7) in which the fol
 
 Two packages have to be installed from github directly per:
 - conda install pip
--	pip install https://github.com/sleep-yearning/magenta/archive/run-train-bazel.zip
+-	pip install https://github.com/sleep-yearning/magenta/archive/master.zip
 -	pip install https://github.com/sleep-yearning/pretty-midi/archive/coconet-changes.zip
  
 If you want to enable GPU support and [can run it](
@@ -45,7 +41,7 @@ On Arch based systems, those packages are:
 - jack
 - alsa-lib
 
-If you run into problems with this package, you can try and install a copy of our package without the requirement (found in setup.py). This might work since coconet doesn't really use it, but will probably break if you want to use the same magenta installation for something else. 
+If you run into problems with this package, you can try and install a copy of our package without the requirement (found in setup.py). This might work since coconet doesn't really use it, but will probably break if you want to use the same magenta installation for something else. You also won't be able to use magentas midi-interface for playback.
 //TODO check if true, maybe add branch with install command
 
 ## Using CocoNet GUI
