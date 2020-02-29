@@ -1,12 +1,13 @@
 from magenta.models.coconet import analyze_instruments, midi_folder_transversion, coconet_train
 import tensorflow as tf
+import numpy as np
 
 def prepare(path,grouped):        
     interpret_instruments = analyze_instruments.find_frequent_programs(path, grouped)
     converted_data = midi_folder_transversion.convert_folder(path, grouped)
     
-    min_pitch = min(converted_data)
-    max_pitch = max(converted_data)
+    min_pitch = np.amin(converted_data)
+    max_pitch = np.amax(converted_data)
     return interpret_instruments,min_pitch,max_pitch
 
 def train(path,epochs,modelpath,interpret_instruments,min_pitch,max_pitch):
