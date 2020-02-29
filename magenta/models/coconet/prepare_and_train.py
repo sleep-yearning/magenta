@@ -43,7 +43,7 @@ def train(path,epochs,modelpath,interpret_instruments,min_pitch,max_pitch):
     'num_pointwise_splits=2',
     'interleave_split_every_n_layers=2']
 
-    tf.app.run(main=coconet_train.main(), argv=train_args)
+    tf.app.run(main=coconet_train.main, argv=train_args)
 
 def main(path,epochs,grouped,modelpath):
     instruments, min_pitch, max_pitch = prepare(path,grouped)
