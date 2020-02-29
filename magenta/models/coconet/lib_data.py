@@ -155,7 +155,14 @@ class TestData(Dataset):
   shortest_duration = 0.125
   num_instruments = 4
   qpm = 60
-
+  
+class TrainData(Dataset):
+  key = "MidiTrainData"
+  min_pitch = tf.flags.FLAGS.min_pitch
+  max_pitch = tf.flags.FLAGS.max_pitch
+  shortest_duration = 0.125
+  num_instruments = 4
+  qpm = 60
 
 class Batch(object):
   """A Batch of training/evaluation data."""
