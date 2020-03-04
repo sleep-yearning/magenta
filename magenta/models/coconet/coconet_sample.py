@@ -703,9 +703,6 @@ if __name__ == "__main__":
   parser.add_argument("--prime_midi_melody_fpath", default=None,
                     help="Path to midi melody to be harmonized.")
   parser.add_argument("checkpoint", default=None, help="Path to checkpoint file")
-  parser.add_argument("--midi_io", default=False, help="Run in midi in and midi"
-                                                       " out mode."
-                    help="Does not write any midi or logs to disk.")
   parser.add_argument("--tfsample", default=True, help="Run sampling in " 
                                                        "Tensorflow graph.")
   
