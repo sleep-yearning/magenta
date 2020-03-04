@@ -121,11 +121,20 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
   return run_stats['loss']
 
 
-def main(args,path,grouped,log_directory,log_progress):
+def main(hparam_args,path,grouped,log_directory,log_progress):
   """Builds the graph and then runs training and validation."""
   print('TensorFlow version:', tf.__version__)
   
-  hparams = lib_hparams.Hyperparameters(args)
+  filename_modifier=''
+  if grouped:
+    filename_modifier='_grouped'
+  
+  p1, p2, p3, p4, min_pitch, max_pitch = np.load(os.path.join
+                                  (path,'programs',filename_modifier,'.npy'))
+  hparam_args.update([('program1', p1), ('program2', p2), ('program3', p3),
+                      ('program4' , p4), ('min_pitch', min_pitch), 
+                      ('max_pitch', max_pitch)])
+  hparams = lib_hparams.Hyperparameters(hparam_args)
   tf.logging.set_verbosity(tf.logging.INFO)
 
   if hparams.data_dir is None:
@@ -270,8 +279,7 @@ def _hparams_from_args(args):
       repeat_last_dilation_level num_layers num_filters use_residual
       batch_size maskout_method mask_indicates_context optimize_mask_only
       rescale_loss patience corrupt_ratio eval_freq run_id
-      num_pointwise_splits interleave_split_every_n_layers program1 program2
-      program3 program4 rhythmProgramChannel10 min_pitch max_pitch
+      num_pointwise_splits interleave_split_every_n_layers
       """.split())
   hparams = lib_hparams.Hyperparameters(**dict(
       (key, args[key] for key in keys))
@@ -299,15 +307,6 @@ if __name__ == '__main__':
                                               'For qpm=120, notated quarter note equals 0.5.')
   parser.add_argument('--qpm', default=60)
   parser.add_argument('--corrupt_ratio', default=0.25, help='Fraction of variables to mask out.')
-  parser.add_argument('--program1', default=69, help='midi program to be assigned to data channel 1')
-
-  parser.add_argument('--program2', default=70, help='midi program to be assigned to data channel 2')
-  parser.add_argument('--program3', default=72, help='midi program to be assigned to data channel 3')
-  parser.add_argument('--program4', default=71, help='midi program to be assigned to data channel 4')
-  parser.add_argument('--rhythmProgramChannel10', default=True, help='tells the Generator which midi channel to'
-                                                                     'put the rhythm in')
-  parser.add_argument('--min_pitch', default=0, help='minimal pitch value of current dataset')
-  parser.add_argument('--max_pitch', default=127, help='maximal pitch value of current dataset')
   # Input dimensions.
   parser.add_argument('--batch_size', default=20, help='The batch size for training and validating the model.')
   parser.add_argument('--crop_piece_len', default=64, help='The number of time steps included in a crop')
