@@ -41,14 +41,17 @@ def main(checkpoint, tfsample, strategy, gen_batch_size, piece_length,
     raise ValueError(
         "Need to provide a path to checkpoint directory.")
 
+  midi_file=None
+  if prime_midi_melody_fpath not None:
+    midi_file = pretty_midi.PrettyMIDI(prime_midi_melody_fpath)
   if tfsample:
     generator = TFGenerator(checkpoint)
   else:
     wmodel = instantiate_model(checkpoint)
     generator = Generator(wmodel, strategy)
-  midi_outs = generator.run_generation(
+  midi_outs = generator.run_generation(temperature,
            gen_batch_size=gen_batch_size, piece_length=piece_length,
-           prime_midi_melody_fpath=prime_midi_melody_fpath)
+           prime_midi_melody_fpath=prime_midi_melody_fpath, midi_in=midi_file)
 
   # Creates a folder for storing the process of the sampling.
   label = "sample_%s_%s_%s_T%g_l%i_%.2fmin" % (lib_util.timestamp(),
@@ -127,12 +130,14 @@ class Generator(object):
     self._time_taken = None
 
   def run_generation(self,
+                     temperature,
                      midi_in=None,
                      pianorolls_in=None,
                      gen_batch_size=3,
                      piece_length=16,
                      new_strategy=None,
-                     prime_midi_melody_fpath=None):
+                     prime_midi_melody_fpath=None
+                     ):
     """Generates, conditions on midi_in if given, returns midi.
 
     Args:
@@ -166,13 +171,13 @@ class Generator(object):
 
     if midi_in is not None and "midi" in self.strategy_name.lower():
       if "harm" in self.strategy_name.lower():
-         pianorolls = self.strategy((shape, midi_in, prime_midi_melody_fpath))
+         pianorolls = self.strategy((shape, midi_in, prime_midi_melody_fpath),temperature)
       else:
-         pianorolls = self.strategy((shape, midi_in))      
+         pianorolls = self.strategy((shape, midi_in),temperature)      
     elif "complete_manual" == self.strategy_name.lower():
-      pianorolls = self.strategy(pianorolls_in)
+      pianorolls = self.strategy(pianorolls_in,temperature)
     else:
-      pianorolls = self.strategy(shape)
+      pianorolls = self.strategy(shape,temperature)
     self._pianorolls = pianorolls
     self._time_taken = (time.time() - start_time) / 60.0
 
@@ -686,7 +691,10 @@ if __name__ == "__main__":
   parser.add_argument("--gen_batch_size", default=3,
                      help="Num of samples to generate in a batch.")
   parser.add_argument("strategy", default=None,
-                    help="Use complete_midi when using midi.")
+                    help="Use complete_midi or harmonize_midi_melody when using'
+                      'midi or set tfsample True. Further options: scratch_upsampling,'
+                      ' bach_upsampling, revoice, harmonization, transition, '
+                      'chronological, orderless, igibbs, agibbs and complete_manual.')
   parser.add_argument("--temperature", default=0.99, help="Softmax temperature")
   parser.add_argument("--piece_length", default=32, help="Num of time steps in" 
                                                          "generated piece")
