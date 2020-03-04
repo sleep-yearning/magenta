@@ -287,10 +287,11 @@ class TFGenerator(object):
 
 def get_midi_from_pianorolls(rolls, decoder):
   midi_datas = []
-  for pianoroll in rolls:
-    tf.logging.info("pianoroll shape: %r", pianoroll.shape)
-    midi_data = decoder.decode_to_midi(pianoroll)
+  for i in np.arange(len(rolls)-1):
+    tf.logging.info("pianoroll shape: %r", rolls[i].shape)
+    midi_data = decoder.decode_to_midi(rolls[i])
     midi_datas.append(midi_data)
+  midi_datas.append(decoder.decode_to_midi(rolls[-1],drum=True)
   return midi_datas
 
 
