@@ -308,11 +308,11 @@ class BaseStrategy(lib_util.Factory):
     self.logger = logger
     self.decoder = decoder
 
-  def __call__(self, shape):
+  def __call__(self, shape, temperature):
     label = "%s_strategy" % self.key
     with lib_util.timing(label):
       with self.logger.section(label):
-        return self.run(shape)
+        return self.run(shape, temperature)
 
   def blank_slate(self, shape):
     return (np.zeros(shape, dtype=np.float32), np.ones(shape, dtype=np.float32))
@@ -350,8 +350,8 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
     tf.logging.info("resulting shape: %r", rolls.shape)
     return rolls
 
-  def run(self, tuple_in, temperature, prime_midi_melody_fpath):
-    shape, midi_in = tuple_in
+  def run(self, tuple_in, temperature):
+    shape, midi_in, prime_midi_melody_fpath = tuple_in
     mroll = self.load_midi_melody(prime_midi_melody_fpath, midi_in)
     pianorolls = self.make_pianoroll_from_melody_roll(mroll, shape)
     masks = lib_sampling.HarmonizationMasker()(pianorolls.shape)
