@@ -7,7 +7,6 @@ from magenta.models.coconet.instrument_groups import groups, rhythm_in_normal_ch
 # finds the most common (groups of) instruments for a given folder of midi files
 # and writes them into a file in that folder
 def find_frequent_programs(folder, grouped):
-    filename_specifier = ''
     programs = {}
     rhythm = {}
 
@@ -28,7 +27,6 @@ def find_frequent_programs(folder, grouped):
                     else:
                         programs[instrument.program] = 1
     if grouped:
-        filename_specifier = 'grouped'
         for group in groups:
             groupset = dict((k, programs[k]) for k in group if k in programs)
             max_key = max(groupset, key=lambda key: groupset[key])
@@ -64,8 +62,6 @@ def find_frequent_programs(folder, grouped):
     print(folder)
     ret_array = [p1, p2, p3, rhythm_program, rhythm_in_channel10]
     print(ret_array)
-
-    np.save(folder + 'programs' + filename_specifier + '.npy', ret_array)
     return ret_array
 
 
@@ -74,9 +70,12 @@ def main(path, grouped):
 
 #if called with an extra argument, grouped analysis will be done
 if __name__ == "__main__":
-    import sys
-    args = sys.argv[1:]
-    if len(args) < 2:
-        main(args[0], False)
-    elif args[1]:
-        main(args[0], True)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', default=None, help='File path to'
+                                ' folder that is to be analyzed.')
+    parser.add_argument('--grouped', action='store_true', 
+                        help='Should instruments be grouped by class')
+    args=parser.parse_args()
+    main(args.path,args.grouped)
+
