@@ -710,3 +710,6 @@ if __name__ == "__main__":
                                                        "Tensorflow graph.")
   
   args = parser.parse_args()
+  main(args.checkpoint, args.tfsample, args.strategy, args.gen_batch_size,
+       args.piece_length, args.temperature, args.generation_output_dir, 
+       args.prime_midi_melody_fpath)
