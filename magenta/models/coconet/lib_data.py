@@ -159,7 +159,7 @@ class TestData(Dataset):
   qpm = 60
   
 class TrainData(Dataset):
-  key = "MidiTrainData"
+  key = "TrainData"
   min_pitch = 0
   max_pitch = 127
   shortest_duration = 0.125
