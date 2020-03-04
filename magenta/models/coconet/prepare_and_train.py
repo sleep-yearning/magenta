@@ -1,6 +1,7 @@
 from magenta.models.coconet import analyze_instruments, midi_folder_transversion, coconet_train
 import tensorflow as tf
 import numpy as np
+import os
 
 def prepare(path,grouped):        
     interpret_instruments = analyze_instruments.find_frequent_programs(path, grouped)
@@ -8,6 +9,10 @@ def prepare(path,grouped):
     
     min_pitch = min(np.amin(file) for file in converted_data)
     max_pitch = max(np.amax(file) for file in converted_data)
+    filename_specifier=''
+    if grouped:
+        filename_specifier='_grouped'
+    np.save(os.path.join(path, 'programs', filename_specifier, '.npy'), np.concatenate((interpret_instruments,min_pitch,max_pitch)))
     return interpret_instruments,min_pitch,max_pitch
 
 def train(path,epochs,modelpath,interpret_instruments,min_pitch,max_pitch):
