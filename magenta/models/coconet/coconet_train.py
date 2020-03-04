@@ -54,7 +54,7 @@ def estimate_popstats(unused_sv, sess, m, dataset, unused_hparams):
 
 
 def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
-              epoch_count):
+              epoch_count, log_progress):
   """Runs an epoch of training or evaluate the model on given data."""
   # reduce variance in validation loss by fixing the seed
   data_seed = 123 if experiment_type == 'valid' else None
@@ -102,7 +102,7 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
     run_stats['learning_rate'] = float(learning_rate)
 
   # Make summaries.
-  if FLAGS.log_progress:
+  log_progress:
     summaries = tf.Summary()
     for stat_name, stat in run_stats.items():
       value = summaries.value.add()
@@ -185,7 +185,7 @@ def main(args,path,grouped,log_directory,log_progress):
 
         # Run training.
         run_epoch(sv, sess, m, train_data, hparams, m.train_op, 'train',
-                  epoch_count)
+                  epoch_count, log_progress)
 
         # Run validation.
         if epoch_count % hparams.eval_freq == 0:
@@ -261,8 +261,8 @@ def _print_popstat_info(tfpopstats, nppopstats):
          flatmean([np.sqrt(ugh) for ugh in nppopstats[1::2]])))
 
 
-def _hparams_from_flags(args):
-  """Instantiate hparams based on flags set in FLAGS."""
+def _hparams_from_args(args):
+  """Instantiate hparams based on args."""
   keys = ("""
       dataset quantization_level num_instruments separate_instruments
       crop_piece_len architecture use_sep_conv num_initial_regular_conv_layers
