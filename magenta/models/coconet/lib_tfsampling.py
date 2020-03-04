@@ -24,8 +24,6 @@ from magenta.models.coconet import lib_hparams
 import numpy as np
 import tensorflow as tf
 
-FLAGS = tf.app.flags.FLAGS
-
 
 class CoconetSampleGraph(object):
   """Graph for Gibbs sampling from Coconet."""
@@ -324,8 +322,8 @@ def compute_mask_prob_from_yao_schedule(i, n, pmin=0.1, pmax=0.9, alpha=0.7):
   return tf.maximum(pmin, pmax - wat / alpha)
 
 
-def main(unused_argv):
-  checkpoint_path = FLAGS.checkpoint
+def main(ckpt):
+  checkpoint_path = ckpt
   sampler = CoconetSampleGraph(checkpoint_path)
 
   batch_size = 1
@@ -339,4 +337,9 @@ def main(unused_argv):
 
 
 if __name__ == "__main__":
-  tf.app.run()
+  import argparse
+  
+  parser = argparse.ArgumentParser()
+  parser.add_argument('checkpoint', default=None, help='path to model checkpoint')
+  args = parser.parse_args()
+  main(args.checkpoint)
