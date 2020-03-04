@@ -28,117 +28,6 @@ import numpy as np
 import tensorflow as tf
 
 
-FLAGS = tf.app.flags.FLAGS
-flags = tf.app.flags
-flags.DEFINE_string('data_dir', None,
-                    'Path to the base directory for different datasets.')
-flags.DEFINE_string('logdir', None,
-                    'Path to the directory where checkpoints and '
-                    'summary events will be saved during training and '
-                    'evaluation. Multiple runs can be stored within the '
-                    'parent directory of `logdir`. Point TensorBoard '
-                    'to the parent directory of `logdir` to see all '
-                    'your runs.')
-flags.DEFINE_bool('log_progress', True,
-                  'If False, do not log any checkpoints and summary'
-                  'statistics.')
-
-# Dataset.
-flags.DEFINE_string('dataset', None,
-                    'Choices: Jsb16thSeparated, MuseData, Nottingham, '
-                    'PianoMidiDe')
-flags.DEFINE_float('quantization_level', 0.125, 'Quantization duration.'
-                   'For qpm=120, notated quarter note equals 0.5.')
-
-flags.DEFINE_integer('num_instruments', 4,
-                     'Maximum number of instruments that appear in this '
-                     'dataset.  Use 0 if not separating instruments and '
-                     'hence does not matter how many there are.')
-flags.DEFINE_bool('separate_instruments', True,
-                  'Separate instruments into different input feature'
-                  'maps or not.')
-flags.DEFINE_integer('crop_piece_len', 64, 'The number of time steps '
-                     'included in a crop')
-flags.DEFINE_integer('program1', 69, 'midi program to be assigned to '
-                                     'data channel 1')
-flags.DEFINE_integer('program2', 70, 'midi program to be assigned to '
-                                     'data channel 2')
-flags.DEFINE_integer('program3', 72, 'midi program to be assigned to '
-                                     'data channel 3')
-flags.DEFINE_integer('program4', 71, 'midi program to be assigned to '
-                                     'data channel 4')
-flags.DEFINE_bool('rhythmProgramChannel10', True, 'tells the Generator'
-                                                  'which midi channel to'
-                                                  'put the rhythm in')
-flags.DEFINE_integer('min_pitch', 0, 'minimal pitch value of current dataset')
-flags.DEFINE_integer('max_pitch', 127, 'maximal pitch value of current dataset')
-
-# Model architecture.
-flags.DEFINE_string('architecture', 'straight',
-                    'Convnet style. Choices: straight')
-# Hparams for depthwise separable conv.
-flags.DEFINE_bool('use_sep_conv', False, 'Use depthwise separable '
-                  'convolutions.')
-flags.DEFINE_integer('sep_conv_depth_multiplier', 1, 'Depth multiplier for'
-                     'depthwise separable convs.')
-flags.DEFINE_integer('num_initial_regular_conv_layers', 2, 'The number of'
-                     'regular convolutional layers to start with when using'
-                     'depthwise separable convolutional layers.')
-# Hparams for reducing pointwise in separable convs.
-flags.DEFINE_integer('num_pointwise_splits', 1, 'Num of splits on the'
-                     'pointwise convolution stage in depthwise separable'
-                     'convolutions.')
-flags.DEFINE_integer('interleave_split_every_n_layers', 1, 'Num of split'
-                     'pointwise layers to interleave between full pointwise'
-                     'layers.')
-# Hparams for dilated conv.
-flags.DEFINE_integer('num_dilation_blocks', 3, 'The number dilation blocks'
-                     'that starts from dilation rate=1.')
-flags.DEFINE_bool('dilate_time_only', False, 'If set, only dilates the time'
-                  'dimension and not pitch.')
-flags.DEFINE_bool('repeat_last_dilation_level', False, 'If set, repeats the'
-                  'last dilation rate.')
-flags.DEFINE_integer('num_layers', 64, 'The number of convolutional layers'
-                     'for architectures that do not use dilated convs.')
-flags.DEFINE_integer('num_filters', 128,
-                     'The number of filters for each convolutional '
-                     'layer.')
-flags.DEFINE_bool('use_residual', True, 'Add residual connections or not.')
-flags.DEFINE_integer('batch_size', 20,
-                     'The batch size for training and validating the model.')
-
-# Mask related.
-flags.DEFINE_string('maskout_method', 'orderless',
-                    "The choices include: 'bernoulli' "
-                    "and 'orderless' (which "
-                    'invokes gradient rescaling as per NADE).')
-flags.DEFINE_bool(
-    'mask_indicates_context', True,
-    'Feed inverted mask into convnet so that zero-padding makes sense.')
-flags.DEFINE_bool('optimize_mask_only', False,
-                  'Optimize masked predictions only.')
-flags.DEFINE_bool('rescale_loss', True, 'Rescale loss based on context size.')
-flags.DEFINE_integer(
-    'patience', 5,
-    'Number of epochs to wait for improvement before decaying learning rate.')
-
-flags.DEFINE_float('corrupt_ratio', 0.5, 'Fraction of variables to mask out.')
-# Run parameters.
-flags.DEFINE_integer('num_epochs', 0,
-                     'The number of epochs to train the model. Default '
-                     'is 0, which means to run until terminated '
-                     'manually.')
-flags.DEFINE_integer('save_model_secs', 360,
-                     'The number of seconds between saving each '
-                     'checkpoint.')
-flags.DEFINE_integer('eval_freq', 5,
-                     'The number of training iterations before validation.')
-flags.DEFINE_string(
-    'run_id', '',
-    'A run_id to add to directory names to avoid accidentally overwriting when '
-    'testing same setups.')
-
-
 def estimate_popstats(unused_sv, sess, m, dataset, unused_hparams):
   """Averages over mini batches for population statistics for batch norm."""
   print('Estimating population statistics...')
@@ -232,24 +121,23 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
   return run_stats['loss']
 
 
-def main(unused_argv):
+def main(args,path,grouped,log_directory,log_progress):
   """Builds the graph and then runs training and validation."""
   print('TensorFlow version:', tf.__version__)
-
+  
+  hparams = lib_hparams.Hyperparameters(args)
   tf.logging.set_verbosity(tf.logging.INFO)
 
-  if FLAGS.data_dir is None:
+  if hparams.data_dir is None:
     tf.logging.fatal('No input directory was provided.')
 
-  print(FLAGS.maskout_method, 'separate', FLAGS.separate_instruments)
-
-  hparams = _hparams_from_flags()
+  print(hparams.maskout_method, 'separate', hparams.separate_instruments)
 
   # Get data.
-  print('dataset:', FLAGS.dataset, FLAGS.data_dir)
+  print('dataset:', hparams.dataset, path)
   print('current dir:', os.path.curdir)
-  train_data = lib_data.get_dataset(FLAGS.data_dir, hparams, 'train')
-  valid_data = lib_data.get_dataset(FLAGS.data_dir, hparams, 'valid')
+  train_data = lib_data.get_dataset(path, hparams, 'train')
+  valid_data = lib_data.get_dataset(path, hparams, 'valid')
   print('# of train_data:', train_data.num_examples)
   print('# of valid_data:', valid_data.num_examples)
   if train_data.num_examples < hparams.batch_size:
@@ -259,7 +147,7 @@ def main(unused_argv):
   train_data.update_hparams(hparams)
 
   # Save hparam configs.
-  logdir = os.path.join(FLAGS.logdir, hparams.log_subdir_str)
+  logdir = os.path.join(log_directory, hparams.log_subdir_str)
   tf.gfile.MakeDirs(logdir)
   config_fpath = os.path.join(logdir, 'config')
   tf.logging.info('Writing to %s', config_fpath)
@@ -277,20 +165,21 @@ def main(unused_argv):
 
     tracker = Tracker(
         label='validation loss',
-        patience=FLAGS.patience,
+        patience=hparams.patience,
+        log_progress=log_progress,
         decay_op=m.decay_op,
-        save_path=os.path.join(FLAGS.logdir, hparams.log_subdir_str,
+        save_path=os.path.join(log_directory, hparams.log_subdir_str,
                                'best_model.ckpt'))
 
     # Graph will be finalized after instantiating supervisor.
     sv = tf.train.Supervisor(
         logdir=logdir,
-        saver=tf.train.Supervisor.USE_DEFAULT if FLAGS.log_progress else None,
+        saver=tf.train.Supervisor.USE_DEFAULT if log_progress else None,
         summary_op=None,
-        save_model_secs=FLAGS.save_model_secs)
+        save_model_secs=hparams.save_model_secs)
     with sv.PrepareSession() as sess:
       epoch_count = 0
-      while epoch_count < FLAGS.num_epochs or not FLAGS.num_epochs:
+      while epoch_count < hparams.num_epochs or not hparams.num_epochs:
         if sv.should_stop():
           break
 
@@ -317,7 +206,7 @@ def main(unused_argv):
 class Tracker(object):
   """Tracks the progress of training and checks if training should stop."""
 
-  def __init__(self, label, save_path, sign=-1, patience=5, decay_op=None):
+  def __init__(self, label, save_path, log_progress, sign=-1, patience=5, decay_op=None):
     self.label = label
     self.sign = sign
     self.best = np.inf
@@ -331,7 +220,7 @@ class Tracker(object):
 
   def __call__(self, loss, sess):
     if self.sign * loss > self.sign * self.best:
-      if FLAGS.log_progress:
+      if log_progress:
         tf.logging.info('Previous best %s: %.4f.', self.label, self.best)
         tf.gfile.MakeDirs(os.path.dirname(self.save_path))
         self.saver.save(sess, self.save_path)
@@ -372,7 +261,7 @@ def _print_popstat_info(tfpopstats, nppopstats):
          flatmean([np.sqrt(ugh) for ugh in nppopstats[1::2]])))
 
 
-def _hparams_from_flags():
+def _hparams_from_flags(args):
   """Instantiate hparams based on flags set in FLAGS."""
   keys = ("""
       dataset quantization_level num_instruments separate_instruments
@@ -385,9 +274,114 @@ def _hparams_from_flags():
       program3 program4 rhythmProgramChannel10 min_pitch max_pitch
       """.split())
   hparams = lib_hparams.Hyperparameters(**dict(
-      (key, getattr(FLAGS, key)) for key in keys))
+      (key, args[key] for key in keys))
   return hparams
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  import argparse
+
+  parser = argparse.ArgumentParser()
+  # Non Hyperparameter arguments
+  parser.add_argument('data_dir', help='path to folder in which train_data.npz is found')
+  parser.add_argument('--grouped', action='store_true')
+  parser.add_argument('logdir', default=None, help='Path to the directory where checkpoints and '
+                  'summary events will be saved during training.'
+                  ' Multiple runs can be stored within the '
+                  'parent directory of `logdir`.')
+  parser.add_argument('--log_progress', default=True, help='If False, do not log any checkpoints and summary'
+                                                           'statistics.')
+
+
+  # Data.
+  parser.add_argument('--dataset', default='TrainData', help='Setting the Dataset Class for predefined properties')
+  parser.add_argument('--quantization_level', default=0.125, help='Quantization duration.'
+                                              'For qpm=120, notated quarter note equals 0.5.')
+  parser.add_argument('--qpm', default=60)
+  parser.add_argument('--corrupt_ratio', default=0.25, help='Fraction of variables to mask out.')
+  parser.add_argument('--program1', default=69, help='midi program to be assigned to data channel 1')
+
+  parser.add_argument('--program2', default=70, help='midi program to be assigned to data channel 2')
+  parser.add_argument('--program3', default=72, help='midi program to be assigned to data channel 3')
+  parser.add_argument('--program4', default=71, help='midi program to be assigned to data channel 4')
+  parser.add_argument('--rhythmProgramChannel10', default=True, help='tells the Generator which midi channel to'
+                                                                     'put the rhythm in')
+  parser.add_argument('--min_pitch', default=0, help='minimal pitch value of current dataset')
+  parser.add_argument('--max_pitch', default=127, help='maximal pitch value of current dataset')
+  # Input dimensions.
+  parser.add_argument('--batch_size', default=20, help='The batch size for training and validating the model.')
+  parser.add_argument('--crop_piece_len', default=64, help='The number of time steps included in a crop')
+  parser.add_argument('--num_instruments', default=4, help='Maximum number of instruments that appear in this '
+                                                           'dataset.  Use 0 if not separating instruments and '
+                                                           'hence does not matter how many there are.')
+  parser.add_argument('--separate_instruments', default=True, help='Separate instruments into different input feature'
+                                                                   'maps or not.')
+  # Batch norm parameters.
+  parser.add_argument('--batch_norm =', default=True, help='If batch normalization should be used')
+  parser.add_argument('--batch_norm_variance_epsilon', default=1e-7, help='TODO')
+  # Initialization.
+  parser.add_argument('--init_scale', default=0.1, help='TODO')
+  # Model architecture.
+  parser.add_argument('architecture', default='straight', help='Convnet style. Choices: straight, dilated')
+  # Hparams for depthwise separable convs.
+  parser.add_argument('--use_sep_conv', default=False, help='Use depthwise separable convolutions.')
+
+  parser.add_argument('--sep_conv_depth_multiplier', default=1, help='Depth multiplier for'
+                                                                     'depthwise separable convs.')
+  parser.add_argument('--num_initial_regular_conv_layers', default=2, help='The number of regular convolutional'
+                                                         'layers to start with when using'
+                                                         'depthwise separable convolutional layers.')
+  # Hparams for reducing pointwise in separable convs.
+  parser.add_argument('--num_pointwise_splits', default=1, help='Num of splits on the pointwise convolution'
+                                                                'stage in depthwise separable convolutions.')
+
+  parser.add_argument('--interleave_split_every_n_layers', default=1, help='Num of split pointwise layers to'
+                                                                           'interleave between full pointwise layers')
+  # Hparams for dilated convs.
+  parser.add_argument('--num_dilation_blocks', default=3, help='The number dilation blocks'
+                                                               'that starts from dilation rate=1.')
+  parser.add_argument('--dilate_time_only', default=False, help='If set, only dilates the time'
+                                                                'dimension and not pitch.')
+  parser.add_argument('--repeat_last_dilation_level', default=False, help='If set, repeats the last dilation rate.')
+  # num_layers is used only for non dilated convs
+  # as the number of layers in dilated convs is computed based on
+  # num_dilation_blocks.
+  parser.add_argument('--num_layers', default=28, help='The number of convolutional layers'
+                                                       'for architectures that do not use dilated convs.')
+  parser.add_argument('--num_filters', default=256, help='The number of filters for each convolutional layer.')
+  parser.add_argument('--use_residual', default=True, help='Add residual connections or not.')
+  parser.add_argument('checkpoint_name', default=None, help='TODO')
+  # Loss setup.
+  # TODO(annahuang): currently maskout_method here is not functional,
+  # still need to go through config_tools.
+  parser.add_argument('--maskout_method', default='orderless', help="The choices include: 'bernoulli' "
+                  "and 'orderless' (which invokes gradient rescaling as per NADE).")
+  parser.add_argument('--optimize_mask_only', default=False, help='Optimize masked predictions only.')
+  # use_softmax_loss=True,
+  parser.add_argument('--rescale_loss', default=True, help='Rescale loss based on context size.')
+  # Training.
+  # learning_rate=2**-6,
+  parser.add_argument('--learning_rate', default=2 ** -4, help='Learning rate')  # for sigmoids.
+  parser.add_argument('--mask_indicates_context', default=False, help='Feed inverted mask into convnet so '
+                                                                      'that zero-padding makes sense.')
+  parser.add_argument('--eval_freq', default=1, help='The number of training iterations before validation.')
+  parser.add_argument('--num_epochs', default=0, help='The number of epochs to train the model. Default '
+                                                      'is 0, which means to run until terminated manually.')
+
+  parser.add_argument('--patience', default=5, help='Number of epochs to wait for improvement before '
+                                                    'decaying learning rate.')
+  # Runtime configs.
+  parser.add_argument('--run_dir', default=None, help='TODO')
+  parser.add_argument('--log_process', default=True, help='If False, do not log any checkpoints and summary'
+                                                          'statistics.')
+  parser.add_argument('--save_model_secs', default=30, help='The number of seconds between saving each checkpoint.')
+  parser.add_argument('--run_id', default='', help='A run_id to add to directory names to avoid accidentally '
+                                                   'overwriting when testing same setups.')
+
+  args = vars(parser.parse_args())
+
+  path = args.pop('data_dir')
+  grouped = args.pop('grouped')
+  logdir = args.pop('logdir')
+  log_progress = args.pop('log_progress')
+  main(args,path,grouped,logdir,log_progress)
