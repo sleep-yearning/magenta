@@ -34,23 +34,6 @@ import numpy as np
 import pretty_midi
 import tensorflow as tf
 
-FLAGS = tf.app.flags.FLAGS
-flags = tf.app.flags
-flags.DEFINE_integer("gen_batch_size", 3,
-                     "Num of samples to generate in a batch.")
-flags.DEFINE_string("strategy", None,
-                    "Use complete_midi when using midi.")
-flags.DEFINE_float("temperature", 0.99, "Softmax temperature")
-flags.DEFINE_integer("piece_length", 32, "Num of time steps in generated piece")
-flags.DEFINE_string("generation_output_dir", None,
-                    "Output directory for storing the generated Midi.")
-flags.DEFINE_string("prime_midi_melody_fpath", None,
-                    "Path to midi melody to be harmonized.")
-flags.DEFINE_string("checkpoint", None, "Path to checkpoint file")
-flags.DEFINE_bool("midi_io", False, "Run in midi in and midi out mode."
-                  "Does not write any midi or logs to disk.")
-flags.DEFINE_bool("tfsample", True, "Run sampling in Tensorflow graph.")
-
 
 def main(unused_argv):
   if FLAGS.checkpoint is None or not FLAGS.checkpoint:
@@ -690,4 +673,26 @@ def parse_art_to_pianoroll(art, tt=None):
 
 
 if __name__ == "__main__":
-  tf.app.run()
+  import argparse
+  
+  tf.logging.set_verbosity(tf.logging.INFO)
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--gen_batch_size", default=3,
+                     help="Num of samples to generate in a batch.")
+  parser.add_argument("strategy", default=None,
+                    help="Use complete_midi when using midi.")
+  parser.add_argument("--temperature", default=0.99, help="Softmax temperature")
+  parser.add_argument("--piece_length", default=32, help="Num of time steps in" 
+                                                         "generated piece")
+  parser.add_argument("generation_output_dir", default=None,
+                    help="Output directory for storing the generated Midi.")
+  parser.add_argument("--prime_midi_melody_fpath", default=None,
+                    help="Path to midi melody to be harmonized.")
+  parser.add_argument("checkpoint", default=None, help="Path to checkpoint file")
+  parser.add_argument("--midi_io", default=False, help="Run in midi in and midi"
+                                                       " out mode."
+                    help="Does not write any midi or logs to disk.")
+  parser.add_argument("--tfsample", default=True, help="Run sampling in " 
+                                                       "Tensorflow graph.")
+  
+  args = parser.parse_args()
