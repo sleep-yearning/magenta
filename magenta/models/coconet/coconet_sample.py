@@ -36,7 +36,7 @@ import tensorflow as tf
 
 
 def main(checkpoint, tfsample, strategy, gen_batch_size, piece_length,
-         temperature, generation_output_dir):
+         temperature, generation_output_dir, prime_midi_melody_fpath=None):
   if checkpoint is None or not checkpoint:
     raise ValueError(
         "Need to provide a path to checkpoint directory.")
@@ -47,7 +47,8 @@ def main(checkpoint, tfsample, strategy, gen_batch_size, piece_length,
     wmodel = instantiate_model(checkpoint)
     generator = Generator(wmodel, strategy)
   midi_outs = generator.run_generation(
-      gen_batch_size=gen_batch_size, piece_length=piece_length)
+           gen_batch_size=gen_batch_size, piece_length=piece_length,
+           prime_midi_melody_fpath=prime_midi_melody_fpath)
 
   # Creates a folder for storing the process of the sampling.
   label = "sample_%s_%s_%s_T%g_l%i_%.2fmin" % (lib_util.timestamp(),
@@ -130,7 +131,8 @@ class Generator(object):
                      pianorolls_in=None,
                      gen_batch_size=3,
                      piece_length=16,
-                     new_strategy=None):
+                     new_strategy=None,
+                     prime_midi_melody_fpath=None):
     """Generates, conditions on midi_in if given, returns midi.
 
     Args:
@@ -163,7 +165,10 @@ class Generator(object):
     start_time = time.time()
 
     if midi_in is not None and "midi" in self.strategy_name.lower():
-      pianorolls = self.strategy((shape, midi_in))
+      if "harm" in self.strategy_name.lower():
+         pianorolls = self.strategy((shape, midi_in, prime_midi_melody_fpath))
+      else:
+         pianorolls = self.strategy((shape, midi_in))      
     elif "complete_manual" == self.strategy_name.lower():
       pianorolls = self.strategy(pianorolls_in)
     else:
