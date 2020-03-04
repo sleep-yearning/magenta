@@ -350,9 +350,9 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
     tf.logging.info("resulting shape: %r", rolls.shape)
     return rolls
 
-  def run(self, tuple_in, temperature):
+  def run(self, tuple_in, temperature, prime_midi_melody_fpath):
     shape, midi_in = tuple_in
-    mroll = self.load_midi_melody(midi_in)
+    mroll = self.load_midi_melody(prime_midi_melody_fpath, midi_in)
     pianorolls = self.make_pianoroll_from_melody_roll(mroll, shape)
     masks = lib_sampling.HarmonizationMasker()(pianorolls.shape)
     gibbs = self.make_sampler(
