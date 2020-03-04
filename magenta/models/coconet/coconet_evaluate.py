@@ -26,84 +26,66 @@ from magenta.models.coconet import lib_util
 import numpy as np
 import tensorflow as tf
 
-FLAGS = tf.app.flags.FLAGS
-flags = tf.app.flags
-flags.DEFINE_string('data_dir', None,
-                    'Path to the base directory for different datasets.')
-flags.DEFINE_string('eval_logdir', None,
-                    'Path to the base directory for saving evaluation '
-                    'statistics.')
-flags.DEFINE_string('fold', None,
-                    'Data fold on which to evaluate (valid or test)')
-flags.DEFINE_string('fold_index', None,
-                    'Optionally, index of particular data point in fold to '
-                    'evaluate.')
-flags.DEFINE_string('unit', None, 'Note or frame or example.')
-flags.DEFINE_integer('ensemble_size', 5,
-                     'Number of ensemble members to average.')
-flags.DEFINE_bool('chronological', False,
-                  'Indicates evaluation should proceed in chronological order.')
-flags.DEFINE_string('checkpoint', None, 'Path to checkpoint directory.')
-flags.DEFINE_string('sample_npy_path', None, 'Path to samples to be evaluated.')
-
 
 EVAL_SUBDIR = 'eval_stats'
 
-
-def main(unused_argv):
-  checkpoint_dir = FLAGS.checkpoint
+def main(ckpt, evaldir, unit, chronological, ensemble_size, sample_path, 
+         folder, index, data_dir):
+  checkpoint_dir = ckpt
   if not checkpoint_dir:
     # If a checkpoint directory is not specified, see if there is only one
     # subdir in this folder and use that.
-    possible_checkpoint_dirs = tf.gfile.ListDirectory(FLAGS.eval_logdir)
+    possible_checkpoint_dirs = tf.gfile.ListDirectory(evaldir)
     possible_checkpoint_dirs = [
         i for i in possible_checkpoint_dirs if
-        tf.gfile.IsDirectory(os.path.join(FLAGS.eval_logdir, i))]
+        tf.gfile.IsDirectory(os.path.join(evaldir, i))]
     if EVAL_SUBDIR in possible_checkpoint_dirs:
       possible_checkpoint_dirs.remove(EVAL_SUBDIR)
     if len(possible_checkpoint_dirs) == 1:
       checkpoint_dir = os.path.join(
-          FLAGS.eval_logdir, possible_checkpoint_dirs[0])
+          evaldir, possible_checkpoint_dirs[0])
       tf.logging.info('Using checkpoint dir: %s', checkpoint_dir)
     else:
       raise ValueError(
           'Need to provide a path to checkpoint directory or use an '
           'eval_logdir with only 1 checkpoint subdirectory.')
   wmodel = lib_graph.load_checkpoint(checkpoint_dir)
-  if FLAGS.eval_logdir is None:
+  if evaldir is None:
     raise ValueError(
         'Set flag eval_logdir to specify a path for saving eval statistics.')
   else:
-    eval_logdir = os.path.join(FLAGS.eval_logdir, EVAL_SUBDIR)
+    eval_logdir = os.path.join(evaldir, EVAL_SUBDIR)
     tf.gfile.MakeDirs(eval_logdir)
 
   evaluator = lib_evaluation.BaseEvaluator.make(
-      FLAGS.unit, wmodel=wmodel, chronological=FLAGS.chronological)
-  evaluator = lib_evaluation.EnsemblingEvaluator(evaluator, FLAGS.ensemble_size)
+      unit, wmodel=wmodel, chronological=chronological)
+  evaluator = lib_evaluation.EnsemblingEvaluator(evaluator, ensemble_size)
 
-  if not FLAGS.sample_npy_path and FLAGS.fold is None:
+  if not sample_path and folder is None:
     raise ValueError(
         'Either --fold must be specified, or paths of npy files to load must '
         'be given, but not both.')
-  if FLAGS.fold is not None:
+  if folder is not None:
     evaluate_fold(
-        FLAGS.fold, evaluator, wmodel.hparams, eval_logdir, checkpoint_dir)
-  if FLAGS.sample_npy_path is not None:
-    evaluate_paths([FLAGS.sample_npy_path], evaluator, wmodel.hparams,
-                   eval_logdir)
+        folder, evaluator, wmodel.hparams, eval_logdir, checkpoint_dir, index, 
+        unit, ensemble_size, chronological, data_dir)
+  if sample_path is not None:
+    evaluate_paths([sample_path], evaluator, wmodel.hparams,
+                   eval_logdir, unit, ensemble_size, chronological)
   tf.logging.info('Done')
 
 
-def evaluate_fold(fold, evaluator, hparams, eval_logdir, checkpoint_dir):
+def evaluate_fold(fold, evaluator, hparams, eval_logdir, checkpoint_dir, index, 
+                  unit_in, ensemble_size, chronological, data_dir):
   """Writes to file the neg. loglikelihood of given fold (train/valid/test)."""
   eval_run_name = 'eval_%s_%s%s_%s_ensemble%s_chrono%s' % (
       lib_util.timestamp(), fold,
-      '' if FLAGS.fold_index is None else FLAGS.fold_index, FLAGS.unit,
-      FLAGS.ensemble_size, FLAGS.chronological)
+      '' if index is None else index, unit_in,
+      ensemble_size, chronological)
   log_fname = '%s__%s.npz' % (os.path.basename(checkpoint_dir), eval_run_name)
   log_fpath = os.path.join(eval_logdir, log_fname)
 
-  pianorolls = get_fold_pianorolls(fold, hparams)
+  pianorolls = get_fold_pianorolls(fold, hparams, data_dir, index)
 
   rval = lib_evaluation.evaluate(evaluator, pianorolls)
   tf.logging.info('Writing to path: %s' % log_fpath)
@@ -111,13 +93,14 @@ def evaluate_fold(fold, evaluator, hparams, eval_logdir, checkpoint_dir):
     np.savez_compressed(p, **rval)
 
 
-def evaluate_paths(paths, evaluator, unused_hparams, eval_logdir):
+def evaluate_paths(paths, evaluator, unused_hparams, eval_logdir, unit, 
+                   ensemble_size, chronological):
   """Evaluates negative loglikelihood of pianorolls from given paths."""
   for path in paths:
     name = 'eval_samples_%s_%s_ensemble%s_chrono%s' % (lib_util.timestamp(),
-                                                       FLAGS.unit,
-                                                       FLAGS.ensemble_size,
-                                                       FLAGS.chronological)
+                                                       unit,
+                                                       ensemble_size,
+                                                       chronological)
     log_fname = '%s__%s.npz' % (os.path.splitext(os.path.basename(path))[0],
                                 name)
     log_fpath = os.path.join(eval_logdir, log_fname)
@@ -129,14 +112,14 @@ def evaluate_paths(paths, evaluator, unused_hparams, eval_logdir):
       np.savez_compressed(p, **rval)
 
 
-def get_fold_pianorolls(fold, hparams):
-  dataset = lib_data.get_dataset(FLAGS.data_dir, hparams, fold)
+def get_fold_pianorolls(fold, hparams, data_dir, index):
+  dataset = lib_data.get_dataset(data_dir, hparams, fold)
   pianorolls = dataset.get_pianorolls()
   tf.logging.info('Retrieving pianorolls from %s set of %s dataset.',
                   fold, hparams.dataset)
   print_statistics(pianorolls)
-  if FLAGS.fold_index is not None:
-    pianorolls = [pianorolls[int(FLAGS.fold_index)]]
+  if index is not None:
+    pianorolls = [pianorolls[int(index)]]
   return pianorolls
 
 
@@ -167,5 +150,31 @@ def print_statistics(pianorolls):
 
 
 if __name__ == '__main__':
+  import argparse
+  
   tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  parser = argparse.ArgumentParser()
+  parser.add_argument('data_dir', default=None,
+                    help='Path to the base directory for different datasets.')
+  parser.add_argument('eval_logdir', default=None,
+                    help='Path to the base directory for saving evaluation '
+                    'statistics.')
+  parser.add_argument('fold', default=None,
+                    help='Data fold on which to evaluate (valid or test)')
+  parser.add_argument('fold_index', default=None,
+                    help='Optionally, index of particular data point in fold to'
+                    'evaluate.')
+  parser.add_argument('unit', default=None, help='Note or frame or example.')
+  parser.add_argument('ensemble_size', default=5,
+                     help='Number of ensemble members to average.')
+  parser.add_argument('chronological', default=False,
+                    help='Indicates evaluation should proceed in chronological'
+                         ' order.')
+  parser.add_argument('checkpoint', default=None, help='Path to checkpoint directory.')
+  parser.add_argument('sample_npy_path', default=None, help='Path to samples '
+                                                            'to be evaluated.')
+  
+  args = parser.parse_args()
+  main(args.checkpoint, args.eval_logdir, args.unit, args.chronological, 
+       args.ensemble_size, args.sample_npy_path, args.fold, args.fold_index, 
+       args.data_dir)
