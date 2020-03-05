@@ -26,6 +26,7 @@ def train(path,epochs,modelpath,grouped):
     # Data preprocessing.
     'crop_piece_len' : 32,
     # Hyperparameters.
+    'num_epochs' : epochs,
     'num_layers' : 32,
     'num_filters' : 64,
     'use_residual' : True,

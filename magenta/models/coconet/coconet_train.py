@@ -271,28 +271,11 @@ def _print_popstat_info(tfpopstats, nppopstats):
          flatmean([np.sqrt(ugh) for ugh in nppopstats[1::2]])))
 
 
-def _hparams_from_args(args):
-  """Instantiate hparams based on args."""
-  keys = ("""
-      dataset quantization_level num_instruments separate_instruments
-      crop_piece_len architecture use_sep_conv num_initial_regular_conv_layers
-      sep_conv_depth_multiplier num_dilation_blocks dilate_time_only
-      repeat_last_dilation_level num_layers num_filters use_residual
-      batch_size maskout_method mask_indicates_context optimize_mask_only
-      rescale_loss patience corrupt_ratio eval_freq run_id
-      num_pointwise_splits interleave_split_every_n_layers
-      """.split())
-  hparams = lib_hparams.Hyperparameters(**dict(
-      ((key, args[key]) for key in keys)))
-  return hparams
-
-
 if __name__ == '__main__':
   import argparse
 
   parser = argparse.ArgumentParser()
   # Non Hyperparameter arguments
-  parser.add_argument('data_dir', help='path to folder in which train_data.npz is found')
   parser.add_argument('--grouped', action='store_true')
   parser.add_argument('logdir', default=None, help='Path to the directory where checkpoints and '
                   'summary events will be saved during training.'
@@ -301,8 +284,8 @@ if __name__ == '__main__':
   parser.add_argument('--log_progress', default=True, help='If False, do not log any checkpoints and summary'
                                                            'statistics.')
 
-
   # Data.
+  parser.add_argument('data_dir', help='path to folder in which train_data.npz is found')
   parser.add_argument('--dataset', default='TrainData', help='Setting the Dataset Class for predefined properties')
   parser.add_argument('--quantization_level', default=0.125, help='Quantization duration.'
                                               'For qpm=120, notated quarter note equals 0.5.')
