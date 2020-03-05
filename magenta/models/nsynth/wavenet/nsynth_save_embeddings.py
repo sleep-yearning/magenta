@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet.fastgen import encode
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -95,8 +95,9 @@ def main(unused_argv=None):
     # Ensure that files has batch_size elements.
     batch_filler = batch_size - len(wavefiles_batch)
     wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
-    wav_data = np.array(
-        [utils.load_audio(f, sample_length) for f in wavefiles_batch])
+    wav_data = [utils.load_audio(f, sample_length) for f in wavefiles_batch]
+    min_len = min([x.shape[0] for x in wav_data])
+    wav_data = np.array([x[:min_len] for x in wav_data])
     try:
       tf.reset_default_graph()
       # Load up the model for encoding and find the encoding

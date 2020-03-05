@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ Provides a uniform interface for interacting with any model.
 
 import abc
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class BaseModel(object):

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,9 +32,8 @@ from magenta.models.gansynth.lib import networks
 from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
 import numpy as np
-import tensorflow as tf
-
-tfgan = tf.contrib.gan
+import tensorflow.compat.v1 as tf
+import tensorflow_gan as tfgan
 
 
 def set_flags(flags):

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,9 +30,8 @@ import time
 from absl import logging
 from magenta.models.gansynth.lib import networks
 import numpy as np
-import tensorflow as tf
-
-tfgan = tf.contrib.gan
+import tensorflow.compat.v1 as tf
+import tensorflow_gan as tfgan
 
 
 def make_train_sub_dir(stage_id, **kwargs):
@@ -448,6 +447,7 @@ class TrainTimeHook(tf.train.SessionRunHook):
 
   Optionally stops training if we've passed a time limit.
   """
+  _last_run_start_time = Ellipsis  # type: float
 
   def __init__(self, train_time, time_limit=None):
     super(TrainTimeHook, self).__init__()

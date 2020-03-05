@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,10 +28,13 @@ import magenta.music as mm
 from magenta.music import chords_lib
 from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
+from magenta.pipelines import drum_pipelines
+from magenta.pipelines import melody_pipelines
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
+from tensorflow.contrib import data as contrib_data
 
 PIANO_MIN_MIDI_PITCH = 21
 PIANO_MAX_MIDI_PITCH = 108
@@ -50,7 +53,12 @@ ELECTRIC_BASS_PROGRAM = 33
 REDUCED_DRUM_PITCH_CLASSES = drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES
 # 61 classes: full General MIDI set
 FULL_DRUM_PITCH_CLASSES = [
-    [p] for c in drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES for p in c]
+    [p] for p in  # pylint:disable=g-complex-comprehension
+    [36, 35, 38, 27, 28, 31, 32, 33, 34, 37, 39, 40, 56, 65, 66, 75, 85, 42, 44,
+     54, 68, 69, 70, 71, 73, 78, 80, 46, 67, 72, 74, 79, 81, 45, 29, 41, 61, 64,
+     84, 48, 47, 60, 63, 77, 86, 87, 50, 30, 43, 62, 76, 83, 49, 55, 57, 58, 51,
+     52, 53, 59, 82]
+]
 ROLAND_DRUM_PITCH_CLASSES = [
     # kick drum
     [36],
@@ -351,6 +359,8 @@ class BaseConverter(object):
     else:
       return self._to_items(samples, controls)
 
+  # TODO(b/144556490): Remove `do_not_convert` when fixed.
+  @tf.autograph.experimental.do_not_convert
   def tf_to_tensors(self, item_scalar):
     """TensorFlow op that converts item into output tensors.
 
@@ -711,7 +721,7 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
       return mm.Melody(
           steps_per_bar=steps_per_bar, steps_per_quarter=steps_per_quarter)
     melody_extractor_fn = functools.partial(
-        mm.extract_melodies,
+        melody_pipelines.extract_melodies,
         min_bars=1,
         gap_bars=gap_bars or float('inf'),
         max_steps_truncate=max_steps_truncate,
@@ -795,7 +805,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
     self._roll_output = roll_output
 
     self._drums_extractor_fn = functools.partial(
-        mm.extract_drum_tracks,
+        drum_pipelines.extract_drum_tracks,
         min_bars=1,
         gap_bars=gap_bars or float('inf'),
         max_steps_truncate=self._steps_per_bar * max_bars if max_bars else None,
@@ -1218,15 +1228,14 @@ def get_dataset(
           'No files were found matching examples path: %s' %  examples_path)
     files = tf.data.Dataset.list_files(examples_path)
     dataset = files.apply(
-        tf.contrib.data.parallel_interleave(
-            tf_file_reader,
-            cycle_length=num_threads,
-            sloppy=is_training))
+        contrib_data.parallel_interleave(
+            tf_file_reader, cycle_length=num_threads, sloppy=is_training))
   elif config.tfds_name:
     tf.logging.info('Reading examples from TFDS: %s', config.tfds_name)
     dataset = tfds.load(
         config.tfds_name,
         split=tfds.Split.TRAIN if is_training else tfds.Split.VALIDATION,
+        shuffle_files=is_training,
         try_gcs=True)
     def _tf_midi_to_note_sequence(ex):
       return tf.py_function(
@@ -1316,6 +1325,12 @@ class GrooveConverter(BaseNoteSequenceConverter):
     hits_as_controls: If True, pass in hits with the conditioning controls
       to force model to learn velocities and offsets.
     fixed_velocities: If True, flatten all input velocities.
+    max_note_dropout_probability: If a value is provided, randomly drop out
+      notes from the input sequences but not the output sequences.  On a per
+      sequence basis, a dropout probability will be chosen uniformly between 0
+      and this value such that some sequences will have fewer notes dropped
+      out and some will have have more.  On a per note basis, lower velocity
+      notes will be dropped out more often.
   """
 
   def __init__(self, split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
@@ -1323,7 +1338,8 @@ class GrooveConverter(BaseNoteSequenceConverter):
                inference_pitch_classes=None, humanize=False, tapify=False,
                add_instruments=None, num_velocity_bins=None,
                num_offset_bins=None, split_instruments=False, hop_size=None,
-               hits_as_controls=False, fixed_velocities=False):
+               hits_as_controls=False, fixed_velocities=False,
+               max_note_dropout_probability=None):
 
     self._split_bars = split_bars
     self._steps_per_quarter = steps_per_quarter
@@ -1387,6 +1403,9 @@ class GrooveConverter(BaseNoteSequenceConverter):
     # Set up controls for cycling through instrument outputs.
     if self._split_instruments:
       control_depth += self._num_drums
+
+    self._max_note_dropout_probability = max_note_dropout_probability
+    self._note_dropout = max_note_dropout_probability is not None
 
     super(GrooveConverter, self).__init__(
         input_depth=output_depth,
@@ -1564,6 +1583,18 @@ class GrooveConverter(BaseNoteSequenceConverter):
     in_hits = copy.deepcopy(hit_vectors)
     in_velocities = copy.deepcopy(velocity_vectors)
     in_offsets = copy.deepcopy(offset_vectors)
+
+    if self._note_dropout:
+      # Choose a uniform dropout probability for notes per sequence.
+      note_dropout_probability = np.random.uniform(
+          0.0, self._max_note_dropout_probability)
+      # Drop out lower velocity notes with higher probability.
+      velocity_dropout_weights = np.maximum(0.2, (1 - in_velocities))
+      note_dropout_keep_mask = 1 - np.random.binomial(
+          1, velocity_dropout_weights * note_dropout_probability)
+      in_hits *= note_dropout_keep_mask
+      in_velocities *= note_dropout_keep_mask
+      in_offsets *= note_dropout_keep_mask
 
     if self._tapify:
       argmaxes = np.argmax(in_velocities, axis=1)

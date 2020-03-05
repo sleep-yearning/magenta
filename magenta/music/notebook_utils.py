@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 from scipy.io import wavfile
 from six.moves import urllib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 _DEFAULT_SAMPLE_RATE = 44100
 _play_id = 0  # Used for ephemeral colab_play.
@@ -65,7 +65,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
             </audio>"""
   html = html.format(
       autoplay='autoplay' if autoplay else '',
-      base64_wavfile=base64.b64encode(memfile.getvalue()))
+      base64_wavfile=base64.b64encode(memfile.getvalue()).decode('ascii'))
   memfile.close()
   global _play_id
   _play_id += 1
