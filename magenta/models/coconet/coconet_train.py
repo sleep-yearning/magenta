@@ -105,7 +105,7 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
     run_stats['learning_rate'] = float(learning_rate)
 
   # Make summaries.
-  log_progress:
+  if log_progress:
     summaries = tf.Summary()
     for stat_name, stat in six.iteritems(run_stats):
       value = summaries.value.add()
