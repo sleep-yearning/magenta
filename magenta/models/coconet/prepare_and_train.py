@@ -8,8 +8,9 @@ def prepare(path,grouped):
     converted_data = midi_folder_transversion.main(path, grouped, interpret_instruments[0], interpret_instruments[1],
                                                    interpret_instruments[2])
     
-    interpret_instruments.append(min(np.amin(file) for file in converted_data))
-    interpret_instruments.append(max(np.amax(file) for file in converted_data))
+    interpret_instruments.append(int(min(np.amin(file) for file in converted_data)))
+    interpret_instruments.append(int(max(np.amax(file) for file in converted_data)))
+
     filename='programs.npy'
     if grouped:
         filename='programs_grouped.npy'
@@ -21,6 +22,7 @@ def train(path,epochs,modelpath,grouped):
 
     # TODO: test and fine tune, maybe use more hparams
     train_args = {
+    'dataset' : 'TrainData',
     # Data preprocessing.
     'crop_piece_len' : 32,
     # Hyperparameters.

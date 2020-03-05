@@ -106,7 +106,7 @@ class Hyperparameters(object):
       program3=72,
       program4=0)
 
-  def __init__(self, *unused_args, **init_hparams):
+  def __init__(self, init_hparams):
     """Update the default parameters through string or keyword arguments.
 
     This __init__ provides two ways to initialize default parameters, either by
@@ -125,6 +125,7 @@ class Hyperparameters(object):
     """
     tf.logging.info('Instantiating hparams...')
     unknown_params = set(init_hparams) - set(Hyperparameters._defaults)
+
     if unknown_params:
       raise ValueError('Unknown hyperparameters: %s' % unknown_params)
     self.update(Hyperparameters._defaults)

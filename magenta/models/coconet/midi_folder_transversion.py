@@ -107,7 +107,7 @@ def main(path, grouped_instruments, p1, p2, p3):
     num_data_points=converted_array.shape[0]
     test_set_index=int(num_data_points/5)
     valid_set_index=int(test_set_index*4)
-    np.savez(os.path.join(path, 'train_data.npz'), 
+    np.savez(os.path.join(path, 'TrainData.npz'),
              test=converted_array[0:test_set_index], 
              train=converted_array[test_set_index:valid_set_index],
              valid=converted_array[valid_set_index:num_data_points])

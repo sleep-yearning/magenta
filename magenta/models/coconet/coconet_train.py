@@ -127,21 +127,18 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
 def main(hparam_args,path,grouped,log_directory,log_progress):
   """Builds the graph and then runs training and validation."""
   print('TensorFlow version:', tf.__version__)
-  
-  filename_modifier=''
+
+  filename='programs.npy'
   if grouped:
-    filename_modifier='_grouped'
+    filename='programs_grouped.npy'
   
   p1, p2, p3, p4, min_pitch, max_pitch = np.load(os.path.join
-                                  (path,'programs',filename_modifier,'.npy'))
+                                  (path,filename))
   hparam_args.update([('program1', p1), ('program2', p2), ('program3', p3),
                       ('program4' , p4), ('min_pitch', min_pitch), 
                       ('max_pitch', max_pitch)])
   hparams = lib_hparams.Hyperparameters(hparam_args)
   tf.logging.set_verbosity(tf.logging.INFO)
-
-  if hparams.data_dir is None:
-    tf.logging.fatal('No input directory was provided.')
 
   print(hparams.maskout_method, 'separate', hparams.separate_instruments)
 
@@ -203,7 +200,7 @@ def main(hparam_args,path,grouped,log_directory,log_progress):
         if epoch_count % hparams.eval_freq == 0:
           estimate_popstats(sv, sess, m, train_data, hparams)
           loss = run_epoch(sv, sess, mvalid, valid_data, hparams, no_op,
-                           'valid', epoch_count)
+                           'valid', epoch_count, log_progress)
           tracker(loss, sess)
           if tracker.should_stop():
             break
@@ -229,10 +226,11 @@ class Tracker(object):
     self.age = 0
     self.true_age = 0
     self.decay_op = decay_op
+    self.log_progress = log_progress
 
   def __call__(self, loss, sess):
     if self.sign * loss > self.sign * self.best:
-      if log_progress:
+      if self.log_progress:
         tf.logging.info('Previous best %s: %.4f.', self.label, self.best)
         tf.gfile.MakeDirs(os.path.dirname(self.save_path))
         self.saver.save(sess, self.save_path)
