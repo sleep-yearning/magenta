@@ -49,6 +49,8 @@ class Hyperparameters(object):
       quantization_level=0.125,
       qpm=60,
       corrupt_ratio=0.25,
+      min_pitch=0,
+      max_pitch=127
       # Input dimensions.
       batch_size=20,
       crop_piece_len=64,
@@ -98,13 +100,11 @@ class Hyperparameters(object):
       log_process=True,
       save_model_secs=30,
       run_id='',
+      # Sampling info
       program1=69,
       program2=70,
       program3=72,
-      program4=71,
-      rhythmProgramChannel10=True,
-      min_pitch=0,
-      max_pitch=127)
+      program4=0)
 
   def __init__(self, *unused_args, **init_hparams):
     """Update the default parameters through string or keyword arguments.
