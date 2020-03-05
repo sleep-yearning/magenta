@@ -285,7 +285,7 @@ def _hparams_from_args(args):
       num_pointwise_splits interleave_split_every_n_layers
       """.split())
   hparams = lib_hparams.Hyperparameters(**dict(
-      (key, args[key] for key in keys))
+      ((key, args[key]) for key in keys)))
   return hparams
 
 

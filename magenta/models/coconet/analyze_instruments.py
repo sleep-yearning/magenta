@@ -52,9 +52,9 @@ def main(folder, grouped):
     p3 = next(sorted_programs)
 
     print(folder)
-    ret_array = [p1, p2, p3, rhythm_program]
-    print(ret_array)
-    return ret_array
+    ret_instruments = [p1, p2, p3, rhythm_program]
+    print(ret_instruments)
+    return ret_instruments
 
 #if called with the 'grouped' argument, grouped instrument analysis will be done
 if __name__ == "__main__":

@@ -50,7 +50,7 @@ class Hyperparameters(object):
       qpm=60,
       corrupt_ratio=0.25,
       min_pitch=0,
-      max_pitch=127
+      max_pitch=127,
       # Input dimensions.
       batch_size=20,
       crop_piece_len=64,
