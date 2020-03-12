@@ -8,7 +8,7 @@ def prepare(path,grouped):
     
     min_pitch = min(np.amin(file) for file in converted_data)
     max_pitch = max(np.amax(file) for file in converted_data)
-    return interpret_instruments,min_pitch,max_pitch
+    return interpret_instruments, min_pitch, max_pitch
 
 def train(path,epochs,modelpath,interpret_instruments,min_pitch,max_pitch):
     
