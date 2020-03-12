@@ -25,6 +25,13 @@ nepochs = StringVar()
 is_grouped = BooleanVar()
 is_grouped.set(True)
 
+# This map contains the pre-trained models and the paths to their data as a basis for the model selection
+model_map = {
+    "Abba": "/some-path", # TODO put real paths in here
+    "Bach": "/some-path",
+    "Zelda": "/some-path"
+}
+
 # Definitions go here
 
 
@@ -84,7 +91,7 @@ def start_training():
     except ValueError:
         messagebox.showerror("Error", "Nepochs must be a number!")
         return
-    train(train_folder_path.get(), int_nepochs, " ", is_grouped.get())
+    train(train_folder_path.get(), int_nepochs, " ", is_grouped.get(), title_new_train_model.get())
 
 def really_start_training():
     add_model_to_menu()
@@ -103,7 +110,13 @@ def callback(*args):
 def add_model_to_menu():
     val = title_new_train_model.get()
     which_model['menu'].add_command(label=val, command=tk._setit(choosemodel, val))
+    model_map[val] = train_folder_path.get()
 
+def play():
+    model_name = choosemodel.get()
+    model_folder_path = model_map[model_name]
+    model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
+    print(model_checkpoint_folder_path) # TODO use this
 
 root.title("Music in Machine Learning")
 root.minsize(640, 500)
@@ -182,6 +195,14 @@ btn_select_train_folder.pack()
 lbl_train_folder = Label(master=f2, textvariable=train_folder_path)
 lbl_train_folder.pack()
 
+lbl_grouped = Label(f1,
+                    text="Do you want to preprocess the midis with grouped instruments or with the one which are used most frequently?")
+lbl_grouped.pack()
+
+yes = Button(f1, text="Yes", command=set_group_true)
+yes.pack(pady=0)
+no = Button(f1, text="No", command=set_group_false)
+no.pack(pady=0)
 # lbl_frame_select_result_folder = ttk.LabelFrame(f2, text="Select a folder to save the results")
 # lbl_frame_select_result_folder.pack()
 #
@@ -226,10 +247,7 @@ lbl_choose_model.pack()
 
 OptionList = [
 "Choose a model",
-"Abba",
-"Bach",
-"Zelda"
-]
+] + model_map.keys()
 
 choosemodel.set(OptionList[0])
 
@@ -242,7 +260,7 @@ choosemodel.trace('w', callback)
 labelTest = Label(text="")
 labelTest.pack()
 
-lbl_frame_select_sample_midi = ttk.LabelFrame(f2, text="Select a midi file to sample from")
+lbl_frame_select_sample_midi = ttk.LabelFrame(f3, text="Select a midi file to sample from")
 lbl_frame_select_sample_midi.pack()
 
 btn_select_sample_midi = ttk.Button(lbl_frame_select_sample_midi, text="Select Folder", command=open_sample_midi)
@@ -250,7 +268,7 @@ btn_select_sample_midi.pack()
 
 base_path = str(pathlib.Path(__file__).parent.absolute())
 
-midi_play_button = Button(f3, text="play")
+midi_play_button = Button(f3, text="play", command=play)
 img_play = PhotoImage(file=os.path.join(base_path, "play.png"))
 midi_play_button.config(image=img_play)
 midi_play_button.pack(padx=5, pady=10, side=LEFT)
