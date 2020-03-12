@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import os
 from magenta.models.coconet import lib_util
 import numpy as np
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import yaml
 
 
@@ -49,6 +49,8 @@ class Hyperparameters(object):
       quantization_level=0.125,
       qpm=60,
       corrupt_ratio=0.25,
+      min_pitch=0,
+      max_pitch=127,
       # Input dimensions.
       batch_size=20,
       crop_piece_len=64,
@@ -98,15 +100,13 @@ class Hyperparameters(object):
       log_process=True,
       save_model_secs=30,
       run_id='',
+      # Sampling info
       program1=69,
       program2=70,
       program3=72,
-      program4=71,
-      rhythmProgramChannel10=True,
-      min_pitch=0,
-      max_pitch=127)
+      program4=0)
 
-  def __init__(self, *unused_args, **init_hparams):
+  def __init__(self, init_hparams):
     """Update the default parameters through string or keyword arguments.
 
     This __init__ provides two ways to initialize default parameters, either by
@@ -125,6 +125,7 @@ class Hyperparameters(object):
     """
     tf.logging.info('Instantiating hparams...')
     unknown_params = set(init_hparams) - set(Hyperparameters._defaults)
+
     if unknown_params:
       raise ValueError('Unknown hyperparameters: %s' % unknown_params)
     self.update(Hyperparameters._defaults)

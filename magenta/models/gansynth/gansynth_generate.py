@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import generate_util as gu
 from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import util
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 absl.flags.DEFINE_string('ckpt_dir',

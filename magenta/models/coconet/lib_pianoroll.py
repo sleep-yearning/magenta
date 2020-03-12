@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import numpy as np
 import pretty_midi
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class PitchOutOfEncodeRangeError(Exception):
@@ -130,7 +130,7 @@ class PianorollEncoderDecoder(object):
           roll[t, p, 0] = 0
     return roll
 
-  def decode_to_midi(self, pianoroll):
+  def decode_to_midi(self, pianoroll, drum=False):
     """Decodes pianoroll into midi."""
     # NOTE: Assumes four separate instruments ordered from high to low.
     midi_data = pretty_midi.PrettyMIDI()
@@ -148,8 +148,8 @@ class PianorollEncoderDecoder(object):
                     start=t * duration,
                     end=(t + 1) * duration))
       notes = merge_held(notes)
-
-      instrument = pretty_midi.Instrument(program=self.programs[i] - 1)
+      
+      instrument = pretty_midi.Instrument(program=self.programs[i] - 1, is_drum=drum)
       instrument.notes.extend(notes)
       midi_data.instruments.append(instrument)
     return midi_data

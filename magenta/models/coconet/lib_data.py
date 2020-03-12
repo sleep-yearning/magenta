@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from magenta.models.coconet import lib_mask
 from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_util
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class Dataset(lib_util.Factory):
@@ -159,7 +159,7 @@ class TestData(Dataset):
   qpm = 60
   
 class TrainData(Dataset):
-  key = "MidiTrainData"
+  key = "TrainData"
   min_pitch = 0
   max_pitch = 127
   shortest_duration = 0.125

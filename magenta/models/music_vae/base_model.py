@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,10 @@ from __future__ import print_function
 
 import abc
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
+from tensorflow.contrib import metrics as contrib_metrics
+from tensorflow.contrib import training as contrib_training
 
 ds = tfp.distributions
 
@@ -326,16 +328,16 @@ class MusicVAE(object):
     metric_map, scalars_to_summarize = self._compute_model_loss(
         input_sequence, output_sequence, sequence_length, control_sequence)
 
-    for n, t in scalars_to_summarize.iteritems():
+    for n, t in scalars_to_summarize.items():
       metric_map[n] = tf.metrics.mean(t)
 
     metrics_to_values, metrics_to_updates = (
-        tf.contrib.metrics.aggregate_metric_map(metric_map))
+        contrib_metrics.aggregate_metric_map(metric_map))
 
-    for metric_name, metric_value in metrics_to_values.iteritems():
+    for metric_name, metric_value in metrics_to_values.items():
       tf.summary.scalar(metric_name, metric_value)
 
-    return metrics_to_updates.values()
+    return list(metrics_to_updates.values())
 
   def sample(self, n, max_length=None, z=None, c_input=None, **kwargs):
     """Sample with an optional conditional embedding `z`."""
@@ -356,7 +358,7 @@ class MusicVAE(object):
 
 
 def get_default_hparams():
-  return tf.contrib.training.HParams(
+  return contrib_training.HParams(
       max_seq_len=32,  # Maximum sequence length. Others will be truncated.
       z_size=32,  # Size of latent vector z.
       free_bits=0.0,  # Bits to exclude from KL loss per dimension.

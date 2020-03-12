@@ -2,7 +2,7 @@ import numpy as np
 import math
 import os
 import pretty_midi as pm
-from magenta.models.coconet.instrument_groups import rhythm_in_normal_channels, groups
+from magenta.models.coconet.instrument_groups import groups
 
 
 # selects instruments to use and converts single file into 4 note-arrays
@@ -13,14 +13,7 @@ def convert_file(pm_file, interpret_programs):
     # get total length of song times samplerate
     array_length = int(math.ceil(length * 100))
 
-    # cluster rhythmprograms
-    rhythm_instruments = []
-    for instrument in instruments:
-        if instrument.is_drum:
-            rhythm_instruments.append(instrument)
-        elif (instrument.program in rhythm_in_normal_channels):
-            rhythm_instruments.append(instrument)
-
+    rhythm_instruments = []        
     instruments1 = []
     instruments2 = []
     instruments3 = []
@@ -34,6 +27,8 @@ def convert_file(pm_file, interpret_programs):
                     instruments2.append(instrument)
                 elif instrument.program == p3:
                     instruments3.append(instrument)
+            else:
+                rhythm_instruments.append(instrument)
     else:
         for group in groups:
             if p1 in group:
@@ -99,37 +94,36 @@ def instrument_to_column(instrument, array_length, song_row):
     return lowestloudest
 
 
-def convert_folder(path, grouped_instruments):
-    append_string = ''
-    if grouped_instruments:
-        append_string = 'grouped'
-    try:
-        p1, p2, p3, pR, rhythm_in_channel10 = np.load(path + 'programs' + append_string + '.npy')
-    except IOError as err:
-        print("IO error: {0}".format(err))
-        return
+def main(path, grouped_instruments, p1, p2, p3):
     print('Main Instruments: ', pm.program_to_instrument_name(p1), pm.program_to_instrument_name(p2),
           pm.program_to_instrument_name(p3))
     converted_data = []
     for filename in os.listdir(path):
         if filename.lower().endswith('.mid'):
-            pm_file = pm.PrettyMIDI(path + filename, clip=True)
+            pm_file = pm.PrettyMIDI(os.path.join(path, filename), clip=True)
             print(filename)
-            converted_data.append(convert_file(pm_file, [p1, p2, p3, rhythm_in_channel10]))
+            converted_data.append(convert_file(pm_file, [p1, p2, p3, grouped_instruments]))
     converted_array = np.asarray(converted_data)
     num_data_points=converted_array.shape[0]
     test_set_index=int(num_data_points/5)
     valid_set_index=int(test_set_index*4)
-    np.savez(path + 'train_data.npz', test=converted_array[0:test_set_index], train=converted_array[test_set_index:valid_set_index],
+    np.savez(os.path.join(path, 'TrainData.npz'),
+             test=converted_array[0:test_set_index], 
+             train=converted_array[test_set_index:valid_set_index],
              valid=converted_array[valid_set_index:num_data_points])
     return converted_array
 
-
-def main(arguments):
-    convert_folder(arguments[0], arguments[1])
-
-
 if __name__ == "__main__":
-    import sys
-    args = sys.argv[1:]
-    main(args)
+    import argparse
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', default=None, help='Path to Midi folder to be converted')
+    parser.add_argument('--grouped', action='store_true', help='Groups instruments by type')
+    parser.add_argument('program1', default=69, help='Interpret program for track 1, '
+                                                     'as analyzed in analyze_instruments.py')
+    parser.add_argument('program2', default=70, help='Interpret program for track 2, '
+                                                     'as analyzed in analyze_instruments.py')
+    parser.add_argument('program3', default=72, help='Interpret program for track 3, '
+                                                     'as analyzed in analyze_instruments.py')
+    args = parser.parse_args()
+    main(args.path, args.grouped, args.program1, args.program2, args.program3)

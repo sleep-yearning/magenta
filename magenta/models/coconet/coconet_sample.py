@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,47 +32,35 @@ from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_util
 import numpy as np
 import pretty_midi
-import tensorflow as tf
-
-FLAGS = tf.app.flags.FLAGS
-flags = tf.app.flags
-flags.DEFINE_integer("gen_batch_size", 3,
-                     "Num of samples to generate in a batch.")
-flags.DEFINE_string("strategy", None,
-                    "Use complete_midi when using midi.")
-flags.DEFINE_float("temperature", 0.99, "Softmax temperature")
-flags.DEFINE_integer("piece_length", 32, "Num of time steps in generated piece")
-flags.DEFINE_string("generation_output_dir", None,
-                    "Output directory for storing the generated Midi.")
-flags.DEFINE_string("prime_midi_melody_fpath", None,
-                    "Path to midi melody to be harmonized.")
-flags.DEFINE_string("checkpoint", None, "Path to checkpoint file")
-flags.DEFINE_bool("midi_io", False, "Run in midi in and midi out mode."
-                  "Does not write any midi or logs to disk.")
-flags.DEFINE_bool("tfsample", True, "Run sampling in Tensorflow graph.")
+import tensorflow.compat.v1 as tf
 
 
-def main(unused_argv):
-  if FLAGS.checkpoint is None or not FLAGS.checkpoint:
+def main(checkpoint, tfsample, strategy, gen_batch_size, piece_length,
+         temperature, generation_output_dir, prime_midi_melody_fpath=None):
+  if checkpoint is None or not checkpoint:
     raise ValueError(
         "Need to provide a path to checkpoint directory.")
 
-  if FLAGS.tfsample:
-    generator = TFGenerator(FLAGS.checkpoint)
+  midi_file=None
+  if prime_midi_melody_fpath not None:
+    midi_file = pretty_midi.PrettyMIDI(prime_midi_melody_fpath)
+  if tfsample:
+    generator = TFGenerator(checkpoint)
   else:
-    wmodel = instantiate_model(FLAGS.checkpoint)
-    generator = Generator(wmodel, FLAGS.strategy)
-  midi_outs = generator.run_generation(
-      gen_batch_size=FLAGS.gen_batch_size, piece_length=FLAGS.piece_length)
+    wmodel = instantiate_model(checkpoint)
+    generator = Generator(wmodel, strategy)
+  midi_outs = generator.run_generation(temperature,
+           gen_batch_size=gen_batch_size, piece_length=piece_length,
+           prime_midi_melody_fpath=prime_midi_melody_fpath, midi_in=midi_file)
 
   # Creates a folder for storing the process of the sampling.
   label = "sample_%s_%s_%s_T%g_l%i_%.2fmin" % (lib_util.timestamp(),
-                                               FLAGS.strategy,
+                                               strategy,
                                                generator.hparams.architecture,
-                                               FLAGS.temperature,
-                                               FLAGS.piece_length,
+                                               temperature,
+                                               piece_length,
                                                generator.time_taken)
-  basepath = os.path.join(FLAGS.generation_output_dir, label)
+  basepath = os.path.join(generation_output_dir, label)
   tf.logging.info("basepath: %s", basepath)
   tf.gfile.MakeDirs(basepath)
 
@@ -87,7 +75,7 @@ def main(unused_argv):
   with tf.gfile.Open(result_npy_save_path, "w") as p:
     np.save(p, generator.pianorolls)
 
-  if FLAGS.tfsample:
+  if tfsample:
     tf.logging.info("Done")
     return
 
@@ -109,10 +97,10 @@ def main(unused_argv):
         tf.logging.info("Writing context to %s", context_fpath)
         with lib_util.atomic_file(context_fpath) as context_p:
           np.save(context_p, context_rolls)
-        if "harm" in FLAGS.strategy:
+        if "harm" in strategy:
           # Only synthesize the one prime if in Midi-melody-prime mode.
           primes = context_rolls
-          if "Melody" in FLAGS.strategy:
+          if "Melody" in strategy:
             primes = [context_rolls[0]]
           prime_midi_outs = get_midi_from_pianorolls(primes, generator.decoder)
           save_midis(prime_midi_outs, midi_path, label + "_prime")
@@ -142,11 +130,14 @@ class Generator(object):
     self._time_taken = None
 
   def run_generation(self,
+                     temperature,
                      midi_in=None,
                      pianorolls_in=None,
                      gen_batch_size=3,
                      piece_length=16,
-                     new_strategy=None):
+                     new_strategy=None,
+                     prime_midi_melody_fpath=None
+                     ):
     """Generates, conditions on midi_in if given, returns midi.
 
     Args:
@@ -179,11 +170,14 @@ class Generator(object):
     start_time = time.time()
 
     if midi_in is not None and "midi" in self.strategy_name.lower():
-      pianorolls = self.strategy((shape, midi_in))
+      if "harm" in self.strategy_name.lower():
+         pianorolls = self.strategy((shape, midi_in, prime_midi_melody_fpath),temperature)
+      else:
+         pianorolls = self.strategy((shape, midi_in),temperature)      
     elif "complete_manual" == self.strategy_name.lower():
-      pianorolls = self.strategy(pianorolls_in)
+      pianorolls = self.strategy(pianorolls_in,temperature)
     else:
-      pianorolls = self.strategy(shape)
+      pianorolls = self.strategy(shape,temperature)
     self._pianorolls = pianorolls
     self._time_taken = (time.time() - start_time) / 60.0
 
@@ -287,10 +281,11 @@ class TFGenerator(object):
 
 def get_midi_from_pianorolls(rolls, decoder):
   midi_datas = []
-  for pianoroll in rolls:
-    tf.logging.info("pianoroll shape: %r", pianoroll.shape)
-    midi_data = decoder.decode_to_midi(pianoroll)
+  for i in np.arange(len(rolls)-1):
+    tf.logging.info("pianoroll shape: %r", rolls[i].shape)
+    midi_data = decoder.decode_to_midi(rolls[i])
     midi_datas.append(midi_data)
+  midi_datas.append(decoder.decode_to_midi(rolls[-1],drum=True)
   return midi_datas
 
 
@@ -312,7 +307,7 @@ def instantiate_model(checkpoint, instantiate_sess=True):
 ##################
 ### Strategies ###
 ##################
-# Commonly used compositions of samplers, user-selectable through FLAGS.strategy
+# Commonly used compositions of samplers, user-selectable through strategy argument
 
 
 class BaseStrategy(lib_util.Factory):
@@ -323,11 +318,11 @@ class BaseStrategy(lib_util.Factory):
     self.logger = logger
     self.decoder = decoder
 
-  def __call__(self, shape):
+  def __call__(self, shape, temperature):
     label = "%s_strategy" % self.key
     with lib_util.timing(label):
       with self.logger.section(label):
-        return self.run(shape)
+        return self.run(shape, temperature)
 
   def blank_slate(self, shape):
     return (np.zeros(shape, dtype=np.float32), np.ones(shape, dtype=np.float32))
@@ -340,12 +335,12 @@ class BaseStrategy(lib_util.Factory):
 
 # pylint:disable=missing-docstring
 class HarmonizeMidiMelodyStrategy(BaseStrategy):
-  """Harmonizes a midi melody (fname given by FLAGS.prime_midi_melody_fpath)."""
+  """Harmonizes a midi melody (fname given by prime_midi_melody_fpath argument)."""
   key = "harmonize_midi_melody"
 
-  def load_midi_melody(self, midi=None):
+  def load_midi_melody(self, prime_midi_melody_fpath, midi=None):
     if midi is None:
-      midi = pretty_midi.PrettyMIDI(FLAGS.prime_midi_melody_fpath)
+      midi = pretty_midi.PrettyMIDI(prime_midi_melody_fpath)
     return self.decoder.encode_midi_melody_to_pianoroll(midi)
 
   def make_pianoroll_from_melody_roll(self, mroll, requested_shape):
@@ -365,15 +360,15 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
     tf.logging.info("resulting shape: %r", rolls.shape)
     return rolls
 
-  def run(self, tuple_in):
-    shape, midi_in = tuple_in
-    mroll = self.load_midi_melody(midi_in)
+  def run(self, tuple_in, temperature):
+    shape, midi_in, prime_midi_melody_fpath = tuple_in
+    mroll = self.load_midi_melody(prime_midi_melody_fpath, midi_in)
     pianorolls = self.make_pianoroll_from_melody_roll(mroll, shape)
     masks = lib_sampling.HarmonizationMasker()(pianorolls.shape)
     gibbs = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),
-        sampler=self.make_sampler("independent", temperature=FLAGS.temperature),
+        sampler=self.make_sampler("independent", temperature=temperature),
         schedule=lib_sampling.YaoSchedule())
 
     with self.logger.section("context"):
@@ -390,7 +385,7 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
 class ScratchUpsamplingStrategy(BaseStrategy):
   key = "scratch_upsampling"
 
-  def run(self, shape):
+  def run(self, shape, temperature):
     # start with an empty pianoroll of length 1, then repeatedly upsample
     initial_shape = list(shape)
     desired_length = shape[1]
@@ -406,7 +401,7 @@ class ScratchUpsamplingStrategy(BaseStrategy):
             "gibbs",
             masker=lib_sampling.BernoulliMasker(),
             sampler=self.make_sampler(
-                "independent", temperature=FLAGS.temperature),
+                "independent", temperature=temperature),
             schedule=lib_sampling.YaoSchedule()))
 
     return sampler(pianorolls, masks)
@@ -415,9 +410,9 @@ class ScratchUpsamplingStrategy(BaseStrategy):
 class BachUpsamplingStrategy(BaseStrategy):
   key = "bach_upsampling"
 
-  def run(self, shape):
+  def run(self, shape, temperature):
     # optionally start with bach samples
-    init_sampler = self.make_sampler("bach", temperature=FLAGS.temperature)
+    init_sampler = self.make_sampler("bach", temperature=temperature)
     pianorolls, masks = self.blank_slate(shape)
     pianorolls = init_sampler(pianorolls, masks)
     desired_length = 4 * shape[1]
@@ -428,7 +423,7 @@ class BachUpsamplingStrategy(BaseStrategy):
             "gibbs",
             masker=lib_sampling.BernoulliMasker(),
             sampler=self.make_sampler(
-                "independent", temperature=FLAGS.temperature),
+                "independent", temperature=temperature),
             schedule=lib_sampling.YaoSchedule()))
     return sampler(pianorolls, masks)
 
@@ -436,15 +431,15 @@ class BachUpsamplingStrategy(BaseStrategy):
 class RevoiceStrategy(BaseStrategy):
   key = "revoice"
 
-  def run(self, shape):
-    init_sampler = self.make_sampler("bach", temperature=FLAGS.temperature)
+  def run(self, shape, temperature):
+    init_sampler = self.make_sampler("bach", temperature=temperature)
     pianorolls, masks = self.blank_slate(shape)
     pianorolls = init_sampler(pianorolls, masks)
 
     sampler = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),
-        sampler=self.make_sampler("independent", temperature=FLAGS.temperature),
+        sampler=self.make_sampler("independent", temperature=temperature),
         schedule=lib_sampling.YaoSchedule())
 
     for i in range(shape[-1]):
@@ -463,8 +458,8 @@ class RevoiceStrategy(BaseStrategy):
 class HarmonizationStrategy(BaseStrategy):
   key = "harmonization"
 
-  def run(self, shape):
-    init_sampler = self.make_sampler("bach", temperature=FLAGS.temperature)
+  def run(self, shape, temperature):
+    init_sampler = self.make_sampler("bach", temperature=temperature)
     pianorolls, masks = self.blank_slate(shape)
     pianorolls = init_sampler(pianorolls, masks)
 
@@ -473,7 +468,7 @@ class HarmonizationStrategy(BaseStrategy):
     gibbs = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),
-        sampler=self.make_sampler("independent", temperature=FLAGS.temperature),
+        sampler=self.make_sampler("independent", temperature=temperature),
         schedule=lib_sampling.YaoSchedule())
 
     with self.logger.section("context"):
@@ -493,9 +488,9 @@ class HarmonizationStrategy(BaseStrategy):
 class TransitionStrategy(BaseStrategy):
   key = "transition"
 
-  def run(self, shape):
+  def run(self, shape, temperature):
     init_sampler = lib_sampling.BachSampler(
-        wmodel=self.wmodel, temperature=FLAGS.temperature)
+        wmodel=self.wmodel, temperature=temperature)
     pianorolls, masks = self.blank_slate(shape)
     pianorolls = init_sampler(pianorolls, masks)
 
@@ -503,7 +498,7 @@ class TransitionStrategy(BaseStrategy):
     gibbs = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),
-        sampler=self.make_sampler("independent", temperature=FLAGS.temperature),
+        sampler=self.make_sampler("independent", temperature=temperature),
         schedule=lib_sampling.YaoSchedule())
 
     with self.logger.section("context"):
@@ -519,10 +514,10 @@ class TransitionStrategy(BaseStrategy):
 class ChronologicalStrategy(BaseStrategy):
   key = "chronological"
 
-  def run(self, shape):
+  def run(self, shape, temperature):
     sampler = self.make_sampler(
         "ancestral",
-        temperature=FLAGS.temperature,
+        temperature=temperature,
         selector=lib_sampling.ChronologicalSelector())
     pianorolls, masks = self.blank_slate(shape)
     pianorolls = sampler(pianorolls, masks)
@@ -532,10 +527,10 @@ class ChronologicalStrategy(BaseStrategy):
 class OrderlessStrategy(BaseStrategy):
   key = "orderless"
 
-  def run(self, shape):
+  def run(self, shape, temperature):
     sampler = self.make_sampler(
         "ancestral",
-        temperature=FLAGS.temperature,
+        temperature=temperature,
         selector=lib_sampling.OrderlessSelector())
     pianorolls, masks = self.blank_slate(shape)
     pianorolls = sampler(pianorolls, masks)
@@ -545,12 +540,12 @@ class OrderlessStrategy(BaseStrategy):
 class IgibbsStrategy(BaseStrategy):
   key = "igibbs"
 
-  def run(self, shape):
+  def run(self, shape, temperature):
     pianorolls, masks = self.blank_slate(shape)
     sampler = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),
-        sampler=self.make_sampler("independent", temperature=FLAGS.temperature),
+        sampler=self.make_sampler("independent", temperature=temperature),
         schedule=lib_sampling.YaoSchedule())
     pianorolls = sampler(pianorolls, masks)
     return pianorolls
@@ -559,7 +554,7 @@ class IgibbsStrategy(BaseStrategy):
 class AgibbsStrategy(BaseStrategy):
   key = "agibbs"
 
-  def run(self, shape):
+  def run(self, shape, temperature):
     pianorolls, masks = self.blank_slate(shape)
     sampler = self.make_sampler(
         "gibbs",
@@ -567,7 +562,7 @@ class AgibbsStrategy(BaseStrategy):
         sampler=self.make_sampler(
             "ancestral",
             selector=lib_sampling.OrderlessSelector(),
-            temperature=FLAGS.temperature),
+            temperature=temperature),
         schedule=lib_sampling.YaoSchedule())
     pianorolls = sampler(pianorolls, masks)
     return pianorolls
@@ -576,13 +571,13 @@ class AgibbsStrategy(BaseStrategy):
 class CompleteManualStrategy(BaseStrategy):
   key = "complete_manual"
 
-  def run(self, pianorolls):
+  def run(self, pianorolls, temperature):
     # fill in the silences
     masks = lib_sampling.CompletionMasker()(pianorolls)
     gibbs = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),
-        sampler=self.make_sampler("independent", temperature=FLAGS.temperature),
+        sampler=self.make_sampler("independent", temperature=temperature),
         schedule=lib_sampling.YaoSchedule())
 
     with self.logger.section("context"):
@@ -601,7 +596,7 @@ class CompleteManualStrategy(BaseStrategy):
 class CompleteMidiStrategy(BaseStrategy):
   key = "complete_midi"
 
-  def run(self, tuple_in):
+  def run(self, tuple_in, temperature):
     shape, midi_in = tuple_in
     pianorolls = self.decoder.encode_midi_to_pianoroll(midi_in, shape)
     # fill in the silences
@@ -609,7 +604,7 @@ class CompleteMidiStrategy(BaseStrategy):
     gibbs = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),
-        sampler=self.make_sampler("independent", temperature=FLAGS.temperature),
+        sampler=self.make_sampler("independent", temperature=temperature),
         schedule=lib_sampling.YaoSchedule())
 
     with self.logger.section("context"):
@@ -689,4 +684,29 @@ def parse_art_to_pianoroll(art, tt=None):
 
 
 if __name__ == "__main__":
-  tf.app.run()
+  import argparse
+  
+  tf.logging.set_verbosity(tf.logging.INFO)
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--gen_batch_size", default=3,
+                     help="Num of samples to generate in a batch.")
+  parser.add_argument("strategy", default=None,
+                    help="Use complete_midi or harmonize_midi_melody when using'
+                      'midi or set tfsample True. Further options: scratch_upsampling,'
+                      ' bach_upsampling, revoice, harmonization, transition, '
+                      'chronological, orderless, igibbs, agibbs and complete_manual.')
+  parser.add_argument("--temperature", default=0.99, help="Softmax temperature")
+  parser.add_argument("--piece_length", default=32, help="Num of time steps in" 
+                                                         "generated piece")
+  parser.add_argument("generation_output_dir", default=None,
+                    help="Output directory for storing the generated Midi.")
+  parser.add_argument("--prime_midi_melody_fpath", default=None,
+                    help="Path to midi melody to be harmonized.")
+  parser.add_argument("checkpoint", default=None, help="Path to checkpoint file")
+  parser.add_argument("--tfsample", default=True, help="Run sampling in " 
+                                                       "Tensorflow graph.")
+  
+  args = parser.parse_args()
+  main(args.checkpoint, args.tfsample, args.strategy, args.gen_batch_size,
+       args.piece_length, args.temperature, args.generation_output_dir, 
+       args.prime_midi_melody_fpath)

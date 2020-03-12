@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,11 @@ from __future__ import print_function
 
 from magenta.models.nsynth import utils
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import slim as contrib_slim
+from tensorflow.contrib import training as contrib_training
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def get_hparams(config_name):
@@ -34,7 +36,7 @@ def get_hparams(config_name):
   Returns:
     A HParams object (magenta) with defaults.
   """
-  hparams = tf.contrib.training.HParams(
+  hparams = contrib_training.HParams(
       # Optimization
       batch_size=16,
       learning_rate=1e-4,
