@@ -1,11 +1,14 @@
 from tkinter import *
 from tkinter import ttk
+import tkinter as tk
 from tkinter.ttk import *
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from tkinter import Tk, RIGHT, BOTH, RAISED
 from tkinter.ttk import Frame, Button, Style
 import _thread
 from prepare_and_train import prepare, train, main
+import os
+import pathlib
 
 root = Tk()
 
@@ -16,11 +19,19 @@ result_folder_path_npz = StringVar()
 train_folder_path = StringVar()
 result_folder_path_training = StringVar()
 choosemodel = StringVar()
+title_new_train_model = StringVar()
+nepochs = StringVar()
 
-is_grouped = BooleanVar(root)
-
+is_grouped = BooleanVar()
+is_grouped.set(True)
 
 # Definitions go here
+
+
+def check_that_folder_contains_file(folder_path, file):
+    path = os.path.join(folder_path, file)
+    return os.path.isfile(path)
+
 
 def open_converting_folder():
     folder_path = (filedialog.askdirectory(parent=root, title='Choose a folder containing midi files') + '/')
@@ -38,11 +49,14 @@ def open_result_folder_npz():
 
 def open_train_folder():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder containing npz file')
-    train_folder_path.set(folder_path)
-    if not result_folder_path_training.get():
-        result_folder_path_training.set(folder_path)
-    print(folder_path)
 
+    if check_that_folder_contains_file(folder_path, 'trainData.npz'):
+        train_folder_path.set(folder_path)
+        if not result_folder_path_training.get():
+            result_folder_path_training.set(folder_path)
+        print(folder_path)
+    else:
+        messagebox.showerror("Error", "There is no 'trainData.npz' in the selected folder!")
 
 def open_result_folder_train():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder to place the results in')
@@ -63,10 +77,18 @@ def convert_in_background():
 def stop_it():
     root.destroy()
 
-# def start_training():
-# TODO fix this (not working)
-# Error: AttributeError: 'module' object has no attribute 'run'
-# tf.run.app(main)
+def start_training():
+    string_nepochs = nepochs.get()
+    try:
+        int_nepochs = int(string_nepochs)
+    except ValueError:
+        messagebox.showerror("Error", "Nepochs must be a number!")
+        return
+    train(train_folder_path.get(), int_nepochs, " ", is_grouped.get())
+
+def really_start_training():
+    add_model_to_menu()
+    start_training()
 
 def set_group_true():
     is_grouped.set(True)
@@ -78,6 +100,9 @@ def set_group_false():
 def callback(*args):
     labelTest.configure(text="The selected item is {}".format(choosemodel.get()))
 
+def add_model_to_menu():
+    val = title_new_train_model.get()
+    which_model['menu'].add_command(label=val, command=tk._setit(choosemodel, val))
 
 
 root.title("Music in Machine Learning")
@@ -102,23 +127,23 @@ nb.add(f3, text="Sampling")
 ##########
 
 lbl_frame_select_convert_folder = ttk.LabelFrame(f1, text="Select your folder with midi files")
-lbl_frame_select_convert_folder.pack(side=TOP)
+lbl_frame_select_convert_folder.pack()
 
 btn_select_convert_folder = ttk.Button(lbl_frame_select_convert_folder, text="Select Folder",
                                        command=open_converting_folder)
-btn_select_convert_folder.pack(side=TOP)
+btn_select_convert_folder.pack()
 
 lbl_convert_folder = Label(master=f1, textvariable=convert_folder_path)
-lbl_convert_folder.pack(side=TOP)
+lbl_convert_folder.pack()
 
 lbl_grouped = Label(f1,
                     text="Do you want to preprocess the midis with grouped instruments or with the one which are used most frequently?")
-lbl_grouped.pack(side=TOP)
+lbl_grouped.pack()
 
 yes = Button(f1, text="Yes", command=set_group_true)
-yes.pack(side=LEFT, pady=0)
+yes.pack(pady=0)
 no = Button(f1, text="No", command=set_group_false)
-no.pack(side=LEFT, pady=0)
+no.pack(pady=0)
 
 # lbl_frame_select_result_folder = ttk.LabelFrame(f1, text="Select a folder to save the results")
 # lbl_frame_select_result_folder.pack()
@@ -131,16 +156,16 @@ no.pack(side=LEFT, pady=0)
 # lbl_result_folder.pack()
 
 lbl_convert_midis = Label(f1, text="First preprocess your midi Files to a npz File")
-lbl_convert_midis.pack(side=BOTTOM)
+lbl_convert_midis.pack()
 
 btn_start_converting = ttk.Button(f1, text="Start preprocessing", command=convert_in_background)
-btn_start_converting.pack(side=BOTTOM)
+btn_start_converting.pack()
 
 btn_stop_converting = ttk.Button(f1, text="Stop preprocessing", command=stop_it)
-btn_stop_converting.pack(side=BOTTOM)
+btn_stop_converting.pack()
 
 progress = ttk.Progressbar(f1, orient=HORIZONTAL, length=200)
-progress.pack(side=BOTTOM)
+progress.pack()
 
 #########
 #
@@ -157,29 +182,38 @@ btn_select_train_folder.pack()
 lbl_train_folder = Label(master=f2, textvariable=train_folder_path)
 lbl_train_folder.pack()
 
-lbl_frame_select_result_folder = ttk.LabelFrame(f2, text="Select a folder to save the results")
-lbl_frame_select_result_folder.pack()
+# lbl_frame_select_result_folder = ttk.LabelFrame(f2, text="Select a folder to save the results")
+# lbl_frame_select_result_folder.pack()
+#
+# btn_select_result_folder = ttk.Button(lbl_frame_select_result_folder, text="Select Folder",
+#                                       command=open_result_folder_train)
+# btn_select_result_folder.pack()
+#
+# lbl_result_folder = Label(master=f2, textvariable=result_folder_path_training)
+# lbl_result_folder.pack()
 
-btn_select_result_folder = ttk.Button(lbl_frame_select_result_folder, text="Select Folder",
-                                      command=open_result_folder_train)
-btn_select_result_folder.pack()
+lbl_new_model_nepoch = Label(f2,
+                           text="Please enter number of epochs")
+lbl_new_model_nepoch.pack()
 
-lbl_result_folder = Label(master=f2, textvariable=result_folder_path_training)
-lbl_result_folder.pack()
+
+title_new_train_model_nepoch = Entry(f2, textvariable=nepochs)
+title_new_train_model_nepoch.pack()
+
 
 lbl_new_model_name = Label(f2,
                            text="Please enter the name for your model")
 lbl_new_model_name.pack()
 
 
-title_new_train_model = Entry(f2)
-title_new_train_model.pack()
+title_new_train_model_widget = Entry(f2, textvariable=title_new_train_model)
+title_new_train_model_widget.pack()
 
 lbl_start_training = Label(f2,
                            text="If you already converted your midis, please choose the folder with the .npz file above and start training here.")
 lbl_start_training.pack()
 
-btn_start_training = ttk.Button(f2, text="Start Training")  # , command=start_training)
+btn_start_training = ttk.Button(f2, text="Start Training", command=really_start_training)
 btn_start_training.pack()
 
 #########
@@ -214,13 +248,15 @@ lbl_frame_select_sample_midi.pack()
 btn_select_sample_midi = ttk.Button(lbl_frame_select_sample_midi, text="Select Folder", command=open_sample_midi)
 btn_select_sample_midi.pack()
 
+base_path = str(pathlib.Path(__file__).parent.absolute())
+
 midi_play_button = Button(f3, text="play")
-img_play = PhotoImage(file="/Users/Tessa/Projects/magenta/magenta/models/coconet/play.png")
+img_play = PhotoImage(file=os.path.join(base_path, "play.png"))
 midi_play_button.config(image=img_play)
 midi_play_button.pack(padx=5, pady=10, side=LEFT)
 
 midi_download_button = Button(f3, text="download")
-img_download = PhotoImage(file="/Users/Tessa/Projects/magenta/magenta/models/coconet/download.png")
+img_download = PhotoImage(file=os.path.join(base_path, "download.png"))
 midi_download_button.config(image=img_download)
 midi_download_button.pack(padx=5, pady=10, side=LEFT)
 
