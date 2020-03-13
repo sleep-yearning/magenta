@@ -25,6 +25,22 @@ nepochs = StringVar()
 is_grouped = BooleanVar()
 is_grouped.set(True)
 
+# Hyperparams for Training
+use_residual = BooleanVar()
+use_sep_conv = BooleanVar()
+dilate_time_only = BooleanVar()
+repeat_last_dilation_level = BooleanVar()
+architecture_int = IntVar()
+
+
+# Default Values for Checkboxes
+use_residual.set(True)
+use_sep_conv.set(True)
+dilate_time_only.set(False)
+repeat_last_dilation_level.set(False)
+architecture_int.set(1)
+architecture = [('straight', 1), ('dilated', 2)]
+
 # This map contains the pre-trained models and the paths to their data as a basis for the model selection
 model_map = {
     "Abba": "/some-path", # TODO put real paths in here
@@ -91,7 +107,10 @@ def start_training():
     except ValueError:
         messagebox.showerror("Error", "Nepochs must be a number!")
         return
-    train(train_folder_path.get(), int_nepochs, " ", is_grouped.get(), title_new_train_model.get())
+    train(train_folder_path.get(), int_nepochs, " ", is_grouped.get(), title_new_train_model.get(), use_residual=use_residual.get(),
+use_sep_conv=use_sep_conv.get(), dilate_time_only=dilate_time_only.get(),repeat_last_dilation_level=repeat_last_dilation_level.get())
+
+#TODO either num_layers or dilated convs.
 
 def really_start_training():
     add_model_to_menu()
@@ -135,7 +154,7 @@ nb.add(f3, text="Sampling")
 
 #########
 #
-# Start of Converting Page
+# Start of Preprocessing Page
 #
 ##########
 
@@ -158,6 +177,9 @@ yes.pack(pady=0)
 no = Button(f1, text="No", command=set_group_false)
 no.pack(pady=0)
 
+# Uncomment to set folder to save the results
+
+
 # lbl_frame_select_result_folder = ttk.LabelFrame(f1, text="Select a folder to save the results")
 # lbl_frame_select_result_folder.pack()
 #
@@ -177,6 +199,8 @@ btn_start_converting.pack()
 btn_stop_converting = ttk.Button(f1, text="Stop preprocessing", command=stop_it)
 btn_stop_converting.pack()
 
+#TODO Button for Preprocessing + Training
+
 progress = ttk.Progressbar(f1, orient=HORIZONTAL, length=200)
 progress.pack()
 
@@ -195,14 +219,17 @@ btn_select_train_folder.pack()
 lbl_train_folder = Label(master=f2, textvariable=train_folder_path)
 lbl_train_folder.pack()
 
-lbl_grouped = Label(f1,
+lbl_grouped = Label(f2,
                     text="Do you want to preprocess the midis with grouped instruments or with the one which are used most frequently?")
 lbl_grouped.pack()
 
-yes = Button(f1, text="Yes", command=set_group_true)
-yes.pack(pady=0)
-no = Button(f1, text="No", command=set_group_false)
-no.pack(pady=0)
+yes = Button(f2, text="Yes", command=set_group_true)
+yes.pack()
+no = Button(f2, text="No", command=set_group_false)
+no.pack()
+# Uncomment to set folder to save the results
+
+
 # lbl_frame_select_result_folder = ttk.LabelFrame(f2, text="Select a folder to save the results")
 # lbl_frame_select_result_folder.pack()
 #
@@ -213,14 +240,34 @@ no.pack(pady=0)
 # lbl_result_folder = Label(master=f2, textvariable=result_folder_path_training)
 # lbl_result_folder.pack()
 
+lbl_hyparams_training = Label(f2, text="Here you can specify some parameters for your training:")
+lbl_hyparams_training.pack()
+
+set_use_residual = tk.Checkbutton(f2, text='Add residual connections or not', var=use_residual)
+set_use_residual.pack()
+
+set_use_sep_conv = tk.Checkbutton(f2, text='Use depthwise separable convolutions.', var=use_sep_conv)
+set_use_sep_conv.pack()
+
+set_dilate_time_only = tk.Checkbutton(f2, text='If set, only dilates the time'
+                                                                'dimension and not pitch.', var=dilate_time_only)
+set_dilate_time_only.pack()
+
+set_repeat_last_delation_level = tk.Checkbutton(f2, text='If set, repeats the last dilation rate.', var=repeat_last_dilation_level)
+set_repeat_last_delation_level.pack()
+
+lbl_architecture = Label(f2, text="Choose an architecture:")
+lbl_architecture.pack()
+
+Radiobutton(f2, text="Straight", variable=architecture_int, value=1).pack()
+Radiobutton(f2, text="Dilated", variable=architecture_int, value=2).pack()
+
 lbl_new_model_nepoch = Label(f2,
                            text="Please enter number of epochs")
 lbl_new_model_nepoch.pack()
 
-
 title_new_train_model_nepoch = Entry(f2, textvariable=nepochs)
 title_new_train_model_nepoch.pack()
-
 
 lbl_new_model_name = Label(f2,
                            text="Please enter the name for your model")
@@ -242,6 +289,7 @@ btn_start_training.pack()
 # Start of Sampling Page
 #
 ##########
+
 lbl_choose_model = Label(f3, text="Choose your desired model here")
 lbl_choose_model.pack()
 
@@ -278,7 +326,5 @@ img_download = PhotoImage(file=os.path.join(base_path, "download.png"))
 midi_download_button.config(image=img_download)
 midi_download_button.pack(padx=5, pady=10, side=LEFT)
 
-# btn_test_training = ttk.Button(root, text="test", command=teeeeest)
-# btn_test_training.grid(row=row_counter)
 
 root.mainloop()

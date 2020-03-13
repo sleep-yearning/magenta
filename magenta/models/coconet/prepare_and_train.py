@@ -20,7 +20,9 @@ def prepare(path, grouped):
     return interpret_instruments
 
 
-def train(path, epochs, modelpath, grouped, model_name, num_layers=32):
+def train(path, epochs, modelpath, grouped, model_name, num_layers=32, num_filters=64, use_residual=True, batch_size=10,
+          use_sep_conv=True, architecture='dilated', num_dilation_blocks=1, dilate_time_only=False,
+          repeat_last_dilation_level=False, num_pointwise_splits=2, interleave_split_every_n_layers=2):
     # TODO: test and fine tune, maybe use more hparams
     train_args = {
         'dataset': 'TrainData',
@@ -29,17 +31,17 @@ def train(path, epochs, modelpath, grouped, model_name, num_layers=32):
         # Hyperparameters.
         'num_epochs': epochs,
         'num_layers': num_layers,
-        'num_filters': 64,
-        'use_residual': True,
-        'batch_size': 10,
-        'use_sep_conv': True,
-        'architecture': 'dilated',
+        'num_filters': num_filters,
+        'use_residual': use_residual,
+        'batch_size': batch_size,
+        'use_sep_conv': use_sep_conv,
+        'architecture': architecture,
         'checkpoint_name': None,
-        'num_dilation_blocks': 1,
-        'dilate_time_only': False,
-        'repeat_last_dilation_level': False,
-        'num_pointwise_splits': 2,
-        'interleave_split_every_n_layers': 2
+        'num_dilation_blocks': num_dilation_blocks,
+        'dilate_time_only': dilate_time_only,
+        'repeat_last_dilation_level': repeat_last_dilation_level,
+        'num_pointwise_splits': num_pointwise_splits,
+        'interleave_split_every_n_layers': interleave_split_every_n_layers
     }
 
     logdir = os.path.join(path, model_name + '_checkpoint')
