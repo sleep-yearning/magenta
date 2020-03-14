@@ -106,7 +106,7 @@ class Hyperparameters(object):
       program3=72,
       program4=0)
 
-  def __init__(self, init_hparams):
+  def __init__(self, *unused_args, **init_hparams):
     """Update the default parameters through string or keyword arguments.
 
     This __init__ provides two ways to initialize default parameters, either by
