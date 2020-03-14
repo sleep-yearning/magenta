@@ -89,8 +89,8 @@ def main(checkpoint, tfsample, strategy, gen_batch_size, piece_length,
     # Save the prime as midi and npy if in harmonization mode.
     # First, checks the stored npz for the first (context) and last step.
     tf.logging.info("Reading to check %s", intermediate_steps_path)
-    with tf.gfile.Open(intermediate_steps_path, "r") as p:
-        foo = np.load(p)
+    with tf.gfile.Open(intermediate_steps_path, "rb") as p:
+        foo = np.load(p, allow_pickle=True, encoding='latin1')
         for key in foo.keys():
             if re.match(r"0_root/.*?_strategy/.*?_context/0_pianorolls", key):
                 context_rolls = foo[key]
@@ -684,9 +684,6 @@ def parse_art_to_pianoroll(art, tt=None):
 
     return pianoroll
 
-
-main("/Users/Tessa/Downloads/coconet_checkpoint/coconet-64layers-128filters", True, 'bach_upsampling',
-     1, 32, 0.99, "/Users/Tessa/Downloads/OUTPUT", prime_midi_melody_fpath="/Users/Tessa/Downloads/samplemidi2.mid")
 
 # def main(checkpoint, tfsample, strategy, gen_batch_size, piece_length,
 #        temperature, generation_output_dir, prime_midi_melody_fpath=None):
