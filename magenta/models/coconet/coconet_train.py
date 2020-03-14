@@ -178,7 +178,7 @@ def main(hparam_args,path,grouped,log_directory,log_progress):
         log_progress=log_progress,
         decay_op=m.decay_op,
         save_path=os.path.join(log_directory, hparams.log_subdir_str,
-                               'model.ckpt'))
+                               'best_model.ckpt'))
 
     # Graph will be finalized after instantiating supervisor.
     sv = tf.train.Supervisor(
