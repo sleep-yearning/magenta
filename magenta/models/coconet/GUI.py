@@ -6,21 +6,24 @@ from tkinter import filedialog, messagebox
 from tkinter import Tk, RIGHT, BOTH, RAISED
 from tkinter.ttk import Frame, Button, Style
 import _thread
-from prepare_and_train import prepare, train, main
+from prepare_and_train import prepare, train
 import os
 import pathlib
+from coconet_sample import main as sample
 
 root = Tk()
 
 # Variables go here
-
 convert_folder_path = StringVar()
 result_folder_path_npz = StringVar()
 train_folder_path = StringVar()
 result_folder_path_training = StringVar()
-choosemodel = StringVar()
+result_folder_path_sampling = StringVar()
+sampling_folder_path = StringVar()
+sample_midi_path = StringVar()
 title_new_train_model = StringVar()
 nepochs = StringVar()
+model_checkpoint_folder_path = StringVar()
 
 is_grouped = BooleanVar()
 is_grouped.set(True)
@@ -39,7 +42,7 @@ ndilationblocks = StringVar()
 npointwisesplits = StringVar()
 interleavesplit = StringVar()
 
-# Default Values for Checkboxes
+# Default Values for Training
 use_residual.set(True)
 use_sep_conv.set(True)
 dilate_time_only.set(False)
@@ -53,11 +56,26 @@ ndilationblocks.set(1)
 npointwisesplits.set(2)
 interleavesplit.set(2)
 
+# Hyparams for Sampling
+choosemodel = StringVar()
+choosestrategy = StringVar()
+tfsample = BooleanVar()
+size_batch_strategy = StringVar()
+piece_length = StringVar()
+temperature = StringVar()
+
+# default values for sampling
+tfsample.set(True)
+size_batch_strategy.set(3)
+piece_length.set(32)
+temperature.set(0.99)
+
+base_path = str(pathlib.Path(__file__).parent.absolute())
 # This map contains the pre-trained models and the paths to their data as a basis for the model selection
 model_map = {
-    "Abba": "/some-path",  # TODO put real paths in here
-    "Bach": "/some-path",
-    "Zelda": "/some-path"
+    "Abba": os.path.join(base_path, "trained_models/ABBA"),  # TODO put real paths in here
+    "Bach": os.path.join(base_path, "trained_models/Bach"),
+    "Sonic": os.path.join(base_path, "trained_models/Sonic")
 }
 
 
@@ -95,14 +113,17 @@ def open_train_folder():
         messagebox.showerror("Error", "There is no 'TrainData.npz' in the selected folder!")
 
 
-def open_result_folder_train():
+def open_result_folder_sampling():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder to place the results in')
-    result_folder_path_training.set(folder_path)
+    sampling_folder_path.set(folder_path)
     print(folder_path)
 
 
 def open_sample_midi():
-    print("sample midi")
+    folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", "*.mid")],
+                                         title='Choose the midi file to sample from')
+    sample_midi_path.set(folder_path)
+    print(folder_path)
 
 
 def start_converting():
@@ -117,6 +138,12 @@ def convert_in_background():
 
 def stop_it():
     root.destroy()
+
+
+def add_model_to_menu():
+    val = title_new_train_model.get()
+    which_model['menu'].add_command(label=val, command=tk._setit(choosemodel, val))
+    model_map[val] = train_folder_path.get() #TODO Pfad korrigieren
 
 
 def start_training():
@@ -170,9 +197,9 @@ def start_training():
         return
 
     if architecture_int == 1:
-            architecture.set("straight")
+        architecture.set("straight")
     else:
-            architecture.set("dilated")
+        architecture.set("dilated")
 
     print('architecture='.format(architecture.get()))
     print("Folder={}".format(train_folder_path.get()))
@@ -189,7 +216,8 @@ def start_training():
     print("int_pointwise={}".format(int_pointwise))
     print("int_interleave={}".format(int_interleave))
 
-    train(train_folder_path.get(), int_nepochs, is_grouped.get(), title_new_train_model.get(), architecture=architecture.get(),
+    train(train_folder_path.get(), int_nepochs, is_grouped.get(), title_new_train_model.get(),
+          architecture=architecture.get(),
           use_residual=use_residual.get(),
           use_sep_conv=use_sep_conv.get(), dilate_time_only=dilate_time_only.get(),
           repeat_last_dilation_level=repeat_last_dilation_level.get(), batch_size=int_batches,
@@ -197,8 +225,8 @@ def start_training():
           num_pointwise_splits=int_pointwise, interleave_split_every_n_layers=int_interleave)
 
 
-
 # TODO either num_layers or dilated convs.
+
 
 def really_start_training():
     add_model_to_menu()
@@ -217,17 +245,40 @@ def callback(*args):
     labelTest.configure(text="The selected item is {}".format(choosemodel.get()))
 
 
-def add_model_to_menu():
-    val = title_new_train_model.get()
-    which_model['menu'].add_command(label=val, command=tk._setit(choosemodel, val))
-    model_map[val] = train_folder_path.get()
-
-
 def play():
     model_name = choosemodel.get()
     model_folder_path = model_map[model_name]
     model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
     print(model_checkpoint_folder_path)  # TODO use this
+
+
+def start_sampling():
+    string_batches_strategy = size_batch_strategy.get()
+    try:
+        int_batches_strategy = int(string_batches_strategy)
+    except ValueError:
+        messagebox.showerror("Error", "Batch size must be a number!")
+        return
+
+    string_piecelength = piece_length.get()
+    try:
+        int_piecelength = int(string_piecelength)
+    except ValueError:
+        messagebox.showerror("Error", "Piecelength must be a number!")
+        return
+
+    string_temperature = temperature.get()
+    try:
+        float_temperature = float(string_temperature)
+        float_temperature > 0
+        float_temperature < 1
+    except ValueError:
+        messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
+        return
+
+    sample(checkpoint=model_checkpoint_folder_path, tfsample=tfsample.get(), strategy=choosestrategy.get(),
+           gen_batch_size=int_batches_strategy, piece_length=int_piecelength, temperature=float_temperature,
+           generation_output_dir=sampling_folder_path, prime_midi_melody_fpath=sample_midi_path)
 
 
 root.title("Music in Machine Learning")
@@ -310,10 +361,11 @@ progress.pack()
 # Start of Training Page
 #
 ##########
-#hyparams = Frame(f2)
-#hyparams.pack()
+# hyparams = Frame(f2)
+# hyparams.pack()
 
-lbl_frame_select_train_folder = ttk.LabelFrame(f2, text="If you already converted your midis, please choose the folder with the .npz file here:")
+lbl_frame_select_train_folder = ttk.LabelFrame(f2,
+                                               text="If you already converted your midis, please choose the folder with the .npz file here:")
 lbl_frame_select_train_folder.pack()
 
 btn_select_train_folder = ttk.Button(lbl_frame_select_train_folder, text="Select Folder", command=open_train_folder)
@@ -347,7 +399,8 @@ Separator(f2, orient=HORIZONTAL).pack(fill='x')
 # lbl_result_folder = Label(master=f2, textvariable=result_folder_path_training)
 # lbl_result_folder.pack()
 
-lbl_hyparams_training = Label(f2, text="Here you can specify some parameters for your training. These parameters are optional. If you choose to leave some fields empty, the default value will be selected.")
+lbl_hyparams_training = Label(f2,
+                              text="Here you can specify some parameters for your training. These parameters are optional. If you choose to leave some fields empty, the default value will be selected.")
 lbl_hyparams_training.pack()
 
 set_use_residual = tk.Checkbutton(f2, text='Add residual connections or not', var=use_residual)
@@ -451,16 +504,57 @@ which_model = OptionMenu(f3, choosemodel, *OptionList)
 which_model.config()
 which_model.pack()
 
-choosemodel.trace('w', callback)
+#choosemodel.trace('w', callback)
 
-labelTest = Label(text="")
-labelTest.pack()
+lbl_choose_strategy = Label(f3, text="Choose a sampling strategy")
+lbl_choose_strategy.pack()
+
+OptionList_strategy = [
+    "Choose a strategy",
+    'bach_upsampling',
+    'revoice',
+    'harmonization',
+    'transition',
+    'chronological',
+    'orderless',
+    'igibbs',
+    'agibbs',
+    'complete_manual'
+]
+
+choosestrategy.set(OptionList[0])
+
+which_strategy = OptionMenu(f3, choosestrategy, *OptionList_strategy)
+which_strategy.config()
+which_strategy.pack()
+
+set_tfsample = tk.Checkbutton(f3, text='Run sampling in Tensorflow graph.', var=tfsample)
+set_tfsample.pack()
+
+#labelTest = Label(text="")
+#labelTest.pack()
 
 lbl_frame_select_sample_midi = ttk.LabelFrame(f3, text="Select a midi file to sample from")
 lbl_frame_select_sample_midi.pack()
 
 btn_select_sample_midi = ttk.Button(lbl_frame_select_sample_midi, text="Select Folder", command=open_sample_midi)
 btn_select_sample_midi.pack()
+
+lbl_sample_midi = Label(master=f3, textvariable=sample_midi_path)
+lbl_sample_midi.pack()
+
+lbl_frame_select_result_folder = ttk.LabelFrame(f3, text="Select a folder to save the results")
+lbl_frame_select_result_folder.pack()
+
+btn_select_result_folder = ttk.Button(lbl_frame_select_result_folder, text="Select Folder",
+                                      command=open_result_folder_sampling)
+btn_select_result_folder.pack()
+
+lbl_result_folder = Label(master=f3, textvariable=sampling_folder_path)
+lbl_result_folder.pack()
+
+btn_start_sample = ttk.Button(f3, text="Start Sampling", command=start_sampling)
+btn_start_sample.pack()
 
 base_path = str(pathlib.Path(__file__).parent.absolute())
 

@@ -685,8 +685,8 @@ def parse_art_to_pianoroll(art, tt=None):
     return pianoroll
 
 
-#main("/Users/Tessa/Downloads/coconet_checkpoint/coconet-64layers-128filters", True, 'bach_upsampling',
-#     2, 32, 0.89, "/Users/Tessa/Downloads/OUTPUT", prime_midi_melody_fpath="/Users/Tessa/Downloads/samplemidi.mid")
+main("/Users/Tessa/Downloads/coconet_checkpoint/coconet-64layers-128filters", True, 'bach_upsampling',
+     1, 32, 0.99, "/Users/Tessa/Downloads/OUTPUT", prime_midi_melody_fpath="/Users/Tessa/Downloads/samplemidi2.mid")
 
 # def main(checkpoint, tfsample, strategy, gen_batch_size, piece_length,
 #        temperature, generation_output_dir, prime_midi_melody_fpath=None):
