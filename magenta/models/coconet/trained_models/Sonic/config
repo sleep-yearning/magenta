@@ -1,0 +1,75 @@
+architecture: dilated
+batch_norm: true
+batch_norm_variance_epsilon: 1.0e-07
+batch_size: 10
+checkpoint_name: null
+corrupt_ratio: 0.25
+crop_piece_len: 32
+dataset: TrainData
+dilate_time_only: false
+eval_freq: 1
+init_scale: 0.1
+interleave_split_every_n_layers: 2
+learning_rate: 0.0625
+log_process: true
+mask_indicates_context: false
+maskout_method: orderless
+max_pitch: !!python/object/apply:numpy.core.multiarray.scalar
+- &id001 !!python/object/apply:numpy.dtype
+  args:
+  - i8
+  - 0
+  - 1
+  state: !!python/tuple
+  - 3
+  - <
+  - null
+  - null
+  - null
+  - -1
+  - -1
+  - 0
+- "e\0\0\0\0\0\0\0"
+min_pitch: !!python/object/apply:numpy.core.multiarray.scalar
+- *id001
+- "\0\0\0\0\0\0\0\0"
+num_dilation_blocks: 1
+num_epochs: 1
+num_filters: 64
+num_initial_regular_conv_layers: 2
+num_instruments: 4
+num_layers: 32
+num_pointwise_splits: 2
+optimize_mask_only: false
+patience: 5
+pitch_ranges:
+- !!python/object/apply:numpy.core.multiarray.scalar
+  - *id001
+  - "\0\0\0\0\0\0\0\0"
+- !!python/object/apply:numpy.core.multiarray.scalar
+  - *id001
+  - "e\0\0\0\0\0\0\0"
+program1: !!python/object/apply:numpy.core.multiarray.scalar
+- *id001
+- "\0\0\0\0\0\0\0\0"
+program2: !!python/object/apply:numpy.core.multiarray.scalar
+- *id001
+- "\x01\0\0\0\0\0\0\0"
+program3: !!python/object/apply:numpy.core.multiarray.scalar
+- *id001
+- "\"\0\0\0\0\0\0\0"
+program4: !!python/object/apply:numpy.core.multiarray.scalar
+- *id001
+- "\0\0\0\0\0\0\0\0"
+qpm: 60
+quantization_level: 0.125
+repeat_last_dilation_level: false
+rescale_loss: true
+run_dir: null
+run_id: ''
+save_model_secs: 30
+sep_conv_depth_multiplier: 1
+separate_instruments: true
+shortest_duration: 0.125
+use_residual: true
+use_sep_conv: true
