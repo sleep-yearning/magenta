@@ -149,7 +149,7 @@ class PianorollEncoderDecoder(object):
                     end=(t + 1) * duration))
       notes = merge_held(notes)
       
-      instrument = pretty_midi.Instrument(program=self.programs[i] - 1, is_drum=drum)
+      instrument = pretty_midi.Instrument(program=self.programs[i - 1], is_drum=drum)
       instrument.notes.extend(notes)
       midi_data.instruments.append(instrument)
     return midi_data

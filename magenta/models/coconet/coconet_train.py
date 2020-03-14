@@ -134,9 +134,9 @@ def main(hparam_args,path,grouped,log_directory,log_progress):
   
   p1, p2, p3, p4, min_pitch, max_pitch = np.load(os.path.join
                                   (path,filename))
-  hparam_args.update([('program1', p1), ('program2', p2), ('program3', p3),
-                      ('program4' , p4), ('min_pitch', min_pitch), 
-                      ('max_pitch', max_pitch)])
+  hparam_args.update([('program1', int(p1)), ('program2', int(p2)), ('program3', int(p3)),
+                      ('program4' , int(p4)), ('min_pitch', int(min_pitch)),
+                      ('max_pitch', int(max_pitch))])
   hparams = lib_hparams.Hyperparameters(**hparam_args)
   tf.logging.set_verbosity(tf.logging.INFO)
 
