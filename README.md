@@ -13,16 +13,14 @@ Notably, the ability to train a model from a folder of midi files has been devel
 
 ## Installation
 
-We recommend to create an anaconda environment (python 3.5-3.7) in which the following packages have to be installed:
-- mido>=1.2.8
--	numpy
--	math
--	os
+We recommend to create an anaconda environment (python 3.5-3.7).
 
-Two packages have to be installed from github directly per:
-- conda install pip
--	pip install https://github.com/sleep-yearning/magenta/archive/master.zip
--	pip install https://github.com/sleep-yearning/pretty-midi/archive/coconet-changes.zip
+Two packages have to be installed from github per:
+```bash
+conda install pip
+pip install https://github.com/sleep-yearning/magenta/archive/master.zip
+pip install https://github.com/sleep-yearning/pretty-midi/archive/coconet-changes.zip
+```
  
 If you want to enable GPU support and [can run it](
 https://www.tensorflow.org/install/install_linux#nvidia_requirements_to_run_tensorflow_with_gpu_support), you should install 
@@ -49,11 +47,27 @@ If you run into problems with this package, you can try and install a copy of ou
 You can start the GUI with: 
 
 ```bash
-python magenta.coconet.GUI.py
+python magenta.models.coconet.GUI.py
 ```
 //TODO insert real command
 
 From there you can either select your folder of midi files to train on, or generate new midi files from already trained models.
+
+Alternatively just call the scripts in the install directory with their needed/optional arguments.
+For example:
+```bash
+python prepare_and_train.py path-to-midi-folder --grouped
+python coconet_sample.py path-to-trained-model-folder igibbs midi-output-folder
+```
+
+If you want to use the package more flexible and specify more hyperparameters without the GUI,
+you can use
+```bash
+from magenta.models.coconet.prepare_and_train import prepare, train
+from magenta.models.coconet.coconet_sample import main
+```
+and then call those functions in your code.
+
 
 The original magenta implementation can be found [here](https://github.com/tensorflow/magenta)
 This version was forked from [here](https://github.com/everettk/magenta) because necessary changes for CocoNet to work with python 3 where added there.
