@@ -20,7 +20,7 @@ def prepare(path, grouped):
     return interpret_instruments
 
 
-def train(path, epochs, modelpath, grouped, model_name, num_layers=32, num_filters=64, use_residual=True, batch_size=10,
+def train(path, epochs, grouped, model_name, num_layers=32, num_filters=64, use_residual=True, batch_size=10,
           use_sep_conv=True, architecture='dilated', num_dilation_blocks=1, dilate_time_only=False,
           repeat_last_dilation_level=False, num_pointwise_splits=2, interleave_split_every_n_layers=2):
     # TODO: test and fine tune, maybe use more hparams
@@ -50,9 +50,9 @@ def train(path, epochs, modelpath, grouped, model_name, num_layers=32, num_filte
     coconet_train.main(train_args, path, grouped, logdir, log_progress)
 
 
-def main(path, modelpath, epochs, grouped, model_name):
+def main(path, epochs, grouped, model_name):
     prepare(path, grouped)
-    train(path, modelpath, epochs, grouped, model_name)
+    train(path, epochs, grouped, model_name)
 
 
 if __name__ == '__main__':
@@ -61,10 +61,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('path', default=None, help='Path to folder where midis are found and train_data.npz + '
                                                    'programs(_grouped).npy will be stored.')
-    parser.add_argument('--model_path', default=None, help='Optional path to store model somewhere else than in '
-                                                           'input path')
     parser.add_argument('--epochs', default=0, help='Optionally set epochs to train, defaults to no limit.')
     parser.add_argument('--grouped', action='store_true', help='If passed, instruments will be grouped by type.')
     parser.add_argument('--model_name', default='model', help='Optionally set the name of the trained model.')
     args = parser.parse_args()
-    main(args.path, args.model_path, args.epochs, args.grouped, args.model_name)
+    main(args.path, args.epochs, args.grouped, args.model_name)

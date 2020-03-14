@@ -189,7 +189,7 @@ def start_training():
     print("int_pointwise={}".format(int_pointwise))
     print("int_interleave={}".format(int_interleave))
 
-    train(train_folder_path.get(), int_nepochs, " ", is_grouped.get(), title_new_train_model.get(), architecture=architecture.get(),
+    train(train_folder_path.get(), int_nepochs, is_grouped.get(), title_new_train_model.get(), architecture=architecture.get(),
           use_residual=use_residual.get(),
           use_sep_conv=use_sep_conv.get(), dilate_time_only=dilate_time_only.get(),
           repeat_last_dilation_level=repeat_last_dilation_level.get(), batch_size=int_batches,
