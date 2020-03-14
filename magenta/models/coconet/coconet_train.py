@@ -137,7 +137,7 @@ def main(hparam_args,path,grouped,log_directory,log_progress):
   hparam_args.update([('program1', p1), ('program2', p2), ('program3', p3),
                       ('program4' , p4), ('min_pitch', min_pitch), 
                       ('max_pitch', max_pitch)])
-  hparams = lib_hparams.Hyperparameters(hparam_args)
+  hparams = lib_hparams.Hyperparameters(**hparam_args)
   tf.logging.set_verbosity(tf.logging.INFO)
 
   print(hparams.maskout_method, 'separate', hparams.separate_instruments)
@@ -178,7 +178,7 @@ def main(hparam_args,path,grouped,log_directory,log_progress):
         log_progress=log_progress,
         decay_op=m.decay_op,
         save_path=os.path.join(log_directory, hparams.log_subdir_str,
-                               'best_model.ckpt'))
+                               'model.ckpt'))
 
     # Graph will be finalized after instantiating supervisor.
     sv = tf.train.Supervisor(
