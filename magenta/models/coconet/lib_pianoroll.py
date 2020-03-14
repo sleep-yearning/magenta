@@ -140,7 +140,7 @@ class PianorollEncoderDecoder(object):
       notes = []
       for p in range(pp):
         for t in range(tt):
-          if pianoroll[t, p, i]:
+          if pianoroll[t, p, i] and p is not 0:
             notes.append(
                 pretty_midi.Note(
                     velocity=100,
