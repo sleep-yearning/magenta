@@ -86,13 +86,13 @@ def open_result_folder_npz():
 def open_train_folder():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder containing npz file')
 
-    if check_that_folder_contains_file(folder_path, 'trainData.npz'):
+    if check_that_folder_contains_file(folder_path, 'TrainData.npz'):
         train_folder_path.set(folder_path)
         if not result_folder_path_training.get():
             result_folder_path_training.set(folder_path)
         print(folder_path)
     else:
-        messagebox.showerror("Error", "There is no 'trainData.npz' in the selected folder!")
+        messagebox.showerror("Error", "There is no 'TrainData.npz' in the selected folder!")
 
 
 def open_result_folder_train():
@@ -443,7 +443,7 @@ lbl_choose_model.pack()
 
 OptionList = [
                  "Choose a model",
-             ] + model_map.keys()
+             ] + list(model_map.keys())
 
 choosemodel.set(OptionList[0])
 
