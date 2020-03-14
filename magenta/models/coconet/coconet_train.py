@@ -285,7 +285,7 @@ if __name__ == '__main__':
                                                            'statistics.')
 
   # Data.
-  parser.add_argument('data_dir', help='path to folder in which train_data.npz is found')
+  parser.add_argument('data_dir', help='path to folder in which TrainData.npz is found')
   parser.add_argument('--dataset', default='TrainData', help='Setting the Dataset Class for predefined properties')
   parser.add_argument('--quantization_level', default=0.125, help='Quantization duration.'
                                               'For qpm=120, notated quarter note equals 0.5.')

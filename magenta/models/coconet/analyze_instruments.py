@@ -31,11 +31,12 @@ def main(folder, grouped):
         for group in groups:
             groupset = dict((k, programs[k]) for k in group if k in programs)
             # most frequent instrument in group
-            max_key = max(groupset, key=lambda key: groupset[key])
+            if (groupset):
+                max_key = max(groupset, key=lambda key: groupset[key])
 
-            for key in group:
-                if key is not max_key:
-                    programs[max_key] += programs.pop(key, 0)
+                for key in group:
+                    if key is not max_key:
+                        programs[max_key] += programs.pop(key, 0)
 
     # select most frequent rhythm instrument
     rhythm_program = None
