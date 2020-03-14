@@ -31,12 +31,13 @@ use_sep_conv = BooleanVar()
 dilate_time_only = BooleanVar()
 repeat_last_dilation_level = BooleanVar()
 architecture_int = IntVar()
+architecture = StringVar()
 size_batch = StringVar()
 nfilters = StringVar()
 nlayers = StringVar()
 ndilationblocks = StringVar()
 npointwisesplits = StringVar()
-ninterleavesplit = StringVar()
+interleavesplit = StringVar()
 
 # Default Values for Checkboxes
 use_residual.set(True)
@@ -44,12 +45,13 @@ use_sep_conv.set(True)
 dilate_time_only.set(False)
 repeat_last_dilation_level.set(False)
 architecture_int.set(1)
-architecture = [('straight', 1), ('dilated', 2)]
-nfilters = 64
-nlayers = 32
-ndilationblocks = 1
-npointwisesplits = 2
-ninterleavesplit = 2
+architecture_list = [('straight', 1), ('dilated', 2)]
+size_batch.set(10)
+nfilters.set(64)
+nlayers.set(32)
+ndilationblocks.set(1)
+npointwisesplits.set(2)
+interleavesplit.set(2)
 
 # This map contains the pre-trained models and the paths to their data as a basis for the model selection
 model_map = {
@@ -160,19 +162,40 @@ def start_training():
         messagebox.showerror("Error", "Pointwise Splits must be a number!")
         return
 
-    string_interleave = ninterleavesplit.get()
+    string_interleave = interleavesplit.get()
     try:
         int_interleave = int(string_interleave)
     except ValueError:
         messagebox.showerror("Error", "Pointwise Splits must be a number!")
         return
 
-    train(train_folder_path.get(), int_nepochs, " ", is_grouped.get(), title_new_train_model.get(),
+    if architecture_int == 1:
+            architecture.set("straight")
+    else:
+            architecture.set("dilated")
+
+    print('architecture='.format(architecture.get()))
+    print("Folder={}".format(train_folder_path.get()))
+    print("epochs={}".format(int_nepochs))
+    print("isgrouped={}".format(is_grouped.get()))
+    print("use_residual={}".format(use_residual.get()))
+    print("use_sep_conv={}".format(use_sep_conv.get()))
+    print("dilate_time_only={}".format(dilate_time_only.get()))
+    print("repeat_last_dilation_level={}".format(repeat_last_dilation_level.get()))
+    print("size_batch.get()={}".format(int_batches))
+    print("int_filters={}".format(int_filters))
+    print("int_layers={}".format(int_layers))
+    print("int_db={}".format(int_db))
+    print("int_pointwise={}".format(int_pointwise))
+    print("int_interleave={}".format(int_interleave))
+
+    train(train_folder_path.get(), int_nepochs, " ", is_grouped.get(), title_new_train_model.get(), architecture=architecture.get(),
           use_residual=use_residual.get(),
           use_sep_conv=use_sep_conv.get(), dilate_time_only=dilate_time_only.get(),
-          repeat_last_dilation_level=repeat_last_dilation_level.get(), batch_size=size_batch.get(),
+          repeat_last_dilation_level=repeat_last_dilation_level.get(), batch_size=int_batches,
           num_filters=int_filters, num_layers=int_layers, num_dilation_blocks=int_db,
           num_pointwise_splits=int_pointwise, interleave_split_every_n_layers=int_interleave)
+
 
 
 # TODO either num_layers or dilated convs.
@@ -215,17 +238,21 @@ root.minsize(640, 500)
 # Create top Menu
 nb = ttk.Notebook(root)
 nb.pack()
-f1 = ttk.Frame(nb, width=500, height=500)
-nb.add(f1, text="Preprocessing")
-f2 = ttk.Frame(nb, width=500, height=500)
-nb.add(f2, text="Training")
-scrollbar = Scrollbar(f2, orient=VERTICAL)
-canvas_f2 = Canvas(f2, scrollregion = "0 0 800 800",  yscrollcommand=scrollbar.set)
-scrollbar.pack(side=RIGHT, fill=Y)
-scrollbar.configu(command=canvas_f2.yview)
-f3 = ttk.Frame(nb, width=500, height=500)
-nb.add(f3, text="Sampling")
+f1 = ttk.Frame(nb)
+f1.pack(expand=True)
+f2 = ttk.Frame(nb)
+f2.pack(expand=True)
+f3 = ttk.Frame(nb)
+f3.pack(expand=True)
 
+scrollbar = Scrollbar(f2, orient=VERTICAL)
+canvas_f2 = Canvas(f2, yscrollcommand=scrollbar.set)
+scrollbar.pack(side=RIGHT, fill=Y)
+scrollbar.config(command=canvas_f2.yview)
+
+nb.add(f1, text="Preprocessing")
+nb.add(f2, text="Training")
+nb.add(f3, text="Sampling")
 #########
 #
 # Start of Preprocessing Page
@@ -295,7 +322,7 @@ btn_select_train_folder.pack()
 lbl_train_folder = Label(master=f2, textvariable=train_folder_path)
 lbl_train_folder.pack()
 
-Separator(f2, orient=HORIZONTAL).pack(fill='x', pady='20')
+Separator(f2, orient=HORIZONTAL).pack(fill='x')
 
 lbl_grouped = Label(f2,
                     text="Do you want to preprocess the midis with grouped instruments or with the one which are used most frequently?")
@@ -306,7 +333,7 @@ yes.pack()
 no = Button(f2, text="No", command=set_group_false)
 no.pack()
 
-Separator(f2, orient=HORIZONTAL).pack(fill='x', pady='20')
+Separator(f2, orient=HORIZONTAL).pack(fill='x')
 # Uncomment to set folder to save the results
 
 
@@ -377,10 +404,10 @@ lbl_new_model_ninterleavesplit = Label(f2,
                                        text="Num of split pointwise layers to interleave between full pointwise layers")
 lbl_new_model_ninterleavesplit.pack()
 
-ninterleavesplit_number = Entry(f2, textvariable=ninterleavesplit)
-ninterleavesplit_number.pack()
+interleavesplit_number = Entry(f2, textvariable=interleavesplit)
+interleavesplit_number.pack()
 
-Separator(f2, orient=HORIZONTAL).pack(fill='x', pady='20')
+Separator(f2, orient=HORIZONTAL).pack(fill='x')
 
 lbl_new_model_nepoch = Label(f2, text="Please enter number of epochs")
 lbl_new_model_nepoch.pack()
@@ -395,7 +422,7 @@ lbl_new_model_name.pack()
 title_new_train_model_widget = Entry(f2, textvariable=title_new_train_model)
 title_new_train_model_widget.pack()
 
-Separator(f2, orient=HORIZONTAL).pack(fill='x', pady='20')
+Separator(f2, orient=HORIZONTAL).pack(fill='x')
 
 lbl_start_training = Label(f2,
                            text="Start training here:")
@@ -404,6 +431,7 @@ lbl_start_training.pack()
 btn_start_training = ttk.Button(f2, text="Start Training", command=really_start_training)
 btn_start_training.pack()
 
+canvas_f2.config(scrollregion=canvas_f2.bbox(ALL))
 #########
 #
 # Start of Sampling Page
