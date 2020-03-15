@@ -14,12 +14,13 @@ Notably, the ability to train a model from a folder of midi files has been devel
 ## Installation
 
 We recommend to create an anaconda environment (python 3.5-3.7).
-
-Two packages have to be installed from github per:
 ```bash
-conda install pip
+conda create -n coconet python=3.7
+```
+Install the package from github per:
+```bash
+conda activate coconet
 pip install https://github.com/sleep-yearning/magenta/archive/master.zip
-pip install https://github.com/sleep-yearning/pretty-midi/archive/coconet-changes.zip
 ```
  
 If you want to enable GPU support and [can run it](
@@ -39,29 +40,28 @@ On Arch based systems, those packages are:
 - jack
 - alsa-lib
 
-If you run into problems with this package, you can try and install a copy of our package without the requirement (found in setup.py). This might work since coconet doesn't really use it, but will probably break if you want to use the same magenta installation for something else. You also won't be able to use magentas midi-interface for playback.
-//TODO check if true, maybe add branch with install command
+If you run into problems with this package, you can try and install a copy of our package without the requirement (found in setup.py). This might work since coconet doesn't really use it, but will probably break if you want to use the same magenta installation for something else. You specifically won't be able to use magentas midi-interface for playback.
+
 
 ## Using CocoNet GUI
 
 You can start the GUI with: 
 
 ```bash
-python magenta.models.coconet.GUI.py
+python 
+from magenta.models.coconet import GUI
 ```
-//TODO insert real command
 
 From there you can either select your folder of midi files to train on, or generate new midi files from already trained models.
 
-Alternatively just call the scripts in the install directory with their needed/optional arguments.
+Alternatively just call the python files in the install directory with their needed/optional arguments.
 For example:
 ```bash
-python prepare_and_train.py path-to-midi-folder --grouped
-python coconet_sample.py path-to-trained-model-folder igibbs midi-output-folder
+python /magenta/models/coconet/prepare_and_train.py path-to-midi-folder --grouped
+python /magenta/models/coconet/coconet_sample.py path-to-trained-model-folder igibbs midi-output-folder
 ```
 
-If you want to use the package more flexible and specify more hyperparameters without the GUI,
-you can use
+If you want to use the package more flexible and specify more hyperparameters without the GUI, you can use
 ```bash
 from magenta.models.coconet.prepare_and_train import prepare, train
 from magenta.models.coconet.coconet_sample import main
