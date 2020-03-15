@@ -280,14 +280,15 @@ def start_sampling():
     string_temperature = temperature.get()
     try:
         float_temperature = float(string_temperature)
-        0 < temperature < 1
+        if temperature < 0 or temperature > 1:
+            raise ValueError
     except ValueError:
         messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
         return
 
-   # if temperature < 0 or temperature > 1:
-    #    raise ValueError: messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
-     #   return
+    #if temperature < 0 or temperature > 1:
+    #   raise ValueError: messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
+    #   return
 
     model_name = choosemodel.get()
     model_folder_path = model_map[model_name]
