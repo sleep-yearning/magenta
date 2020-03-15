@@ -282,11 +282,10 @@ class TFGenerator(object):
 
 def get_midi_from_pianorolls(rolls, decoder):
     midi_datas = []
-    for i in np.arange(len(rolls) - 1):
+    for i in np.arange(len(rolls)):
         tf.logging.info("pianoroll shape: %r", rolls[i].shape)
         midi_data = decoder.decode_to_midi(rolls[i])
         midi_datas.append(midi_data)
-    midi_datas.append(decoder.decode_to_midi(rolls[-1], drum=True))
     return midi_datas
 
 
@@ -305,9 +304,9 @@ def instantiate_model(checkpoint, instantiate_sess=True):
     return wmodel
 
 
-##################
-### Strategies ###
-##################
+##############
+# Strategies #
+##############
 # Commonly used compositions of samplers, user-selectable through strategy argument
 
 
