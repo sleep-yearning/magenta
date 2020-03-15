@@ -28,6 +28,7 @@ REQUIRED_PACKAGES = [
     'IPython',
     'Pillow >= 3.4.2',
     'absl-py',
+    'pygame',
     'attrs',
     'backports.tempfile',
     'bokeh >= 0.12.0',
