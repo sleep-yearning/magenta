@@ -6,11 +6,11 @@ from tkinter import filedialog, messagebox
 from tkinter import Tk, RIGHT, BOTH, RAISED
 from tkinter.ttk import Frame, Button, Style
 import _thread
-from prepare_and_train import prepare, train
-from prepare_and_train import main as combo
+from magenta.models.coconet.prepare_and_train import prepare, train
+from magenta.models.coconet.prepare_and_train import main as combo
 import os
 import pathlib
-from coconet_sample import main as sample
+from magenta.models.coconet.coconet_sample import main as sample
 import pygame
 import base64
 
