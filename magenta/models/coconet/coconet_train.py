@@ -156,7 +156,7 @@ def main(hparam_args, path, grouped, log_directory, log_progress):
     train_data.update_hparams(hparams)
 
     # Save hparam configs.
-    logdir = os.path.join(log_directory, hparams.log_subdir_str)
+    logdir = os.path.join(log_directory)
     tf.gfile.MakeDirs(logdir)
     config_fpath = os.path.join(logdir, 'config')
     tf.logging.info('Writing to %s', config_fpath)
@@ -177,8 +177,7 @@ def main(hparam_args, path, grouped, log_directory, log_progress):
             patience=hparams.patience,
             log_progress=log_progress,
             decay_op=m.decay_op,
-            save_path=os.path.join(log_directory, hparams.log_subdir_str,
-                                   'best_model.ckpt'))
+            save_path=os.path.join(log_directory, 'best_model.ckpt'))
 
         # Graph will be finalized after instantiating supervisor.
         sv = tf.train.Supervisor(

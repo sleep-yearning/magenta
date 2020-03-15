@@ -20,7 +20,7 @@ def prepare(path, grouped):
     return interpret_instruments
 
 
-def train(path, epochs, grouped, model_name, num_layers=32, num_filters=64, use_residual=True, batch_size=10,
+def train(path="", epochs=1, grouped=True, model_name="New", num_layers=32, num_filters=64, use_residual=True, batch_size=10,
           use_sep_conv=True, architecture='dilated', num_dilation_blocks=1, dilate_time_only=False,
           repeat_last_dilation_level=False, num_pointwise_splits=2, interleave_split_every_n_layers=2):
     # TODO: test and fine tune, maybe use more hparams
