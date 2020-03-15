@@ -61,6 +61,9 @@ from magenta.models.coconet.coconet_sample import main
 ```
 And then call those functions in your code.
 
+# Generated files
+Training database & model checkpoints are saved into the MIDI folder by default.
+This way you can find all the relevant files for one interpret in that folder. You can specify custom output directories for the generated samples in the GUI or as parameter when used on the command line.
 
 The original magenta implementation can be found [here.](https://github.com/tensorflow/magenta)
 Some further background information can be found in the readme of the coconet folder.
