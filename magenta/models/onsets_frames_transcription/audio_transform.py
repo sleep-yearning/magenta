@@ -76,10 +76,10 @@ DEFAULT_AUDIO_TRANSFORM_HPARAMS = contrib_training.HParams(
 
 
 class AudioTransformParameter(object):
-  """An audio transform parameter with min and max value."""
+    """An audio transform parameter with min and max value."""
 
-  def __init__(self, name, min_value, max_value, scale):
-    """Initialize an AudioTransformParameter.
+    def __init__(self, name, min_value, max_value, scale):
+        """Initialize an AudioTransformParameter.
 
     Args:
       name: The name of the parameter. Should be the same as the name of the
@@ -92,56 +92,56 @@ class AudioTransformParameter(object):
     Raises:
       ValueError: If `scale` is not 'linear' or 'log'.
     """
-    if scale not in ('linear', 'log'):
-      raise ValueError('invalid parameter scale: %s' % scale)
+        if scale not in ('linear', 'log'):
+            raise ValueError('invalid parameter scale: %s' % scale)
 
-    self.name = name
-    self.min_value = min_value
-    self.max_value = max_value
-    self.scale = scale
+        self.name = name
+        self.min_value = min_value
+        self.max_value = max_value
+        self.scale = scale
 
-  def sample(self):
-    """Sample the parameter, returning a random value in its range.
+    def sample(self):
+        """Sample the parameter, returning a random value in its range.
 
     Returns:
       A value drawn uniformly at random between `min_value` and `max_value`.
     """
-    if self.scale == 'linear':
-      return random.uniform(self.min_value, self.max_value)
-    else:
-      log_min_value = math.log(self.min_value)
-      log_max_value = math.log(self.max_value)
-      return math.exp(random.uniform(log_min_value, log_max_value))
+        if self.scale == 'linear':
+            return random.uniform(self.min_value, self.max_value)
+        else:
+            log_min_value = math.log(self.min_value)
+            log_max_value = math.log(self.max_value)
+            return math.exp(random.uniform(log_min_value, log_max_value))
 
 
 class AudioTransformStage(object):
-  """A stage in an audio transform pipeline."""
+    """A stage in an audio transform pipeline."""
 
-  def __init__(self, name, params):
-    """Initialize an AudioTransformStage.
+    def __init__(self, name, params):
+        """Initialize an AudioTransformStage.
 
     Args:
       name: The name of the stage. Should be the same as the name of the method
           called on a sox.Transformer object.
       params: A list of AudioTransformParameter objects.
     """
-    self.name = name
-    self.params = params
+        self.name = name
+        self.params = params
 
-  def apply(self, transformer):
-    """Apply this stage to a sox.Transformer object.
+    def apply(self, transformer):
+        """Apply this stage to a sox.Transformer object.
 
     Args:
       transformer: The sox.Transformer object to which this pipeline stage
           should be applied. No audio will actually be transformed until the
           `build` method is called on `transformer`.
     """
-    args = dict((param.name, param.sample()) for param in self.params)
-    getattr(transformer, self.name)(**args)
+        args = dict((param.name, param.sample()) for param in self.params)
+        getattr(transformer, self.name)(**args)
 
 
 def construct_pipeline(hparams, pipeline):
-  """Construct an audio transform pipeline from hyperparameters.
+    """Construct an audio transform pipeline from hyperparameters.
 
   Args:
     hparams: A tf.contrib.training.HParams object specifying hyperparameters to
@@ -153,24 +153,24 @@ def construct_pipeline(hparams, pipeline):
   Returns:
     The resulting pipeline, a list of AudioTransformStage objects.
   """
-  return [
-      AudioTransformStage(
-          name=stage_name,
-          params=[
-              AudioTransformParameter(
-                  param_name,
-                  getattr(hparams, 'audio_transform_min_%s_%s' % (stage_name,
-                                                                  param_name)),
-                  getattr(hparams, 'audio_transform_max_%s_%s' % (stage_name,
-                                                                  param_name)),
-                  scale)
-              for param_name, (_, _, scale) in params_dict.items()
-          ]) for stage_name, params_dict in pipeline
-  ]
+    return [
+        AudioTransformStage(
+            name=stage_name,
+            params=[
+                AudioTransformParameter(
+                    param_name,
+                    getattr(hparams, 'audio_transform_min_%s_%s' % (stage_name,
+                                                                    param_name)),
+                    getattr(hparams, 'audio_transform_max_%s_%s' % (stage_name,
+                                                                    param_name)),
+                    scale)
+                for param_name, (_, _, scale) in params_dict.items()
+            ]) for stage_name, params_dict in pipeline
+    ]
 
 
 def run_pipeline(pipeline, input_filename, output_filename):
-  """Run an audio transform pipeline.
+    """Run an audio transform pipeline.
 
   This will run the pipeline on an input audio file, producing an output audio
   file. Transform parameters will be sampled at each stage.
@@ -180,15 +180,15 @@ def run_pipeline(pipeline, input_filename, output_filename):
     input_filename: Path to the audio file to be transformed.
     output_filename: Path to the resulting output audio file.
   """
-  transformer = sox.Transformer()
-  transformer.set_globals(guard=True)
-  for stage in pipeline:
-    stage.apply(transformer)
-  transformer.build(input_filename, output_filename)
+    transformer = sox.Transformer()
+    transformer.set_globals(guard=True)
+    for stage in pipeline:
+        stage.apply(transformer)
+    transformer.build(input_filename, output_filename)
 
 
 def add_noise(input_filename, output_filename, noise_vol, noise_type):
-  """Add noise to a wav file using sox.
+    """Add noise to a wav file using sox.
 
   Args:
     input_filename: Path to the original wav file.
@@ -201,22 +201,22 @@ def add_noise(input_filename, output_filename, noise_vol, noise_type):
     ValueError: If `noise_type` is not one of "whitenoise", "pinknoise", or
         "brownnoise".
   """
-  if noise_type not in ('whitenoise', 'pinknoise', 'brownnoise'):
-    raise ValueError('invalid noise type: %s' % noise_type)
+    if noise_type not in ('whitenoise', 'pinknoise', 'brownnoise'):
+        raise ValueError('invalid noise type: %s' % noise_type)
 
-  args = ['sox', input_filename, '-p', 'synth', noise_type, 'vol',
-          str(noise_vol), '|', 'sox', '-m', input_filename, '-',
-          output_filename]
-  command = ' '.join(args)
-  tf.logging.info('Executing: %s', command)
+    args = ['sox', input_filename, '-p', 'synth', noise_type, 'vol',
+            str(noise_vol), '|', 'sox', '-m', input_filename, '-',
+            output_filename]
+    command = ' '.join(args)
+    tf.logging.info('Executing: %s', command)
 
-  process_handle = subprocess.Popen(
-      command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-  process_handle.communicate()
+    process_handle = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    process_handle.communicate()
 
 
 def transform_wav_audio(wav_audio, hparams, pipeline=None):
-  """Transform the contents of a wav file based on hyperparameters.
+    """Transform the contents of a wav file based on hyperparameters.
 
   Args:
     wav_audio: The contents of a wav file; this will be written to a temporary
@@ -231,23 +231,23 @@ def transform_wav_audio(wav_audio, hparams, pipeline=None):
     The contents of the wav file that results from applying the audio transform
     pipeline to the input audio.
   """
-  if not hparams.transform_audio:
-    return wav_audio
+    if not hparams.transform_audio:
+        return wav_audio
 
-  pipeline = construct_pipeline(
-      hparams, pipeline if pipeline is not None else AUDIO_TRANSFORM_PIPELINE)
+    pipeline = construct_pipeline(
+        hparams, pipeline if pipeline is not None else AUDIO_TRANSFORM_PIPELINE)
 
-  with tempfile.NamedTemporaryFile(suffix='.wav') as temp_input_with_noise:
-    with tempfile.NamedTemporaryFile(suffix='.wav') as temp_input:
-      temp_input.write(wav_audio)
-      temp_input.flush()
+    with tempfile.NamedTemporaryFile(suffix='.wav') as temp_input_with_noise:
+        with tempfile.NamedTemporaryFile(suffix='.wav') as temp_input:
+            temp_input.write(wav_audio)
+            temp_input.flush()
 
-      # Add noise before all other pipeline steps.
-      noise_vol = random.uniform(hparams.audio_transform_min_noise_vol,
-                                 hparams.audio_transform_max_noise_vol)
-      add_noise(temp_input.name, temp_input_with_noise.name, noise_vol,
-                hparams.audio_transform_noise_type)
+            # Add noise before all other pipeline steps.
+            noise_vol = random.uniform(hparams.audio_transform_min_noise_vol,
+                                       hparams.audio_transform_max_noise_vol)
+            add_noise(temp_input.name, temp_input_with_noise.name, noise_vol,
+                      hparams.audio_transform_noise_type)
 
-    with tempfile.NamedTemporaryFile(suffix='.wav') as temp_output:
-      run_pipeline(pipeline, temp_input_with_noise.name, temp_output.name)
-      return temp_output.read()
+        with tempfile.NamedTemporaryFile(suffix='.wav') as temp_output:
+            run_pipeline(pipeline, temp_input_with_noise.name, temp_output.name)
+            return temp_output.read()

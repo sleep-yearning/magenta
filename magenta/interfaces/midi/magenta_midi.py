@@ -185,7 +185,7 @@ _GENERATOR_MAP.update(polyphony_sequence_generator.get_generator_map())
 
 
 class CCMapper(object):
-  """A class for mapping control change numbers to specific controls.
+    """A class for mapping control change numbers to specific controls.
 
   Args:
     cc_map: A dictionary containing mappings from signal names to control
@@ -193,202 +193,202 @@ class CCMapper(object):
     midi_hub_: An initialized MidiHub to receive inputs from.
   """
 
-  def __init__(self, cc_map, midi_hub_):
-    self._cc_map = cc_map
-    self._signals = cc_map.keys()
-    self._midi_hub = midi_hub_
-    self._update_event = threading.Event()
+    def __init__(self, cc_map, midi_hub_):
+        self._cc_map = cc_map
+        self._signals = cc_map.keys()
+        self._midi_hub = midi_hub_
+        self._update_event = threading.Event()
 
-  def _print_instructions(self):
-    """Prints instructions for mapping control changes."""
-    print('Enter the index of a signal to set the control change for, or `q` '
-          'when done.')
-    fmt = '{:>6}\t{:<20}\t{:>6}'
-    print(fmt.format('Index', 'Control', 'Current'))
-    for i, signal in enumerate(self._signals):
-      print(fmt.format(i + 1, signal, self._cc_map.get(signal)))
-    print('')
+    def _print_instructions(self):
+        """Prints instructions for mapping control changes."""
+        print('Enter the index of a signal to set the control change for, or `q` '
+              'when done.')
+        fmt = '{:>6}\t{:<20}\t{:>6}'
+        print(fmt.format('Index', 'Control', 'Current'))
+        for i, signal in enumerate(self._signals):
+            print(fmt.format(i + 1, signal, self._cc_map.get(signal)))
+        print('')
 
-  def _update_signal(self, signal, msg):
-    """Updates mapping for the signal to the message's control change.
+    def _update_signal(self, signal, msg):
+        """Updates mapping for the signal to the message's control change.
 
     Args:
       signal: The name of the signal to update the control change for.
       msg: The mido.Message whose control change the signal should be set to.
     """
-    if msg.control in self._cc_map.values():
-      print('Control number %d is already assigned. Ignoring.' % msg.control)
-    else:
-      self._cc_map[signal] = msg.control
-      print('Assigned control number %d to `%s`.' % (msg.control, signal))
-    self._update_event.set()
+        if msg.control in self._cc_map.values():
+            print('Control number %d is already assigned. Ignoring.' % msg.control)
+        else:
+            self._cc_map[signal] = msg.control
+            print('Assigned control number %d to `%s`.' % (msg.control, signal))
+        self._update_event.set()
 
-  def update_map(self):
-    """Enters a loop that receives user input to set signal controls."""
-    while True:
-      print('')
-      self._print_instructions()
-      response = input('Selection: ')
-      if response == 'q':
-        return
-      try:
-        signal = self._signals[int(response) - 1]
-      except (ValueError, IndexError):
-        print('Invalid response:', response)
-        continue
-      self._update_event.clear()
-      self._midi_hub.register_callback(
-          functools.partial(self._update_signal, signal),
-          midi_hub.MidiSignal(type='control_change'))
-      print('Send a control signal using the control number you wish to '
-            'associate with `%s`.' % signal)
-      self._update_event.wait()
+    def update_map(self):
+        """Enters a loop that receives user input to set signal controls."""
+        while True:
+            print('')
+            self._print_instructions()
+            response = input('Selection: ')
+            if response == 'q':
+                return
+            try:
+                signal = self._signals[int(response) - 1]
+            except (ValueError, IndexError):
+                print('Invalid response:', response)
+                continue
+            self._update_event.clear()
+            self._midi_hub.register_callback(
+                functools.partial(self._update_signal, signal),
+                midi_hub.MidiSignal(type='control_change'))
+            print('Send a control signal using the control number you wish to '
+                  'associate with `%s`.' % signal)
+            self._update_event.wait()
 
 
 def _validate_flags():
-  """Returns True if flag values are valid or prints error and returns False."""
-  if FLAGS.list_ports:
-    print("Input ports: '%s'" % (
-        "', '".join(midi_hub.get_available_input_ports())))
-    print("Ouput ports: '%s'" % (
-        "', '".join(midi_hub.get_available_output_ports())))
-    return False
+    """Returns True if flag values are valid or prints error and returns False."""
+    if FLAGS.list_ports:
+        print("Input ports: '%s'" % (
+            "', '".join(midi_hub.get_available_input_ports())))
+        print("Ouput ports: '%s'" % (
+            "', '".join(midi_hub.get_available_output_ports())))
+        return False
 
-  if FLAGS.bundle_files is None:
-    print('--bundle_files must be specified.')
-    return False
+    if FLAGS.bundle_files is None:
+        print('--bundle_files must be specified.')
+        return False
 
-  if (len(FLAGS.bundle_files.split(',')) > 1 and
-      FLAGS.generator_select_control_number is None):
-    tf.logging.warning(
-        'You have specified multiple bundle files (generators), without '
-        'setting `--generator_select_control_number`. You will only be able to '
-        'use the first generator (%s).',
-        FLAGS.bundle_files[0])
+    if (len(FLAGS.bundle_files.split(',')) > 1 and
+            FLAGS.generator_select_control_number is None):
+        tf.logging.warning(
+            'You have specified multiple bundle files (generators), without '
+            'setting `--generator_select_control_number`. You will only be able to '
+            'use the first generator (%s).',
+            FLAGS.bundle_files[0])
 
-  return True
+    return True
 
 
 def _load_generator_from_bundle_file(bundle_file):
-  """Returns initialized generator from bundle file path or None if fails."""
-  try:
-    bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
-  except sequence_generator_bundle.GeneratorBundleParseError:
-    print('Failed to parse bundle file: %s' % FLAGS.bundle_file)
-    return None
+    """Returns initialized generator from bundle file path or None if fails."""
+    try:
+        bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
+    except sequence_generator_bundle.GeneratorBundleParseError:
+        print('Failed to parse bundle file: %s' % FLAGS.bundle_file)
+        return None
 
-  generator_id = bundle.generator_details.id
-  if generator_id not in _GENERATOR_MAP:
-    print("Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
-        generator_id, FLAGS.bundle_file))
-    return None
+    generator_id = bundle.generator_details.id
+    if generator_id not in _GENERATOR_MAP:
+        print("Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
+            generator_id, FLAGS.bundle_file))
+        return None
 
-  generator = _GENERATOR_MAP[generator_id](checkpoint=None, bundle=bundle)
-  generator.initialize()
-  print("Loaded '%s' generator bundle from file '%s'." % (
-      bundle.generator_details.id, bundle_file))
-  return generator
+    generator = _GENERATOR_MAP[generator_id](checkpoint=None, bundle=bundle)
+    generator.initialize()
+    print("Loaded '%s' generator bundle from file '%s'." % (
+        bundle.generator_details.id, bundle_file))
+    return generator
 
 
 def _print_instructions():
-  """Prints instructions for interaction based on the flag values."""
-  print('')
-  print('Instructions:')
-  print('Start playing  when you want to begin the call phrase.')
-  if FLAGS.end_call_control_number is not None:
-    print('When you want to end the call phrase, signal control number %d '
-          'with value 127, or stop playing and wait one clock tick.'
-          % FLAGS.end_call_control_number)
-  else:
-    print('When you want to end the call phrase, stop playing and wait one '
-          'clock tick.')
-  print('Once the response completes, the interface will wait for you to '
-        'begin playing again to start a new call phrase.')
-  print('')
-  print('To end the interaction, press CTRL-C.')
+    """Prints instructions for interaction based on the flag values."""
+    print('')
+    print('Instructions:')
+    print('Start playing  when you want to begin the call phrase.')
+    if FLAGS.end_call_control_number is not None:
+        print('When you want to end the call phrase, signal control number %d '
+              'with value 127, or stop playing and wait one clock tick.'
+              % FLAGS.end_call_control_number)
+    else:
+        print('When you want to end the call phrase, stop playing and wait one '
+              'clock tick.')
+    print('Once the response completes, the interface will wait for you to '
+          'begin playing again to start a new call phrase.')
+    print('')
+    print('To end the interaction, press CTRL-C.')
 
 
 def main(unused_argv):
-  tf.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
-  if not _validate_flags():
-    return
+    if not _validate_flags():
+        return
 
-  # Load generators.
-  generators = []
-  for bundle_file in FLAGS.bundle_files.split(','):
-    generators.append(_load_generator_from_bundle_file(bundle_file))
-    if generators[-1] is None:
-      return
+    # Load generators.
+    generators = []
+    for bundle_file in FLAGS.bundle_files.split(','):
+        generators.append(_load_generator_from_bundle_file(bundle_file))
+        if generators[-1] is None:
+            return
 
-  # Initialize MidiHub.
-  hub = midi_hub.MidiHub(FLAGS.input_ports.split(','),
-                         FLAGS.output_ports.split(','),
-                         midi_hub.TextureType.POLYPHONIC,
-                         passthrough=FLAGS.passthrough,
-                         playback_channel=FLAGS.playback_channel,
-                         playback_offset=FLAGS.playback_offset)
+    # Initialize MidiHub.
+    hub = midi_hub.MidiHub(FLAGS.input_ports.split(','),
+                           FLAGS.output_ports.split(','),
+                           midi_hub.TextureType.POLYPHONIC,
+                           passthrough=FLAGS.passthrough,
+                           playback_channel=FLAGS.playback_channel,
+                           playback_offset=FLAGS.playback_offset)
 
-  control_map = {re.sub('_control_number$', '', f): FLAGS.__getattr__(f)
-                 for f in _CONTROL_FLAGS}
-  if FLAGS.learn_controls:
-    CCMapper(control_map, hub).update_map()
+    control_map = {re.sub('_control_number$', '', f): FLAGS.__getattr__(f)
+                   for f in _CONTROL_FLAGS}
+    if FLAGS.learn_controls:
+        CCMapper(control_map, hub).update_map()
 
-  if control_map['clock'] is None:
-    # Set the tick duration to be a single bar, assuming a 4/4 time signature.
-    clock_signal = None
-    tick_duration = 4 * (60. / FLAGS.qpm)
-  else:
-    clock_signal = midi_hub.MidiSignal(
-        control=control_map['clock'], value=127)
-    tick_duration = None
+    if control_map['clock'] is None:
+        # Set the tick duration to be a single bar, assuming a 4/4 time signature.
+        clock_signal = None
+        tick_duration = 4 * (60. / FLAGS.qpm)
+    else:
+        clock_signal = midi_hub.MidiSignal(
+            control=control_map['clock'], value=127)
+        tick_duration = None
 
-  def _signal_from_control_map(name):
-    if control_map[name] is None:
-      return None
-    return midi_hub.MidiSignal(control=control_map[name], value=127)
+    def _signal_from_control_map(name):
+        if control_map[name] is None:
+            return None
+        return midi_hub.MidiSignal(control=control_map[name], value=127)
 
-  end_call_signal = _signal_from_control_map('end_call')
-  panic_signal = _signal_from_control_map('panic')
-  mutate_signal = _signal_from_control_map('mutate')
+    end_call_signal = _signal_from_control_map('end_call')
+    panic_signal = _signal_from_control_map('panic')
+    mutate_signal = _signal_from_control_map('mutate')
 
-  metronome_channel = (
-      FLAGS.metronome_channel if FLAGS.enable_metronome else None)
-  interaction = midi_interaction.CallAndResponseMidiInteraction(
-      hub,
-      generators,
-      FLAGS.qpm,
-      FLAGS.generator_select_control_number,
-      clock_signal=clock_signal,
-      tick_duration=tick_duration,
-      end_call_signal=end_call_signal,
-      panic_signal=panic_signal,
-      mutate_signal=mutate_signal,
-      allow_overlap=FLAGS.allow_overlap,
-      metronome_channel=metronome_channel,
-      min_listen_ticks_control_number=control_map['min_listen_ticks'],
-      max_listen_ticks_control_number=control_map['max_listen_ticks'],
-      response_ticks_control_number=control_map['response_ticks'],
-      tempo_control_number=control_map['tempo'],
-      temperature_control_number=control_map['temperature'],
-      loop_control_number=control_map['loop'],
-      state_control_number=control_map['state'])
+    metronome_channel = (
+        FLAGS.metronome_channel if FLAGS.enable_metronome else None)
+    interaction = midi_interaction.CallAndResponseMidiInteraction(
+        hub,
+        generators,
+        FLAGS.qpm,
+        FLAGS.generator_select_control_number,
+        clock_signal=clock_signal,
+        tick_duration=tick_duration,
+        end_call_signal=end_call_signal,
+        panic_signal=panic_signal,
+        mutate_signal=mutate_signal,
+        allow_overlap=FLAGS.allow_overlap,
+        metronome_channel=metronome_channel,
+        min_listen_ticks_control_number=control_map['min_listen_ticks'],
+        max_listen_ticks_control_number=control_map['max_listen_ticks'],
+        response_ticks_control_number=control_map['response_ticks'],
+        tempo_control_number=control_map['tempo'],
+        temperature_control_number=control_map['temperature'],
+        loop_control_number=control_map['loop'],
+        state_control_number=control_map['state'])
 
-  _print_instructions()
+    _print_instructions()
 
-  interaction.start()
-  try:
-    while True:
-      time.sleep(1)
-  except KeyboardInterrupt:
-    interaction.stop()
+    interaction.start()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        interaction.stop()
 
-  print('Interaction stopped.')
+    print('Interaction stopped.')
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

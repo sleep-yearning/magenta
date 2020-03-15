@@ -48,34 +48,34 @@ tf.app.flags.DEFINE_string(
 
 
 def main(unused_argv):
-  tf.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
-  # Initialize MidiHub.
-  hub = midi_hub.MidiHub(
-      None, FLAGS.output_ports.split(','), midi_hub.TextureType.MONOPHONIC)
+    # Initialize MidiHub.
+    hub = midi_hub.MidiHub(
+        None, FLAGS.output_ports.split(','), midi_hub.TextureType.MONOPHONIC)
 
-  cc = FLAGS.clock_control_number
+    cc = FLAGS.clock_control_number
 
-  # Assumes 4 beats per bar.
-  metronome_signals = (
-      [midi_hub.MidiSignal(control=cc, value=127)] +
-      [midi_hub.MidiSignal(control=cc, value=0)] * 3)
+    # Assumes 4 beats per bar.
+    metronome_signals = (
+            [midi_hub.MidiSignal(control=cc, value=127)] +
+            [midi_hub.MidiSignal(control=cc, value=0)] * 3)
 
-  hub.start_metronome(
-      FLAGS.qpm, start_time=0, signals=metronome_signals, channel=FLAGS.channel)
+    hub.start_metronome(
+        FLAGS.qpm, start_time=0, signals=metronome_signals, channel=FLAGS.channel)
 
-  try:
-    while True:
-      time.sleep(1)
-  except KeyboardInterrupt:
-    hub.stop_metronome()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        hub.stop_metronome()
 
-  print('Clock stopped.')
+    print('Clock stopped.')
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

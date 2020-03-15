@@ -21,40 +21,40 @@ import tensorflow.compat.v1 as tf
 
 class PianorollEncodingTest(tf.test.TestCase):
 
-  def setUp(self):
-    self.enc = pianoroll_encoder_decoder.PianorollEncoderDecoder(5)
+    def setUp(self):
+        self.enc = pianoroll_encoder_decoder.PianorollEncoderDecoder(5)
 
-  def testProperties(self):
-    self.assertEqual(5, self.enc.input_size)
-    self.assertEqual(32, self.enc.num_classes)
-    self.assertEqual(0, self.enc.default_event_label)
+    def testProperties(self):
+        self.assertEqual(5, self.enc.input_size)
+        self.assertEqual(32, self.enc.num_classes)
+        self.assertEqual(0, self.enc.default_event_label)
 
-  def testEncodeInput(self):
-    events = [(), (1, 2), (2,)]
-    self.assertTrue(np.array_equal(
-        np.zeros(5, np.bool), self.enc.events_to_input(events, 0)))
-    self.assertTrue(np.array_equal(
-        [0, 1, 1, 0, 0], self.enc.events_to_input(events, 1)))
-    self.assertTrue(np.array_equal(
-        [0, 0, 1, 0, 0], self.enc.events_to_input(events, 2)))
+    def testEncodeInput(self):
+        events = [(), (1, 2), (2,)]
+        self.assertTrue(np.array_equal(
+            np.zeros(5, np.bool), self.enc.events_to_input(events, 0)))
+        self.assertTrue(np.array_equal(
+            [0, 1, 1, 0, 0], self.enc.events_to_input(events, 1)))
+        self.assertTrue(np.array_equal(
+            [0, 0, 1, 0, 0], self.enc.events_to_input(events, 2)))
 
-  def testEncodeLabel(self):
-    events = [[], [1, 2], [2]]
-    self.assertEqual(0, self.enc.events_to_label(events, 0))
-    self.assertEqual(6, self.enc.events_to_label(events, 1))
-    self.assertEqual(4, self.enc.events_to_label(events, 2))
+    def testEncodeLabel(self):
+        events = [[], [1, 2], [2]]
+        self.assertEqual(0, self.enc.events_to_label(events, 0))
+        self.assertEqual(6, self.enc.events_to_label(events, 1))
+        self.assertEqual(4, self.enc.events_to_label(events, 2))
 
-  def testDecodeLabel(self):
-    self.assertEqual((), self.enc.class_index_to_event(0, None))
-    self.assertEqual((1, 2), self.enc.class_index_to_event(6, None))
-    self.assertEqual((2,), self.enc.class_index_to_event(4, None))
+    def testDecodeLabel(self):
+        self.assertEqual((), self.enc.class_index_to_event(0, None))
+        self.assertEqual((1, 2), self.enc.class_index_to_event(6, None))
+        self.assertEqual((2,), self.enc.class_index_to_event(4, None))
 
-  def testExtendEventSequences(self):
-    seqs = ([(0,), (1, 2)], [(), ()])
-    samples = ([0, 0, 0, 0, 0], [1, 1, 0, 0, 1])
-    self.enc.extend_event_sequences(seqs, samples)
-    self.assertEqual(([(0,), (1, 2), ()], [(), (), (0, 1, 4)]), seqs)
+    def testExtendEventSequences(self):
+        seqs = ([(0,), (1, 2)], [(), ()])
+        samples = ([0, 0, 0, 0, 0], [1, 1, 0, 0, 1])
+        self.enc.extend_event_sequences(seqs, samples)
+        self.assertEqual(([(0,), (1, 2), ()], [(), (), (0, 1, 4)]), seqs)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

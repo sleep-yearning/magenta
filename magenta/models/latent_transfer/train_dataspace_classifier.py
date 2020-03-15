@@ -47,117 +47,116 @@ tf.flags.DEFINE_string('exp_uid', '_exp_0',
 
 
 def main(unused_argv):
-  del unused_argv
+    del unused_argv
 
-  # Load Config
-  config_name = FLAGS.config
-  config_module = importlib.import_module(configs_module_prefix +
-                                          '.%s' % config_name)
-  config = config_module.config
-  model_uid = common.get_model_uid(config_name, FLAGS.exp_uid)
-  batch_size = config['batch_size']
+    # Load Config
+    config_name = FLAGS.config
+    config_module = importlib.import_module(configs_module_prefix +
+                                            '.%s' % config_name)
+    config = config_module.config
+    model_uid = common.get_model_uid(config_name, FLAGS.exp_uid)
+    batch_size = config['batch_size']
 
-  # Load dataset
-  dataset = common.load_dataset(config)
-  save_path = dataset.save_path
-  train_data = dataset.train_data
-  attr_train = dataset.attr_train
-  eval_data = dataset.eval_data
-  attr_eval = dataset.attr_eval
+    # Load dataset
+    dataset = common.load_dataset(config)
+    save_path = dataset.save_path
+    train_data = dataset.train_data
+    attr_train = dataset.attr_train
+    eval_data = dataset.eval_data
+    attr_eval = dataset.attr_eval
 
-  # Make the directory
-  save_dir = os.path.join(save_path, model_uid)
-  best_dir = os.path.join(save_dir, 'best')
-  tf.gfile.MakeDirs(save_dir)
-  tf.gfile.MakeDirs(best_dir)
-  tf.logging.info('Save Dir: %s', save_dir)
+    # Make the directory
+    save_dir = os.path.join(save_path, model_uid)
+    best_dir = os.path.join(save_dir, 'best')
+    tf.gfile.MakeDirs(save_dir)
+    tf.gfile.MakeDirs(best_dir)
+    tf.logging.info('Save Dir: %s', save_dir)
 
-  np.random.seed(10003)
-  N_train = train_data.shape[0]
-  N_eval = eval_data.shape[0]
+    np.random.seed(10003)
+    N_train = train_data.shape[0]
+    N_eval = eval_data.shape[0]
 
-  # Load Model
-  tf.reset_default_graph()
-  sess = tf.Session()
-  m = model_dataspace.Model(config, name=model_uid)
-  _ = m()  # noqa
+    # Load Model
+    tf.reset_default_graph()
+    sess = tf.Session()
+    m = model_dataspace.Model(config, name=model_uid)
+    _ = m()  # noqa
 
-  # Create summaries
-  y_true = m.labels
-  y_pred = tf.cast(tf.greater(m.pred_classifier, 0.5), tf.int32)
-  accuracy = tf.reduce_mean(tf.cast(tf.equal(y_true, y_pred), tf.float32))
+    # Create summaries
+    y_true = m.labels
+    y_pred = tf.cast(tf.greater(m.pred_classifier, 0.5), tf.int32)
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(y_true, y_pred), tf.float32))
 
-  tf.summary.scalar('Loss', m.classifier_loss)
-  tf.summary.scalar('Accuracy', accuracy)
-  scalar_summaries = tf.summary.merge_all()
+    tf.summary.scalar('Loss', m.classifier_loss)
+    tf.summary.scalar('Accuracy', accuracy)
+    scalar_summaries = tf.summary.merge_all()
 
-  # Summary writers
-  train_writer = tf.summary.FileWriter(save_dir + '/train', sess.graph)
-  eval_writer = tf.summary.FileWriter(save_dir + '/eval', sess.graph)
+    # Summary writers
+    train_writer = tf.summary.FileWriter(save_dir + '/train', sess.graph)
+    eval_writer = tf.summary.FileWriter(save_dir + '/eval', sess.graph)
 
-  # Initialize
-  sess.run(tf.global_variables_initializer())
+    # Initialize
+    sess.run(tf.global_variables_initializer())
 
-  i_start = 0
-  running_N_eval = 30
-  traces = {
-      'i': [],
-      'i_pred': [],
-      'loss': [],
-      'loss_eval': [],
-  }
+    i_start = 0
+    running_N_eval = 30
+    traces = {
+        'i': [],
+        'i_pred': [],
+        'loss': [],
+        'loss_eval': [],
+    }
 
-  best_eval_loss = np.inf
-  classifier_lr_ = np.logspace(
-      np.log10(FLAGS.lr), np.log10(1e-6), FLAGS.n_iters)
+    best_eval_loss = np.inf
+    classifier_lr_ = np.logspace(
+        np.log10(FLAGS.lr), np.log10(1e-6), FLAGS.n_iters)
 
-  # Train the Classifier
-  for i in range(i_start, FLAGS.n_iters):
-    start = (i * batch_size) % N_train
-    end = start + batch_size
-    batch = train_data[start:end]
-    labels = attr_train[start:end]
-
-    # train op
-    res = sess.run([m.train_classifier, m.classifier_loss, scalar_summaries], {
-        m.x: batch,
-        m.labels: labels,
-        m.classifier_lr: classifier_lr_[i]
-    })
-    tf.logging.info('Iter: %d, Loss: %.2e', i, res[1])
-    train_writer.add_summary(res[-1], i)
-
-    if i % 10 == 0:
-      # write training reconstructions
-      if batch.shape[0] == batch_size:
-        # write eval summaries
-        start = (i * batch_size) % N_eval
+    # Train the Classifier
+    for i in range(i_start, FLAGS.n_iters):
+        start = (i * batch_size) % N_train
         end = start + batch_size
-        batch = eval_data[start:end]
-        labels = attr_eval[start:end]
+        batch = train_data[start:end]
+        labels = attr_train[start:end]
 
-        if batch.shape[0] == batch_size:
-          res_eval = sess.run([m.classifier_loss, scalar_summaries], {
-              m.x: batch,
-              m.labels: labels,
-          })
-          traces['loss_eval'].append(res_eval[0])
-          eval_writer.add_summary(res_eval[-1], i)
+        # train op
+        res = sess.run([m.train_classifier, m.classifier_loss, scalar_summaries], {
+            m.x: batch,
+            m.labels: labels,
+            m.classifier_lr: classifier_lr_[i]
+        })
+        tf.logging.info('Iter: %d, Loss: %.2e', i, res[1])
+        train_writer.add_summary(res[-1], i)
 
-    if i % FLAGS.n_iters_per_save == 0:
-      smoothed_eval_loss = np.mean(traces['loss_eval'][-running_N_eval:])
-      if smoothed_eval_loss < best_eval_loss:
+        if i % 10 == 0:
+            # write training reconstructions
+            if batch.shape[0] == batch_size:
+                # write eval summaries
+                start = (i * batch_size) % N_eval
+                end = start + batch_size
+                batch = eval_data[start:end]
+                labels = attr_eval[start:end]
 
-        # Save the best model
-        best_eval_loss = smoothed_eval_loss
-        save_name = os.path.join(best_dir,
-                                 'classifier_best_%s.ckpt' % model_uid)
-        tf.logging.info('SAVING BEST! %s Iter: %d', save_name, i)
-        m.classifier_saver.save(sess, save_name)
-        with tf.gfile.Open(os.path.join(best_dir, 'best_ckpt_iters.txt'),
-                           'w') as f:
-          f.write('%d' % i)
+                if batch.shape[0] == batch_size:
+                    res_eval = sess.run([m.classifier_loss, scalar_summaries], {
+                        m.x: batch,
+                        m.labels: labels,
+                    })
+                    traces['loss_eval'].append(res_eval[0])
+                    eval_writer.add_summary(res_eval[-1], i)
+
+        if i % FLAGS.n_iters_per_save == 0:
+            smoothed_eval_loss = np.mean(traces['loss_eval'][-running_N_eval:])
+            if smoothed_eval_loss < best_eval_loss:
+                # Save the best model
+                best_eval_loss = smoothed_eval_loss
+                save_name = os.path.join(best_dir,
+                                         'classifier_best_%s.ckpt' % model_uid)
+                tf.logging.info('SAVING BEST! %s Iter: %d', save_name, i)
+                m.classifier_saver.save(sess, save_name)
+                with tf.gfile.Open(os.path.join(best_dir, 'best_ckpt_iters.txt'),
+                                   'w') as f:
+                    f.write('%d' % i)
 
 
 if __name__ == '__main__':
-  tf.app.run(main)
+    tf.app.run(main)

@@ -47,105 +47,106 @@ FLAGS = flags.FLAGS
 
 
 def _load_checkpoint(sess, checkpoint):
-  """Loads a checkpoint file into the session."""
-  model_saver = tf.train.Saver(tf.global_variables())
-  checkpoint = os.path.expanduser(checkpoint)
-  if tf.gfile.IsDirectory(checkpoint):
-    checkpoint = tf.train.latest_checkpoint(checkpoint)
-    tf.logging.info('loading latest checkpoint file: {}'.format(checkpoint))
-  model_saver.restore(sess, checkpoint)
+    """Loads a checkpoint file into the session."""
+    model_saver = tf.train.Saver(tf.global_variables())
+    checkpoint = os.path.expanduser(checkpoint)
+    if tf.gfile.IsDirectory(checkpoint):
+        checkpoint = tf.train.latest_checkpoint(checkpoint)
+        tf.logging.info('loading latest checkpoint file: {}'.format(checkpoint))
+    model_saver.restore(sess, checkpoint)
 
 
 def _describe_style(which_styles):
-  """Returns a string describing a linear combination of styles."""
-  def _format(v):
-    formatted = str(int(round(v * 1000.0)))
-    while len(formatted) < 3:
-      formatted = '0' + formatted
-    return formatted
+    """Returns a string describing a linear combination of styles."""
 
-  values = []
-  for k in sorted(which_styles.keys()):
-    values.append('%s_%s' % (k, _format(which_styles[k])))
-  return '_'.join(values)
+    def _format(v):
+        formatted = str(int(round(v * 1000.0)))
+        while len(formatted) < 3:
+            formatted = '0' + formatted
+        return formatted
+
+    values = []
+    for k in sorted(which_styles.keys()):
+        values.append('%s_%s' % (k, _format(which_styles[k])))
+    return '_'.join(values)
 
 
 def _style_mixture(which_styles, num_styles):
-  """Returns a 1-D array mapping style indexes to weights."""
-  if not isinstance(which_styles, dict):
-    raise ValueError('Style mixture must be a dictionary.')
-  mixture = np.zeros([num_styles], dtype=np.float32)
-  for index in which_styles:
-    mixture[index] = which_styles[index]
-  return mixture
+    """Returns a 1-D array mapping style indexes to weights."""
+    if not isinstance(which_styles, dict):
+        raise ValueError('Style mixture must be a dictionary.')
+    mixture = np.zeros([num_styles], dtype=np.float32)
+    for index in which_styles:
+        mixture[index] = which_styles[index]
+    return mixture
 
 
 def _multiple_images(input_image, which_styles, output_dir):
-  """Stylizes an image into a set of styles and writes them to disk."""
-  with tf.Graph().as_default(), tf.Session() as sess:
-    stylized_images = model.transform(
-        tf.concat([input_image for _ in range(len(which_styles))], 0),
-        alpha=FLAGS.alpha,
-        normalizer_params={
-            'labels': tf.constant(which_styles),
-            'num_categories': FLAGS.num_styles,
-            'center': True,
-            'scale': True
-        })
-    _load_checkpoint(sess, FLAGS.checkpoint)
+    """Stylizes an image into a set of styles and writes them to disk."""
+    with tf.Graph().as_default(), tf.Session() as sess:
+        stylized_images = model.transform(
+            tf.concat([input_image for _ in range(len(which_styles))], 0),
+            alpha=FLAGS.alpha,
+            normalizer_params={
+                'labels': tf.constant(which_styles),
+                'num_categories': FLAGS.num_styles,
+                'center': True,
+                'scale': True
+            })
+        _load_checkpoint(sess, FLAGS.checkpoint)
 
-    stylized_images = stylized_images.eval()
-    for which, stylized_image in zip(which_styles, stylized_images):
-      image_utils.save_np_image(
-          stylized_image[None, ...],
-          '{}/{}_{}.png'.format(output_dir, FLAGS.output_basename, which))
+        stylized_images = stylized_images.eval()
+        for which, stylized_image in zip(which_styles, stylized_images):
+            image_utils.save_np_image(
+                stylized_image[None, ...],
+                '{}/{}_{}.png'.format(output_dir, FLAGS.output_basename, which))
 
 
 def _multiple_styles(input_image, which_styles, output_dir):
-  """Stylizes image into a linear combination of styles and writes to disk."""
-  with tf.Graph().as_default(), tf.Session() as sess:
-    mixture = _style_mixture(which_styles, FLAGS.num_styles)
-    stylized_images = model.transform(
-        input_image,
-        alpha=FLAGS.alpha,
-        normalizer_fn=ops.weighted_instance_norm,
-        normalizer_params={
-            'weights': tf.constant(mixture),
-            'num_categories': FLAGS.num_styles,
-            'center': True,
-            'scale': True
-        })
-    _load_checkpoint(sess, FLAGS.checkpoint)
+    """Stylizes image into a linear combination of styles and writes to disk."""
+    with tf.Graph().as_default(), tf.Session() as sess:
+        mixture = _style_mixture(which_styles, FLAGS.num_styles)
+        stylized_images = model.transform(
+            input_image,
+            alpha=FLAGS.alpha,
+            normalizer_fn=ops.weighted_instance_norm,
+            normalizer_params={
+                'weights': tf.constant(mixture),
+                'num_categories': FLAGS.num_styles,
+                'center': True,
+                'scale': True
+            })
+        _load_checkpoint(sess, FLAGS.checkpoint)
 
-    stylized_image = stylized_images.eval()
-    image_utils.save_np_image(
-        stylized_image,
-        os.path.join(output_dir, '%s_%s.png' % (
-            FLAGS.output_basename, _describe_style(which_styles))))
+        stylized_image = stylized_images.eval()
+        image_utils.save_np_image(
+            stylized_image,
+            os.path.join(output_dir, '%s_%s.png' % (
+                FLAGS.output_basename, _describe_style(which_styles))))
 
 
 def main(unused_argv=None):
-  # Load image
-  image = np.expand_dims(image_utils.load_np_image(
-      os.path.expanduser(FLAGS.input_image)), 0)
+    # Load image
+    image = np.expand_dims(image_utils.load_np_image(
+        os.path.expanduser(FLAGS.input_image)), 0)
 
-  output_dir = os.path.expanduser(FLAGS.output_dir)
-  if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
+    output_dir = os.path.expanduser(FLAGS.output_dir)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-  which_styles = ast.literal_eval(FLAGS.which_styles)
-  if isinstance(which_styles, list):
-    _multiple_images(image, which_styles, output_dir)
-  elif isinstance(which_styles, dict):
-    _multiple_styles(image, which_styles, output_dir)
-  else:
-    raise ValueError('--which_styles must be either a list of style indexes '
-                     'or a dictionary mapping style indexes to weights.')
+    which_styles = ast.literal_eval(FLAGS.which_styles)
+    if isinstance(which_styles, list):
+        _multiple_images(image, which_styles, output_dir)
+    elif isinstance(which_styles, dict):
+        _multiple_styles(image, which_styles, output_dir)
+    else:
+        raise ValueError('--which_styles must be either a list of style indexes '
+                         'or a dictionary mapping style indexes to weights.')
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

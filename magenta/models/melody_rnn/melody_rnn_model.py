@@ -28,11 +28,11 @@ DEFAULT_TRANSPOSE_TO_KEY = 0
 
 
 class MelodyRnnModel(events_rnn_model.EventSequenceRnnModel):
-  """Class for RNN melody generation models."""
+    """Class for RNN melody generation models."""
 
-  def generate_melody(self, num_steps, primer_melody, temperature=1.0,
-                      beam_size=1, branch_factor=1, steps_per_iteration=1):
-    """Generate a melody from a primer melody.
+    def generate_melody(self, num_steps, primer_melody, temperature=1.0,
+                        beam_size=1, branch_factor=1, steps_per_iteration=1):
+        """Generate a melody from a primer melody.
 
     Args:
       num_steps: The integer length in steps of the final melody, after
@@ -51,22 +51,22 @@ class MelodyRnnModel(events_rnn_model.EventSequenceRnnModel):
       The generated Melody object (which begins with the provided primer
           melody).
     """
-    melody = copy.deepcopy(primer_melody)
+        melody = copy.deepcopy(primer_melody)
 
-    transpose_amount = melody.squash(
-        self._config.min_note,
-        self._config.max_note,
-        self._config.transpose_to_key)
+        transpose_amount = melody.squash(
+            self._config.min_note,
+            self._config.max_note,
+            self._config.transpose_to_key)
 
-    melody = self._generate_events(num_steps, melody, temperature, beam_size,
-                                   branch_factor, steps_per_iteration)
+        melody = self._generate_events(num_steps, melody, temperature, beam_size,
+                                       branch_factor, steps_per_iteration)
 
-    melody.transpose(-transpose_amount)
+        melody.transpose(-transpose_amount)
 
-    return melody
+        return melody
 
-  def melody_log_likelihood(self, melody):
-    """Evaluate the log likelihood of a melody under the model.
+    def melody_log_likelihood(self, melody):
+        """Evaluate the log likelihood of a melody under the model.
 
     Args:
       melody: The Melody object for which to evaluate the log likelihood.
@@ -74,18 +74,18 @@ class MelodyRnnModel(events_rnn_model.EventSequenceRnnModel):
     Returns:
       The log likelihood of `melody` under this model.
     """
-    melody_copy = copy.deepcopy(melody)
+        melody_copy = copy.deepcopy(melody)
 
-    melody_copy.squash(
-        self._config.min_note,
-        self._config.max_note,
-        self._config.transpose_to_key)
+        melody_copy.squash(
+            self._config.min_note,
+            self._config.max_note,
+            self._config.transpose_to_key)
 
-    return self._evaluate_log_likelihood([melody_copy])[0]
+        return self._evaluate_log_likelihood([melody_copy])[0]
 
 
 class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
-  """Stores a configuration for a MelodyRnn.
+    """Stores a configuration for a MelodyRnn.
 
   You can change `min_note` and `max_note` to increase/decrease the melody
   range. Since melodies are transposed into this range to be run through
@@ -107,27 +107,27 @@ class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
         None if it should not be transposed.
   """
 
-  def __init__(self, details, encoder_decoder, hparams,
-               min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE,
-               transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
-    super(MelodyRnnConfig, self).__init__(details, encoder_decoder, hparams)
+    def __init__(self, details, encoder_decoder, hparams,
+                 min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE,
+                 transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
+        super(MelodyRnnConfig, self).__init__(details, encoder_decoder, hparams)
 
-    if min_note < mm.MIN_MIDI_PITCH:
-      raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
-    if max_note > mm.MAX_MIDI_PITCH + 1:
-      raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
-    if max_note - min_note < mm.NOTES_PER_OCTAVE:
-      raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
-                       'max_note is %d. max_note - min_note is %d.' %
-                       (min_note, max_note, max_note - min_note))
-    if (transpose_to_key is not None and
-        (transpose_to_key < 0 or transpose_to_key > mm.NOTES_PER_OCTAVE - 1)):
-      raise ValueError('transpose_to_key must be >= 0 and <= 11. '
-                       'transpose_to_key is %d.' % transpose_to_key)
+        if min_note < mm.MIN_MIDI_PITCH:
+            raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
+        if max_note > mm.MAX_MIDI_PITCH + 1:
+            raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
+        if max_note - min_note < mm.NOTES_PER_OCTAVE:
+            raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
+                             'max_note is %d. max_note - min_note is %d.' %
+                             (min_note, max_note, max_note - min_note))
+        if (transpose_to_key is not None and
+                (transpose_to_key < 0 or transpose_to_key > mm.NOTES_PER_OCTAVE - 1)):
+            raise ValueError('transpose_to_key must be >= 0 and <= 11. '
+                             'transpose_to_key is %d.' % transpose_to_key)
 
-    self.min_note = min_note
-    self.max_note = max_note
-    self.transpose_to_key = transpose_to_key
+        self.min_note = min_note
+        self.max_note = max_note
+        self.transpose_to_key = transpose_to_key
 
 
 # Default configurations.

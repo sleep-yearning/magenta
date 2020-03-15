@@ -66,91 +66,91 @@ FLAGS = flags.FLAGS
 
 
 def main(unused_argv=None):
-  with tf.Graph().as_default():
-    # Force all input processing onto CPU in order to reserve the GPU for the
-    # forward inference and back-propagation.
-    device = '/cpu:0' if not FLAGS.ps_tasks else '/job:worker/cpu:0'
-    with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks,
-                                                  worker_device=device)):
-      inputs, _ = image_utils.imagenet_inputs(FLAGS.batch_size,
-                                              FLAGS.image_size)
-      # Load style images and select one at random (for each graph execution, a
-      # new random selection occurs)
-      style_images, style_labels, \
-          style_gram_matrices = image_utils.style_image_inputs(
-              os.path.expanduser(FLAGS.style_dataset_file),
-              batch_size=FLAGS.batch_size,
-              image_size=FLAGS.image_size,
-              square_crop=True,
-              shuffle=True)
+    with tf.Graph().as_default():
+        # Force all input processing onto CPU in order to reserve the GPU for the
+        # forward inference and back-propagation.
+        device = '/cpu:0' if not FLAGS.ps_tasks else '/job:worker/cpu:0'
+        with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks,
+                                                      worker_device=device)):
+            inputs, _ = image_utils.imagenet_inputs(FLAGS.batch_size,
+                                                    FLAGS.image_size)
+            # Load style images and select one at random (for each graph execution, a
+            # new random selection occurs)
+            style_images, style_labels, \
+            style_gram_matrices = image_utils.style_image_inputs(
+                os.path.expanduser(FLAGS.style_dataset_file),
+                batch_size=FLAGS.batch_size,
+                image_size=FLAGS.image_size,
+                square_crop=True,
+                shuffle=True)
 
-    with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks)):
-      # Process style and weight flags
-      num_styles = FLAGS.num_styles
-      if FLAGS.style_coefficients is None:
-        style_coefficients = [1.0 for _ in range(num_styles)]
-      else:
-        style_coefficients = ast.literal_eval(FLAGS.style_coefficients)
-      if len(style_coefficients) != num_styles:
-        raise ValueError(
-            'number of style coefficients differs from number of styles')
-      content_weights = ast.literal_eval(FLAGS.content_weights)
-      style_weights = ast.literal_eval(FLAGS.style_weights)
+        with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks)):
+            # Process style and weight flags
+            num_styles = FLAGS.num_styles
+            if FLAGS.style_coefficients is None:
+                style_coefficients = [1.0 for _ in range(num_styles)]
+            else:
+                style_coefficients = ast.literal_eval(FLAGS.style_coefficients)
+            if len(style_coefficients) != num_styles:
+                raise ValueError(
+                    'number of style coefficients differs from number of styles')
+            content_weights = ast.literal_eval(FLAGS.content_weights)
+            style_weights = ast.literal_eval(FLAGS.style_weights)
 
-      # Rescale style weights dynamically based on the current style image
-      style_coefficient = tf.gather(
-          tf.constant(style_coefficients), style_labels)
-      style_weights = dict((key, style_coefficient * style_weights[key])
-                           for key in style_weights)
+            # Rescale style weights dynamically based on the current style image
+            style_coefficient = tf.gather(
+                tf.constant(style_coefficients), style_labels)
+            style_weights = dict((key, style_coefficient * style_weights[key])
+                                 for key in style_weights)
 
-      # Define the model
-      stylized_inputs = model.transform(
-          inputs,
-          alpha=FLAGS.alpha,
-          normalizer_params={
-              'labels': style_labels,
-              'num_categories': num_styles,
-              'center': True,
-              'scale': True
-          })
+            # Define the model
+            stylized_inputs = model.transform(
+                inputs,
+                alpha=FLAGS.alpha,
+                normalizer_params={
+                    'labels': style_labels,
+                    'num_categories': num_styles,
+                    'center': True,
+                    'scale': True
+                })
 
-      # Compute losses.
-      total_loss, loss_dict = learning.total_loss(
-          inputs, stylized_inputs, style_gram_matrices, content_weights,
-          style_weights)
-      for key in loss_dict:
-        tf.summary.scalar(key, loss_dict[key])
+            # Compute losses.
+            total_loss, loss_dict = learning.total_loss(
+                inputs, stylized_inputs, style_gram_matrices, content_weights,
+                style_weights)
+            for key in loss_dict:
+                tf.summary.scalar(key, loss_dict[key])
 
-      # Adding Image summaries to the tensorboard.
-      tf.summary.image('image/0_inputs', inputs, 3)
-      tf.summary.image('image/1_styles', style_images, 3)
-      tf.summary.image('image/2_styled_inputs', stylized_inputs, 3)
+            # Adding Image summaries to the tensorboard.
+            tf.summary.image('image/0_inputs', inputs, 3)
+            tf.summary.image('image/1_styles', style_images, 3)
+            tf.summary.image('image/2_styled_inputs', stylized_inputs, 3)
 
-      # Set up training
-      optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
-      train_op = slim.learning.create_train_op(
-          total_loss, optimizer, clip_gradient_norm=FLAGS.clip_gradient_norm,
-          summarize_gradients=False)
+            # Set up training
+            optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
+            train_op = slim.learning.create_train_op(
+                total_loss, optimizer, clip_gradient_norm=FLAGS.clip_gradient_norm,
+                summarize_gradients=False)
 
-      # Function to restore VGG16 parameters.
-      init_fn_vgg = slim.assign_from_checkpoint_fn(vgg.checkpoint_file(),
-                                                   slim.get_variables('vgg_16'))
+            # Function to restore VGG16 parameters.
+            init_fn_vgg = slim.assign_from_checkpoint_fn(vgg.checkpoint_file(),
+                                                         slim.get_variables('vgg_16'))
 
-      # Run training
-      slim.learning.train(
-          train_op=train_op,
-          logdir=os.path.expanduser(FLAGS.train_dir),
-          master=FLAGS.master,
-          is_chief=FLAGS.task == 0,
-          number_of_steps=FLAGS.train_steps,
-          init_fn=init_fn_vgg,
-          save_summaries_secs=FLAGS.save_summaries_secs,
-          save_interval_secs=FLAGS.save_interval_secs)
+            # Run training
+            slim.learning.train(
+                train_op=train_op,
+                logdir=os.path.expanduser(FLAGS.train_dir),
+                master=FLAGS.master,
+                is_chief=FLAGS.task == 0,
+                number_of_steps=FLAGS.train_steps,
+                init_fn=init_fn_vgg,
+                save_summaries_secs=FLAGS.save_summaries_secs,
+                save_interval_secs=FLAGS.save_interval_secs)
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

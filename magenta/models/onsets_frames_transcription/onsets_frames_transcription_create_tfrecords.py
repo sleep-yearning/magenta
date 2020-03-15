@@ -66,79 +66,78 @@ flags.DEFINE_list(
 
 
 class CreateExampleDoFn(beam.DoFn):
-  """Splits wav and midi files for the dataset."""
+    """Splits wav and midi files for the dataset."""
 
-  def __init__(self, wav_dir, midi_dir, add_wav_glob,
-               *unused_args, **unused_kwargs):
-    self._wav_dir = wav_dir
-    self._midi_dir = midi_dir
-    self._add_wav_glob = add_wav_glob
-    super(CreateExampleDoFn, self).__init__(*unused_args, **unused_kwargs)
+    def __init__(self, wav_dir, midi_dir, add_wav_glob,
+                 *unused_args, **unused_kwargs):
+        self._wav_dir = wav_dir
+        self._midi_dir = midi_dir
+        self._add_wav_glob = add_wav_glob
+        super(CreateExampleDoFn, self).__init__(*unused_args, **unused_kwargs)
 
-  def process(self, paths):
-    midi_path, wav_path_base = paths
+    def process(self, paths):
+        midi_path, wav_path_base = paths
 
-    if self._add_wav_glob:
-      wav_paths = tf.io.gfile.glob(wav_path_base + '*')
-    else:
-      wav_paths = [wav_path_base]
+        if self._add_wav_glob:
+            wav_paths = tf.io.gfile.glob(wav_path_base + '*')
+        else:
+            wav_paths = [wav_path_base]
 
-    if midi_path:
-      base_ns = midi_io.midi_file_to_note_sequence(midi_path)
-      base_ns.filename = midi_path
-    else:
-      base_ns = music_pb2.NoteSequence()
+        if midi_path:
+            base_ns = midi_io.midi_file_to_note_sequence(midi_path)
+            base_ns.filename = midi_path
+        else:
+            base_ns = music_pb2.NoteSequence()
 
-    for wav_path in wav_paths:
-      logging.info('Creating Example %s:%s', midi_path, wav_path)
-      wav_data = tf.io.gfile.GFile(wav_path, 'rb').read()
+        for wav_path in wav_paths:
+            logging.info('Creating Example %s:%s', midi_path, wav_path)
+            wav_data = tf.io.gfile.GFile(wav_path, 'rb').read()
 
-      ns = copy.deepcopy(base_ns)
+            ns = copy.deepcopy(base_ns)
 
-      # Use base names.
-      ns.id = '%s:%s' % (wav_path.replace(self._wav_dir, ''),
-                         midi_path.replace(self._midi_dir, ''))
+            # Use base names.
+            ns.id = '%s:%s' % (wav_path.replace(self._wav_dir, ''),
+                               midi_path.replace(self._midi_dir, ''))
 
-      Metrics.counter('create_example', 'read_midi_wav').inc()
+            Metrics.counter('create_example', 'read_midi_wav').inc()
 
-      example = audio_label_data_utils.create_example(ns.id, ns, wav_data)
+            example = audio_label_data_utils.create_example(ns.id, ns, wav_data)
 
-      Metrics.counter('create_example', 'created_example').inc()
-      yield example
+            Metrics.counter('create_example', 'created_example').inc()
+            yield example
 
 
 def main(argv):
-  del argv
+    del argv
 
+    flags.mark_flags_as_required(['csv', 'output_directory'])
 
-  flags.mark_flags_as_required(['csv', 'output_directory'])
+    tf.io.gfile.makedirs(FLAGS.output_directory)
 
-  tf.io.gfile.makedirs(FLAGS.output_directory)
+    with tf.io.gfile.GFile(FLAGS.csv) as f:
+        reader = csv.DictReader(f)
 
-  with tf.io.gfile.GFile(FLAGS.csv) as f:
-    reader = csv.DictReader(f)
+        splits = collections.defaultdict(list)
+        for row in reader:
+            splits[row['split']].append(
+                (os.path.join(FLAGS.midi_dir, row['midi_filename']),
+                 os.path.join(FLAGS.wav_dir, row['audio_filename'])))
 
-    splits = collections.defaultdict(list)
-    for row in reader:
-      splits[row['split']].append(
-          (os.path.join(FLAGS.midi_dir, row['midi_filename']),
-           os.path.join(FLAGS.wav_dir, row['audio_filename'])))
+    if sorted(splits.keys()) != sorted(FLAGS.expected_splits.split(',')):
+        raise ValueError('Got unexpected set of splits: %s' % splits.keys())
 
-  if sorted(splits.keys()) != sorted(FLAGS.expected_splits.split(',')):
-    raise ValueError('Got unexpected set of splits: %s' % splits.keys())
-
-  pipeline_options = beam.options.pipeline_options.PipelineOptions(
-      FLAGS.pipeline_options)
-  with beam.Pipeline(options=pipeline_options) as p:
-    for split in splits:
-      split_p = p | 'prepare_split_%s' % split >> beam.Create(splits[split])
-      split_p |= 'create_examples_%s' % split >> beam.ParDo(
-          CreateExampleDoFn(FLAGS.wav_dir, FLAGS.midi_dir, FLAGS.add_wav_glob))
-      split_p |= 'write_%s' % split >> beam.io.WriteToTFRecord(
-          os.path.join(FLAGS.output_directory, '%s.tfrecord' % split),
-          coder=beam.coders.ProtoCoder(tf.train.Example),
-          num_shards=FLAGS.num_shards)
+    pipeline_options = beam.options.pipeline_options.PipelineOptions(
+        FLAGS.pipeline_options)
+    with beam.Pipeline(options=pipeline_options) as p:
+        for split in splits:
+            split_p = p | 'prepare_split_%s' % split >> beam.Create(splits[split])
+            split_p |= 'create_examples_%s' % split >> beam.ParDo(
+                CreateExampleDoFn(FLAGS.wav_dir, FLAGS.midi_dir, FLAGS.add_wav_glob))
+            split_p |= 'write_%s' % split >> beam.io.WriteToTFRecord(
+                os.path.join(FLAGS.output_directory, '%s.tfrecord' % split),
+                coder=beam.coders.ProtoCoder(tf.train.Example),
+                num_shards=FLAGS.num_shards)
 
 
 if __name__ == '__main__':
-  app.run(main)
+    app.run(main)

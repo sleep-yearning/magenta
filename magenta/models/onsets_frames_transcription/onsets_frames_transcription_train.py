@@ -27,7 +27,6 @@ from magenta.models.onsets_frames_transcription import train_util
 
 import tensorflow.compat.v1 as tf
 
-
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('master', '',
@@ -70,57 +69,57 @@ tf.app.flags.DEFINE_string(
 
 
 def run(config_map, data_fn, additional_trial_info):
-  """Run training or evaluation."""
-  tf.logging.set_verbosity(FLAGS.log)
+    """Run training or evaluation."""
+    tf.logging.set_verbosity(FLAGS.log)
 
-  config = config_map[FLAGS.config]
-  model_dir = os.path.expanduser(FLAGS.model_dir)
+    config = config_map[FLAGS.config]
+    model_dir = os.path.expanduser(FLAGS.model_dir)
 
-  hparams = config.hparams
+    hparams = config.hparams
 
-  # Command line flags override any of the preceding hyperparameter values.
-  hparams.parse(FLAGS.hparams)
+    # Command line flags override any of the preceding hyperparameter values.
+    hparams.parse(FLAGS.hparams)
 
-  if FLAGS.mode == 'train':
-    train_util.train(
-        model_fn=config.model_fn,
-        data_fn=data_fn,
-        additional_trial_info=additional_trial_info,
-        master=FLAGS.master,
-        tpu_cluster=FLAGS.tpu_cluster,
-        model_dir=model_dir,
-        use_tpu=FLAGS.use_tpu,
-        preprocess_examples=FLAGS.preprocess_examples,
-        hparams=hparams,
-        keep_checkpoint_max=FLAGS.keep_checkpoint_max,
-        num_steps=FLAGS.num_steps)
-  elif FLAGS.mode == 'eval':
-    train_util.evaluate(
-        model_fn=config.model_fn,
-        data_fn=data_fn,
-        additional_trial_info=additional_trial_info,
-        master=FLAGS.master,
-        model_dir=model_dir,
-        name=FLAGS.eval_name,
-        preprocess_examples=FLAGS.preprocess_examples,
-        hparams=hparams,
-        num_steps=FLAGS.eval_num_steps)
-  else:
-    raise ValueError('Unknown/unsupported mode: %s' % FLAGS.mode)
+    if FLAGS.mode == 'train':
+        train_util.train(
+            model_fn=config.model_fn,
+            data_fn=data_fn,
+            additional_trial_info=additional_trial_info,
+            master=FLAGS.master,
+            tpu_cluster=FLAGS.tpu_cluster,
+            model_dir=model_dir,
+            use_tpu=FLAGS.use_tpu,
+            preprocess_examples=FLAGS.preprocess_examples,
+            hparams=hparams,
+            keep_checkpoint_max=FLAGS.keep_checkpoint_max,
+            num_steps=FLAGS.num_steps)
+    elif FLAGS.mode == 'eval':
+        train_util.evaluate(
+            model_fn=config.model_fn,
+            data_fn=data_fn,
+            additional_trial_info=additional_trial_info,
+            master=FLAGS.master,
+            model_dir=model_dir,
+            name=FLAGS.eval_name,
+            preprocess_examples=FLAGS.preprocess_examples,
+            hparams=hparams,
+            num_steps=FLAGS.eval_num_steps)
+    else:
+        raise ValueError('Unknown/unsupported mode: %s' % FLAGS.mode)
 
 
 def main(argv):
-  del argv
-  tf.app.flags.mark_flags_as_required(['examples_path'])
-  data_fn = functools.partial(data.provide_batch, examples=FLAGS.examples_path)
-  additional_trial_info = {'examples_path': FLAGS.examples_path}
-  run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
-      additional_trial_info=additional_trial_info)
+    del argv
+    tf.app.flags.mark_flags_as_required(['examples_path'])
+    data_fn = functools.partial(data.provide_batch, examples=FLAGS.examples_path)
+    additional_trial_info = {'examples_path': FLAGS.examples_path}
+    run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
+        additional_trial_info=additional_trial_info)
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

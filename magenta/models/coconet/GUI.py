@@ -121,7 +121,7 @@ def open_result_folder_sampling():
 
 def open_sample_midi():
     folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", "*.mid")],
-                                         title='Choose the midi file to sample from')
+                                             title='Choose the midi file to sample from')
     sample_midi_path.set(folder_path)
     print(folder_path)
 
@@ -143,7 +143,7 @@ def stop_it():
 def add_model_to_menu():
     val = title_new_train_model.get()
     which_model['menu'].add_command(label=val, command=tk._setit(choosemodel, val))
-    model_map[val] = train_folder_path.get() #TODO Pfad korrigieren
+    model_map[val] = train_folder_path.get()  # TODO Pfad korrigieren
 
 
 def start_training():
@@ -321,7 +321,8 @@ lbl_convert_folder = Label(master=f1, textvariable=convert_folder_path)
 lbl_convert_folder.pack()
 
 lbl_grouped = Label(f1,
-                    text="Do you want to preprocess the midis with grouped instruments or with the one which are used most frequently?")
+                    text="Do you want to preprocess the midis with grouped instruments or with the one which are used "
+                         "most frequently?")
 lbl_grouped.pack()
 
 yes = Button(f1, text="Yes", command=set_group_true)
@@ -365,7 +366,8 @@ progress.pack()
 # hyparams.pack()
 
 lbl_frame_select_train_folder = ttk.LabelFrame(f2,
-                                               text="If you already converted your midis, please choose the folder with the .npz file here:")
+                                               text="If you already converted your midis, please choose the folder "
+                                                    "with the .npz file here:")
 lbl_frame_select_train_folder.pack()
 
 btn_select_train_folder = ttk.Button(lbl_frame_select_train_folder, text="Select Folder", command=open_train_folder)
@@ -377,7 +379,8 @@ lbl_train_folder.pack()
 Separator(f2, orient=HORIZONTAL).pack(fill='x')
 
 lbl_grouped = Label(f2,
-                    text="Do you want to preprocess the midis with grouped instruments or with the one which are used most frequently?")
+                    text="Do you want to preprocess the midis with grouped instruments or with the one which are used "
+                         "most frequently?")
 lbl_grouped.pack()
 
 yes = Button(f2, text="Yes", command=set_group_true)
@@ -400,7 +403,9 @@ Separator(f2, orient=HORIZONTAL).pack(fill='x')
 # lbl_result_folder.pack()
 
 lbl_hyparams_training = Label(f2,
-                              text="Here you can specify some parameters for your training. These parameters are optional. If you choose to leave some fields empty, the default value will be selected.")
+                              text="Here you can specify some parameters for your training. These parameters are "
+                                   "optional. If you choose to leave some fields empty, the default value will be "
+                                   "selected.")
 lbl_hyparams_training.pack()
 
 set_use_residual = tk.Checkbutton(f2, text='Add residual connections or not', var=use_residual)
@@ -504,7 +509,7 @@ which_model = OptionMenu(f3, choosemodel, *OptionList)
 which_model.config()
 which_model.pack()
 
-#choosemodel.trace('w', callback)
+# choosemodel.trace('w', callback)
 
 lbl_choose_strategy = Label(f3, text="Choose a sampling strategy")
 lbl_choose_strategy.pack()
@@ -531,8 +536,8 @@ which_strategy.pack()
 set_tfsample = tk.Checkbutton(f3, text='Run sampling in Tensorflow graph.', var=tfsample)
 set_tfsample.pack()
 
-#labelTest = Label(text="")
-#labelTest.pack()
+# labelTest = Label(text="")
+# labelTest.pack()
 
 lbl_frame_select_sample_midi = ttk.LabelFrame(f3, text="Select a midi file to sample from")
 lbl_frame_select_sample_midi.pack()

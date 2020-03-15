@@ -27,38 +27,38 @@ import tensorflow.compat.v1 as tf
 
 
 class MelodyExtractor(pipeline.Pipeline):
-  """Extracts monophonic melodies from a quantized NoteSequence."""
+    """Extracts monophonic melodies from a quantized NoteSequence."""
 
-  def __init__(self, min_bars=7, max_steps=512, min_unique_pitches=5,
-               gap_bars=1.0, ignore_polyphonic_notes=False, filter_drums=True,
-               name=None):
-    super(MelodyExtractor, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=melodies_lib.Melody,
-        name=name)
-    self._min_bars = min_bars
-    self._max_steps = max_steps
-    self._min_unique_pitches = min_unique_pitches
-    self._gap_bars = gap_bars
-    self._ignore_polyphonic_notes = ignore_polyphonic_notes
-    self._filter_drums = filter_drums
+    def __init__(self, min_bars=7, max_steps=512, min_unique_pitches=5,
+                 gap_bars=1.0, ignore_polyphonic_notes=False, filter_drums=True,
+                 name=None):
+        super(MelodyExtractor, self).__init__(
+            input_type=music_pb2.NoteSequence,
+            output_type=melodies_lib.Melody,
+            name=name)
+        self._min_bars = min_bars
+        self._max_steps = max_steps
+        self._min_unique_pitches = min_unique_pitches
+        self._gap_bars = gap_bars
+        self._ignore_polyphonic_notes = ignore_polyphonic_notes
+        self._filter_drums = filter_drums
 
-  def transform(self, quantized_sequence):
-    try:
-      melodies, stats = extract_melodies(
-          quantized_sequence,
-          min_bars=self._min_bars,
-          max_steps_truncate=self._max_steps,
-          min_unique_pitches=self._min_unique_pitches,
-          gap_bars=self._gap_bars,
-          ignore_polyphonic_notes=self._ignore_polyphonic_notes,
-          filter_drums=self._filter_drums)
-    except events_lib.NonIntegerStepsPerBarError as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      melodies = []
-      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
-    self._set_stats(stats)
-    return melodies
+    def transform(self, quantized_sequence):
+        try:
+            melodies, stats = extract_melodies(
+                quantized_sequence,
+                min_bars=self._min_bars,
+                max_steps_truncate=self._max_steps,
+                min_unique_pitches=self._min_unique_pitches,
+                gap_bars=self._gap_bars,
+                ignore_polyphonic_notes=self._ignore_polyphonic_notes,
+                filter_drums=self._filter_drums)
+        except events_lib.NonIntegerStepsPerBarError as detail:
+            tf.logging.warning('Skipped sequence: %s', detail)
+            melodies = []
+            stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
+        self._set_stats(stats)
+        return melodies
 
 
 def extract_melodies(quantized_sequence,
@@ -71,7 +71,7 @@ def extract_melodies(quantized_sequence,
                      ignore_polyphonic_notes=True,
                      pad_end=False,
                      filter_drums=True):
-  """Extracts a list of melodies from the given quantized NoteSequence.
+    """Extracts a list of melodies from the given quantized NoteSequence.
 
   This function will search through `quantized_sequence` for monophonic
   melodies in every track at every time step.
@@ -122,86 +122,86 @@ def extract_melodies(quantized_sequence,
         (derived from its time signature) is not an integer number of time
         steps.
   """
-  sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
+    sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
-  # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
-  # the degree of polyphony that is acceptable.
-  melodies = []
-  # pylint: disable=g-complex-comprehension
-  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
-               ['polyphonic_tracks_discarded',
-                'melodies_discarded_too_short',
-                'melodies_discarded_too_few_pitches',
-                'melodies_discarded_too_long',
-                'melodies_truncated'])
-  # pylint: enable=g-complex-comprehension
-  # Create a histogram measuring melody lengths (in bars not steps).
-  # Capture melodies that are very small, in the range of the filter lower
-  # bound `min_bars`, and large. The bucket intervals grow approximately
-  # exponentially.
-  stats['melody_lengths_in_bars'] = statistics.Histogram(
-      'melody_lengths_in_bars',
-      [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
-       min_bars + 1, min_bars - 1])
-  instruments = set(n.instrument for n in quantized_sequence.notes)
-  steps_per_bar = int(
-      sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
-  for instrument in instruments:
-    instrument_search_start_step = search_start_step
-    # Quantize the track into a Melody object.
-    # If any notes start at the same time, only one is kept.
-    while 1:
-      melody = Melody()
-      try:
-        melody.from_quantized_sequence(
-            quantized_sequence,
-            instrument=instrument,
-            search_start_step=instrument_search_start_step,
-            gap_bars=gap_bars,
-            ignore_polyphonic_notes=ignore_polyphonic_notes,
-            pad_end=pad_end,
-            filter_drums=filter_drums)
-      except PolyphonicMelodyError:
-        stats['polyphonic_tracks_discarded'].increment()
-        break  # Look for monophonic melodies in other tracks.
-      # Start search for next melody on next bar boundary (inclusive).
-      instrument_search_start_step = (
-          melody.end_step +
-          (search_start_step - melody.end_step) % steps_per_bar)
-      if not melody:
-        break
+    # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
+    # the degree of polyphony that is acceptable.
+    melodies = []
+    # pylint: disable=g-complex-comprehension
+    stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+                 ['polyphonic_tracks_discarded',
+                  'melodies_discarded_too_short',
+                  'melodies_discarded_too_few_pitches',
+                  'melodies_discarded_too_long',
+                  'melodies_truncated'])
+    # pylint: enable=g-complex-comprehension
+    # Create a histogram measuring melody lengths (in bars not steps).
+    # Capture melodies that are very small, in the range of the filter lower
+    # bound `min_bars`, and large. The bucket intervals grow approximately
+    # exponentially.
+    stats['melody_lengths_in_bars'] = statistics.Histogram(
+        'melody_lengths_in_bars',
+        [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
+         min_bars + 1, min_bars - 1])
+    instruments = set(n.instrument for n in quantized_sequence.notes)
+    steps_per_bar = int(
+        sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
+    for instrument in instruments:
+        instrument_search_start_step = search_start_step
+        # Quantize the track into a Melody object.
+        # If any notes start at the same time, only one is kept.
+        while 1:
+            melody = Melody()
+            try:
+                melody.from_quantized_sequence(
+                    quantized_sequence,
+                    instrument=instrument,
+                    search_start_step=instrument_search_start_step,
+                    gap_bars=gap_bars,
+                    ignore_polyphonic_notes=ignore_polyphonic_notes,
+                    pad_end=pad_end,
+                    filter_drums=filter_drums)
+            except PolyphonicMelodyError:
+                stats['polyphonic_tracks_discarded'].increment()
+                break  # Look for monophonic melodies in other tracks.
+            # Start search for next melody on next bar boundary (inclusive).
+            instrument_search_start_step = (
+                    melody.end_step +
+                    (search_start_step - melody.end_step) % steps_per_bar)
+            if not melody:
+                break
 
-      # Require a certain melody length.
-      if len(melody) < melody.steps_per_bar * min_bars:
-        stats['melodies_discarded_too_short'].increment()
-        continue
+            # Require a certain melody length.
+            if len(melody) < melody.steps_per_bar * min_bars:
+                stats['melodies_discarded_too_short'].increment()
+                continue
 
-      # Discard melodies that are too long.
-      if max_steps_discard is not None and len(melody) > max_steps_discard:
-        stats['melodies_discarded_too_long'].increment()
-        continue
+            # Discard melodies that are too long.
+            if max_steps_discard is not None and len(melody) > max_steps_discard:
+                stats['melodies_discarded_too_long'].increment()
+                continue
 
-      # Truncate melodies that are too long.
-      if max_steps_truncate is not None and len(melody) > max_steps_truncate:
-        truncated_length = max_steps_truncate
-        if pad_end:
-          truncated_length -= max_steps_truncate % melody.steps_per_bar
-        melody.set_length(truncated_length)
-        stats['melodies_truncated'].increment()
+            # Truncate melodies that are too long.
+            if max_steps_truncate is not None and len(melody) > max_steps_truncate:
+                truncated_length = max_steps_truncate
+                if pad_end:
+                    truncated_length -= max_steps_truncate % melody.steps_per_bar
+                melody.set_length(truncated_length)
+                stats['melodies_truncated'].increment()
 
-      # Require a certain number of unique pitches.
-      note_histogram = melody.get_note_histogram()
-      unique_pitches = np.count_nonzero(note_histogram)
-      if unique_pitches < min_unique_pitches:
-        stats['melodies_discarded_too_few_pitches'].increment()
-        continue
+            # Require a certain number of unique pitches.
+            note_histogram = melody.get_note_histogram()
+            unique_pitches = np.count_nonzero(note_histogram)
+            if unique_pitches < min_unique_pitches:
+                stats['melodies_discarded_too_few_pitches'].increment()
+                continue
 
-      # TODO(danabo)
-      # Add filter for rhythmic diversity.
+            # TODO(danabo)
+            # Add filter for rhythmic diversity.
 
-      stats['melody_lengths_in_bars'].increment(
-          len(melody) // melody.steps_per_bar)
+            stats['melody_lengths_in_bars'].increment(
+                len(melody) // melody.steps_per_bar)
 
-      melodies.append(melody)
+            melodies.append(melody)
 
-  return melodies, list(stats.values())
+    return melodies, list(stats.values())

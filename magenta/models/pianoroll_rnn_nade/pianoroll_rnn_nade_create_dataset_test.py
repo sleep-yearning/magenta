@@ -27,35 +27,35 @@ FLAGS = tf.app.flags.FLAGS
 
 class PianorollPipelineTest(tf.test.TestCase):
 
-  def setUp(self):
-    super(PianorollPipelineTest, self).setUp()
-    self.config = events_rnn_model.EventSequenceRnnConfig(
-        None, mm.PianorollEncoderDecoder(88), contrib_training.HParams())
+    def setUp(self):
+        super(PianorollPipelineTest, self).setUp()
+        self.config = events_rnn_model.EventSequenceRnnConfig(
+            None, mm.PianorollEncoderDecoder(88), contrib_training.HParams())
 
-  def testPianorollPipeline(self):
-    note_sequence = magenta.common.testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
+    def testPianorollPipeline(self):
+        note_sequence = magenta.common.testing_lib.parse_test_proto(
+            music_pb2.NoteSequence,
+            """
         time_signatures: {
           numerator: 4
           denominator: 4}
         tempos: {
           qpm: 120}""")
-    magenta.music.testing_lib.add_track_to_sequence(
-        note_sequence, 0,
-        [(36, 100, 0.00, 2.0), (40, 55, 2.1, 5.0), (44, 80, 3.6, 5.0),
-         (41, 45, 5.1, 8.0), (64, 100, 6.6, 10.0), (55, 120, 8.1, 11.0),
-         (39, 110, 9.6, 9.7), (53, 99, 11.1, 14.1), (51, 40, 12.6, 13.0),
-         (55, 100, 14.1, 15.0), (54, 90, 15.6, 17.0), (60, 100, 17.1, 18.0)])
+        magenta.music.testing_lib.add_track_to_sequence(
+            note_sequence, 0,
+            [(36, 100, 0.00, 2.0), (40, 55, 2.1, 5.0), (44, 80, 3.6, 5.0),
+             (41, 45, 5.1, 8.0), (64, 100, 6.6, 10.0), (55, 120, 8.1, 11.0),
+             (39, 110, 9.6, 9.7), (53, 99, 11.1, 14.1), (51, 40, 12.6, 13.0),
+             (55, 100, 14.1, 15.0), (54, 90, 15.6, 17.0), (60, 100, 17.1, 18.0)])
 
-    pipeline_inst = pianoroll_pipeline.get_pipeline(
-        min_steps=80,  # 5 measures
-        max_steps=512,
-        eval_ratio=0,
-        config=self.config)
-    result = pipeline_inst.transform(note_sequence)
-    self.assertTrue(len(result['training_pianoroll_tracks']))
+        pipeline_inst = pianoroll_pipeline.get_pipeline(
+            min_steps=80,  # 5 measures
+            max_steps=512,
+            eval_ratio=0,
+            config=self.config)
+        result = pipeline_inst.transform(note_sequence)
+        self.assertTrue(len(result['training_pianoroll_tracks']))
 
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

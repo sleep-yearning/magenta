@@ -57,101 +57,103 @@ tf.app.flags.DEFINE_string(
 
 
 def create_example(filename, sample_rate, load_audio_with_librosa):
-  """Processes an audio file into an Example proto."""
-  wav_data = tf.gfile.Open(filename, 'rb').read()
-  example_list = list(
-      audio_label_data_utils.process_record(
-          wav_data=wav_data,
-          sample_rate=sample_rate,
-          ns=music_pb2.NoteSequence(),
-          # decode to handle filenames with extended characters.
-          example_id=six.ensure_text(filename, 'utf-8'),
-          min_length=0,
-          max_length=-1,
-          allow_empty_notesequence=True,
-          load_audio_with_librosa=load_audio_with_librosa))
-  assert len(example_list) == 1
-  return example_list[0].SerializeToString()
+    """Processes an audio file into an Example proto."""
+    wav_data = tf.gfile.Open(filename, 'rb').read()
+    example_list = list(
+        audio_label_data_utils.process_record(
+            wav_data=wav_data,
+            sample_rate=sample_rate,
+            ns=music_pb2.NoteSequence(),
+            # decode to handle filenames with extended characters.
+            example_id=six.ensure_text(filename, 'utf-8'),
+            min_length=0,
+            max_length=-1,
+            allow_empty_notesequence=True,
+            load_audio_with_librosa=load_audio_with_librosa))
+    assert len(example_list) == 1
+    return example_list[0].SerializeToString()
 
 
 def run(argv, config_map, data_fn):
-  """Create transcriptions."""
-  tf.logging.set_verbosity(FLAGS.log)
+    """Create transcriptions."""
+    tf.logging.set_verbosity(FLAGS.log)
 
-  config = config_map[FLAGS.config]
-  hparams = config.hparams
-  hparams.parse(FLAGS.hparams)
-  hparams.batch_size = 1
-  hparams.truncated_length_secs = 0
+    config = config_map[FLAGS.config]
+    hparams = config.hparams
+    hparams.parse(FLAGS.hparams)
+    hparams.batch_size = 1
+    hparams.truncated_length_secs = 0
 
-  with tf.Graph().as_default():
-    examples = tf.placeholder(tf.string, [None])
+    with tf.Graph().as_default():
+        examples = tf.placeholder(tf.string, [None])
 
-    dataset = data_fn(
-        examples=examples,
-        preprocess_examples=True,
-        params=hparams,
-        is_training=False,
-        shuffle_examples=False,
-        skip_n_initial_records=0)
+        dataset = data_fn(
+            examples=examples,
+            preprocess_examples=True,
+            params=hparams,
+            is_training=False,
+            shuffle_examples=False,
+            skip_n_initial_records=0)
 
-    estimator = train_util.create_estimator(config.model_fn,
-                                            os.path.expanduser(FLAGS.model_dir),
-                                            hparams)
+        estimator = train_util.create_estimator(config.model_fn,
+                                                os.path.expanduser(FLAGS.model_dir),
+                                                hparams)
 
-    iterator = dataset.make_initializable_iterator()
-    next_record = iterator.get_next()
+        iterator = dataset.make_initializable_iterator()
+        next_record = iterator.get_next()
 
-    with tf.Session() as sess:
-      sess.run([
-          tf.initializers.global_variables(),
-          tf.initializers.local_variables()
-      ])
+        with tf.Session() as sess:
+            sess.run([
+                tf.initializers.global_variables(),
+                tf.initializers.local_variables()
+            ])
 
-      for filename in argv[1:]:
-        tf.logging.info('Starting transcription for %s...', filename)
+            for filename in argv[1:]:
+                tf.logging.info('Starting transcription for %s...', filename)
 
-        # The reason we bounce between two Dataset objects is so we can use
-        # the data processing functionality in data.py without having to
-        # construct all the Example protos in memory ahead of time or create
-        # a temporary tfrecord file.
-        tf.logging.info('Processing file...')
-        sess.run(iterator.initializer,
-                 {examples: [
-                     create_example(filename, hparams.sample_rate,
-                                    FLAGS.load_audio_with_librosa)]})
+                # The reason we bounce between two Dataset objects is so we can use
+                # the data processing functionality in data.py without having to
+                # construct all the Example protos in memory ahead of time or create
+                # a temporary tfrecord file.
+                tf.logging.info('Processing file...')
+                sess.run(iterator.initializer,
+                         {examples: [
+                             create_example(filename, hparams.sample_rate,
+                                            FLAGS.load_audio_with_librosa)]})
 
-        def transcription_data(params):
-          del params
-          return tf.data.Dataset.from_tensors(sess.run(next_record))
-        input_fn = infer_util.labels_to_features_wrapper(transcription_data)
+                def transcription_data(params):
+                    del params
+                    return tf.data.Dataset.from_tensors(sess.run(next_record))
 
-        tf.logging.info('Running inference...')
-        checkpoint_path = None
-        if FLAGS.checkpoint_path:
-          checkpoint_path = os.path.expanduser(FLAGS.checkpoint_path)
-        prediction_list = list(
-            estimator.predict(
-                input_fn,
-                checkpoint_path=checkpoint_path,
-                yield_single_examples=False))
-        assert len(prediction_list) == 1
+                input_fn = infer_util.labels_to_features_wrapper(transcription_data)
 
-        sequence_prediction = music_pb2.NoteSequence.FromString(
-            prediction_list[0]['sequence_predictions'][0])
+                tf.logging.info('Running inference...')
+                checkpoint_path = None
+                if FLAGS.checkpoint_path:
+                    checkpoint_path = os.path.expanduser(FLAGS.checkpoint_path)
+                prediction_list = list(
+                    estimator.predict(
+                        input_fn,
+                        checkpoint_path=checkpoint_path,
+                        yield_single_examples=False))
+                assert len(prediction_list) == 1
 
-        midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
-        midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
+                sequence_prediction = music_pb2.NoteSequence.FromString(
+                    prediction_list[0]['sequence_predictions'][0])
 
-        tf.logging.info('Transcription written to %s.', midi_filename)
+                midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
+                midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
+
+                tf.logging.info('Transcription written to %s.', midi_filename)
 
 
 def main(argv):
-  run(argv, config_map=configs.CONFIG_MAP, data_fn=data.provide_batch)
+    run(argv, config_map=configs.CONFIG_MAP, data_fn=data.provide_batch)
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
+
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

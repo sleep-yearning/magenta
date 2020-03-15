@@ -32,7 +32,7 @@ def extract_drum_tracks(quantized_sequence,
                         gap_bars=1.0,
                         pad_end=False,
                         ignore_is_drum=False):
-  """Extracts a list of drum tracks from the given quantized NoteSequence.
+    """Extracts a list of drum tracks from the given quantized NoteSequence.
 
   This function will search through `quantized_sequence` for drum tracks. A drum
   track can span multiple "tracks" in the sequence. Only one drum track can be
@@ -77,89 +77,89 @@ def extract_drum_tracks(quantized_sequence,
         (derived from its time signature) is not an integer number of time
         steps.
   """
-  drum_tracks = []
-  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
-               ['drum_tracks_discarded_too_short',
-                'drum_tracks_discarded_too_long', 'drum_tracks_truncated'])
-  # Create a histogram measuring drum track lengths (in bars not steps).
-  # Capture drum tracks that are very small, in the range of the filter lower
-  # bound `min_bars`, and large. The bucket intervals grow approximately
-  # exponentially.
-  stats['drum_track_lengths_in_bars'] = statistics.Histogram(
-      'drum_track_lengths_in_bars',
-      [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
-       min_bars + 1, min_bars - 1])
+    drum_tracks = []
+    stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+                 ['drum_tracks_discarded_too_short',
+                  'drum_tracks_discarded_too_long', 'drum_tracks_truncated'])
+    # Create a histogram measuring drum track lengths (in bars not steps).
+    # Capture drum tracks that are very small, in the range of the filter lower
+    # bound `min_bars`, and large. The bucket intervals grow approximately
+    # exponentially.
+    stats['drum_track_lengths_in_bars'] = statistics.Histogram(
+        'drum_track_lengths_in_bars',
+        [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
+         min_bars + 1, min_bars - 1])
 
-  steps_per_bar = int(
-      sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
+    steps_per_bar = int(
+        sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
 
-  # Quantize the track into a DrumTrack object.
-  # If any notes start at the same time, only one is kept.
-  while 1:
-    drum_track = DrumTrack()
-    drum_track.from_quantized_sequence(
-        quantized_sequence,
-        search_start_step=search_start_step,
-        gap_bars=gap_bars,
-        pad_end=pad_end,
-        ignore_is_drum=ignore_is_drum)
-    search_start_step = (
-        drum_track.end_step +
-        (search_start_step - drum_track.end_step) % steps_per_bar)
-    if not drum_track:
-      break
+    # Quantize the track into a DrumTrack object.
+    # If any notes start at the same time, only one is kept.
+    while 1:
+        drum_track = DrumTrack()
+        drum_track.from_quantized_sequence(
+            quantized_sequence,
+            search_start_step=search_start_step,
+            gap_bars=gap_bars,
+            pad_end=pad_end,
+            ignore_is_drum=ignore_is_drum)
+        search_start_step = (
+                drum_track.end_step +
+                (search_start_step - drum_track.end_step) % steps_per_bar)
+        if not drum_track:
+            break
 
-    # Require a certain drum track length.
-    if len(drum_track) < drum_track.steps_per_bar * min_bars:
-      stats['drum_tracks_discarded_too_short'].increment()
-      continue
+        # Require a certain drum track length.
+        if len(drum_track) < drum_track.steps_per_bar * min_bars:
+            stats['drum_tracks_discarded_too_short'].increment()
+            continue
 
-    # Discard drum tracks that are too long.
-    if max_steps_discard is not None and len(drum_track) > max_steps_discard:
-      stats['drum_tracks_discarded_too_long'].increment()
-      continue
+        # Discard drum tracks that are too long.
+        if max_steps_discard is not None and len(drum_track) > max_steps_discard:
+            stats['drum_tracks_discarded_too_long'].increment()
+            continue
 
-    # Truncate drum tracks that are too long.
-    if max_steps_truncate is not None and len(drum_track) > max_steps_truncate:
-      truncated_length = max_steps_truncate
-      if pad_end:
-        truncated_length -= max_steps_truncate % drum_track.steps_per_bar
-      drum_track.set_length(truncated_length)
-      stats['drum_tracks_truncated'].increment()
+        # Truncate drum tracks that are too long.
+        if max_steps_truncate is not None and len(drum_track) > max_steps_truncate:
+            truncated_length = max_steps_truncate
+            if pad_end:
+                truncated_length -= max_steps_truncate % drum_track.steps_per_bar
+            drum_track.set_length(truncated_length)
+            stats['drum_tracks_truncated'].increment()
 
-    stats['drum_track_lengths_in_bars'].increment(
-        len(drum_track) // drum_track.steps_per_bar)
+        stats['drum_track_lengths_in_bars'].increment(
+            len(drum_track) // drum_track.steps_per_bar)
 
-    drum_tracks.append(drum_track)
+        drum_tracks.append(drum_track)
 
-  return drum_tracks, stats.values()
+    return drum_tracks, stats.values()
 
 
 class DrumsExtractor(pipeline.Pipeline):
-  """Extracts drum tracks from a quantized NoteSequence."""
+    """Extracts drum tracks from a quantized NoteSequence."""
 
-  def __init__(self, min_bars=7, max_steps=512, gap_bars=1.0, name=None):
-    super(DrumsExtractor, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=drums_lib.DrumTrack,
-        name=name)
-    self._min_bars = min_bars
-    self._max_steps = max_steps
-    self._gap_bars = gap_bars
+    def __init__(self, min_bars=7, max_steps=512, gap_bars=1.0, name=None):
+        super(DrumsExtractor, self).__init__(
+            input_type=music_pb2.NoteSequence,
+            output_type=drums_lib.DrumTrack,
+            name=name)
+        self._min_bars = min_bars
+        self._max_steps = max_steps
+        self._gap_bars = gap_bars
 
-  def transform(self, quantized_sequence):
-    try:
-      # pylint has a false positive error on this method call for some reason.
-      # pylint:disable=redundant-keyword-arg
-      drum_tracks, stats = extract_drum_tracks(
-          quantized_sequence,
-          min_bars=self._min_bars,
-          max_steps_truncate=self._max_steps,
-          gap_bars=self._gap_bars)
-      # pylint:enable=redundant-keyword-arg
-    except events_lib.NonIntegerStepsPerBarError as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      drum_tracks = []
-      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
-    self._set_stats(stats)
-    return drum_tracks
+    def transform(self, quantized_sequence):
+        try:
+            # pylint has a false positive error on this method call for some reason.
+            # pylint:disable=redundant-keyword-arg
+            drum_tracks, stats = extract_drum_tracks(
+                quantized_sequence,
+                min_bars=self._min_bars,
+                max_steps_truncate=self._max_steps,
+                gap_bars=self._gap_bars)
+            # pylint:enable=redundant-keyword-arg
+        except events_lib.NonIntegerStepsPerBarError as detail:
+            tf.logging.warning('Skipped sequence: %s', detail)
+            drum_tracks = []
+            stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
+        self._set_stats(stats)
+        return drum_tracks

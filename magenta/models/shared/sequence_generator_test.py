@@ -26,73 +26,73 @@ import tensorflow.compat.v1 as tf
 
 class Model(model.BaseModel):
 
-  def _build_graph_for_generation(self):
-    pass
+    def _build_graph_for_generation(self):
+        pass
 
 
 class SeuenceGenerator(sequence_generator.BaseSequenceGenerator):
 
-  def __init__(self, checkpoint=None, bundle=None):
-    details = generator_pb2.GeneratorDetails(
-        id='test_generator',
-        description='Test Generator')
+    def __init__(self, checkpoint=None, bundle=None):
+        details = generator_pb2.GeneratorDetails(
+            id='test_generator',
+            description='Test Generator')
 
-    super(SeuenceGenerator, self).__init__(
-        Model(), details, checkpoint=checkpoint,
-        bundle=bundle)
+        super(SeuenceGenerator, self).__init__(
+            Model(), details, checkpoint=checkpoint,
+            bundle=bundle)
 
-  def _generate(self):
-    pass
+    def _generate(self):
+        pass
 
 
 class SequenceGeneratorTest(tf.test.TestCase):
 
-  def testSpecifyEitherCheckPointOrBundle(self):
-    bundle = generator_pb2.GeneratorBundle(
-        generator_details=generator_pb2.GeneratorDetails(
-            id='test_generator'),
-        checkpoint_file=[b'foo.ckpt'],
-        metagraph_file=b'foo.ckpt.meta')
+    def testSpecifyEitherCheckPointOrBundle(self):
+        bundle = generator_pb2.GeneratorBundle(
+            generator_details=generator_pb2.GeneratorDetails(
+                id='test_generator'),
+            checkpoint_file=[b'foo.ckpt'],
+            metagraph_file=b'foo.ckpt.meta')
 
-    with self.assertRaises(sequence_generator.SequenceGeneratorError):
-      SeuenceGenerator(checkpoint='foo.ckpt', bundle=bundle)
-    with self.assertRaises(sequence_generator.SequenceGeneratorError):
-      SeuenceGenerator(checkpoint=None, bundle=None)
+        with self.assertRaises(sequence_generator.SequenceGeneratorError):
+            SeuenceGenerator(checkpoint='foo.ckpt', bundle=bundle)
+        with self.assertRaises(sequence_generator.SequenceGeneratorError):
+            SeuenceGenerator(checkpoint=None, bundle=None)
 
-    SeuenceGenerator(checkpoint='foo.ckpt')
-    SeuenceGenerator(bundle=bundle)
+        SeuenceGenerator(checkpoint='foo.ckpt')
+        SeuenceGenerator(bundle=bundle)
 
-  def testUseMatchingGeneratorId(self):
-    bundle = generator_pb2.GeneratorBundle(
-        generator_details=generator_pb2.GeneratorDetails(
-            id='test_generator'),
-        checkpoint_file=[b'foo.ckpt'],
-        metagraph_file=b'foo.ckpt.meta')
+    def testUseMatchingGeneratorId(self):
+        bundle = generator_pb2.GeneratorBundle(
+            generator_details=generator_pb2.GeneratorDetails(
+                id='test_generator'),
+            checkpoint_file=[b'foo.ckpt'],
+            metagraph_file=b'foo.ckpt.meta')
 
-    SeuenceGenerator(bundle=bundle)
+        SeuenceGenerator(bundle=bundle)
 
-    bundle.generator_details.id = 'blarg'
+        bundle.generator_details.id = 'blarg'
 
-    with self.assertRaises(sequence_generator.SequenceGeneratorError):
-      SeuenceGenerator(bundle=bundle)
+        with self.assertRaises(sequence_generator.SequenceGeneratorError):
+            SeuenceGenerator(bundle=bundle)
 
-  def testGetBundleDetails(self):
-    # Test with non-bundle generator.
-    seq_gen = SeuenceGenerator(checkpoint='foo.ckpt')
-    self.assertEqual(None, seq_gen.bundle_details)
+    def testGetBundleDetails(self):
+        # Test with non-bundle generator.
+        seq_gen = SeuenceGenerator(checkpoint='foo.ckpt')
+        self.assertEqual(None, seq_gen.bundle_details)
 
-    # Test with bundle-based generator.
-    bundle_details = generator_pb2.GeneratorBundle.BundleDetails(
-        description='bundle of joy')
-    bundle = generator_pb2.GeneratorBundle(
-        generator_details=generator_pb2.GeneratorDetails(
-            id='test_generator'),
-        bundle_details=bundle_details,
-        checkpoint_file=[b'foo.ckpt'],
-        metagraph_file=b'foo.ckpt.meta')
-    seq_gen = SeuenceGenerator(bundle=bundle)
-    self.assertEqual(bundle_details, seq_gen.bundle_details)
+        # Test with bundle-based generator.
+        bundle_details = generator_pb2.GeneratorBundle.BundleDetails(
+            description='bundle of joy')
+        bundle = generator_pb2.GeneratorBundle(
+            generator_details=generator_pb2.GeneratorDetails(
+                id='test_generator'),
+            bundle_details=bundle_details,
+            checkpoint_file=[b'foo.ckpt'],
+            metagraph_file=b'foo.ckpt.meta')
+        seq_gen = SeuenceGenerator(bundle=bundle)
+        self.assertEqual(bundle_details, seq_gen.bundle_details)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

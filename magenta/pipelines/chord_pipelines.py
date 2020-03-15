@@ -28,40 +28,40 @@ import tensorflow.compat.v1 as tf
 
 
 class ChordsExtractor(pipeline.Pipeline):
-  """Extracts a chord progression from a quantized NoteSequence."""
+    """Extracts a chord progression from a quantized NoteSequence."""
 
-  def __init__(self, max_steps=512, all_transpositions=False, name=None):
-    super(ChordsExtractor, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=chords_lib.ChordProgression,
-        name=name)
-    self._max_steps = max_steps
-    self._all_transpositions = all_transpositions
+    def __init__(self, max_steps=512, all_transpositions=False, name=None):
+        super(ChordsExtractor, self).__init__(
+            input_type=music_pb2.NoteSequence,
+            output_type=chords_lib.ChordProgression,
+            name=name)
+        self._max_steps = max_steps
+        self._all_transpositions = all_transpositions
 
-  def transform(self, quantized_sequence):
-    try:
-      chord_progressions, stats = extract_chords(
-          quantized_sequence, max_steps=self._max_steps,
-          all_transpositions=self._all_transpositions)
-    except events_lib.NonIntegerStepsPerBarError as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      chord_progressions = []
-      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
-    except chords_lib.CoincidentChordsError as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      chord_progressions = []
-      stats = [statistics.Counter('coincident_chords', 1)]
-    except chord_symbols_lib.ChordSymbolError as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      chord_progressions = []
-      stats = [statistics.Counter('chord_symbol_exception', 1)]
-    self._set_stats(stats)
-    return chord_progressions
+    def transform(self, quantized_sequence):
+        try:
+            chord_progressions, stats = extract_chords(
+                quantized_sequence, max_steps=self._max_steps,
+                all_transpositions=self._all_transpositions)
+        except events_lib.NonIntegerStepsPerBarError as detail:
+            tf.logging.warning('Skipped sequence: %s', detail)
+            chord_progressions = []
+            stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
+        except chords_lib.CoincidentChordsError as detail:
+            tf.logging.warning('Skipped sequence: %s', detail)
+            chord_progressions = []
+            stats = [statistics.Counter('coincident_chords', 1)]
+        except chord_symbols_lib.ChordSymbolError as detail:
+            tf.logging.warning('Skipped sequence: %s', detail)
+            chord_progressions = []
+            stats = [statistics.Counter('chord_symbol_exception', 1)]
+        self._set_stats(stats)
+        return chord_progressions
 
 
 def extract_chords(quantized_sequence, max_steps=None,
                    all_transpositions=False):
-  """Extracts a single chord progression from a quantized NoteSequence.
+    """Extracts a single chord progression from a quantized NoteSequence.
 
   This function will extract the underlying chord progression (encoded as text
   annotations) from `quantized_sequence`.
@@ -81,29 +81,29 @@ def extract_chords(quantized_sequence, max_steps=None,
         for each transposition.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
   """
-  sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
+    sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
-  stats = dict([('chords_truncated', statistics.Counter('chords_truncated'))])
-  chords = ChordProgression()
-  chords.from_quantized_sequence(
-      quantized_sequence, 0, quantized_sequence.total_quantized_steps)
-  if max_steps is not None:
-    if len(chords) > max_steps:
-      chords.set_length(max_steps)
-      stats['chords_truncated'].increment()
-  if all_transpositions:
-    chord_progressions = []
-    for amount in range(-6, 6):
-      transposed_chords = copy.deepcopy(chords)
-      transposed_chords.transpose(amount)
-      chord_progressions.append(transposed_chords)
-    return chord_progressions, stats.values()
-  else:
-    return [chords], stats.values()
+    stats = dict([('chords_truncated', statistics.Counter('chords_truncated'))])
+    chords = ChordProgression()
+    chords.from_quantized_sequence(
+        quantized_sequence, 0, quantized_sequence.total_quantized_steps)
+    if max_steps is not None:
+        if len(chords) > max_steps:
+            chords.set_length(max_steps)
+            stats['chords_truncated'].increment()
+    if all_transpositions:
+        chord_progressions = []
+        for amount in range(-6, 6):
+            transposed_chords = copy.deepcopy(chords)
+            transposed_chords.transpose(amount)
+            chord_progressions.append(transposed_chords)
+        return chord_progressions, stats.values()
+    else:
+        return [chords], stats.values()
 
 
 def extract_chords_for_melodies(quantized_sequence, melodies):
-  """Extracts a chord progression from the quantized NoteSequence for melodies.
+    """Extracts a chord progression from the quantized NoteSequence for melodies.
 
   This function will extract the underlying chord progression (encoded as text
   annotations) from `quantized_sequence` for each monophonic melody in
@@ -120,16 +120,16 @@ def extract_chords_for_melodies(quantized_sequence, melodies):
         melody, the corresponding list entry will be None.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
   """
-  chord_progressions = []
-  stats = dict([('coincident_chords', statistics.Counter('coincident_chords'))])
-  for melody in melodies:
-    try:
-      chords = ChordProgression()
-      chords.from_quantized_sequence(
-          quantized_sequence, melody.start_step, melody.end_step)
-    except CoincidentChordsError:
-      stats['coincident_chords'].increment()
-      chords = None
-    chord_progressions.append(chords)
+    chord_progressions = []
+    stats = dict([('coincident_chords', statistics.Counter('coincident_chords'))])
+    for melody in melodies:
+        try:
+            chords = ChordProgression()
+            chords.from_quantized_sequence(
+                quantized_sequence, melody.start_step, melody.end_step)
+        except CoincidentChordsError:
+            stats['coincident_chords'].increment()
+            chords = None
+        chord_progressions.append(chords)
 
-  return chord_progressions, list(stats.values())
+    return chord_progressions, list(stats.values())

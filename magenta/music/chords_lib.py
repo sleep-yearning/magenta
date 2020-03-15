@@ -43,15 +43,15 @@ CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 class CoincidentChordsError(Exception):
-  pass
+    pass
 
 
 class BadChordError(Exception):
-  pass
+    pass
 
 
 class ChordProgression(events_lib.SimpleEventSequence):
-  """Stores a quantized stream of chord events.
+    """Stores a quantized stream of chord events.
 
   ChordProgression is an intermediate representation that all chord or lead
   sheet models can use. Chords are represented here by a chord symbol string;
@@ -79,15 +79,15 @@ class ChordProgression(events_lib.SimpleEventSequence):
     steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
-  def __init__(self, events=None, **kwargs):
-    """Construct a ChordProgression."""
-    if 'pad_event' in kwargs:
-      del kwargs['pad_event']
-    super(ChordProgression, self).__init__(pad_event=NO_CHORD,
-                                           events=events, **kwargs)
+    def __init__(self, events=None, **kwargs):
+        """Construct a ChordProgression."""
+        if 'pad_event' in kwargs:
+            del kwargs['pad_event']
+        super(ChordProgression, self).__init__(pad_event=NO_CHORD,
+                                               events=events, **kwargs)
 
-  def _add_chord(self, figure, start_step, end_step):
-    """Adds the given chord to the `events` list.
+    def _add_chord(self, figure, start_step, end_step):
+        """Adds the given chord to the `events` list.
 
     `start_step` is set to the given chord. Everything after `start_step` in
     `events` is deleted before the chord is added. `events`'s length will be
@@ -103,18 +103,18 @@ class ChordProgression(events_lib.SimpleEventSequence):
     Raises:
       BadChordError: If `start_step` does not precede `end_step`.
     """
-    if start_step >= end_step:
-      raise BadChordError(
-          'Start step does not precede end step: start=%d, end=%d' %
-          (start_step, end_step))
+        if start_step >= end_step:
+            raise BadChordError(
+                'Start step does not precede end step: start=%d, end=%d' %
+                (start_step, end_step))
 
-    self.set_length(end_step)
+        self.set_length(end_step)
 
-    for i in range(start_step, end_step):
-      self._events[i] = figure
+        for i in range(start_step, end_step):
+            self._events[i] = figure
 
-  def from_quantized_sequence(self, quantized_sequence, start_step, end_step):
-    """Populate self with the chords from the given quantized NoteSequence.
+    def from_quantized_sequence(self, quantized_sequence, start_step, end_step):
+        """Populate self with the chords from the given quantized NoteSequence.
 
     A chord progression is extracted from the given sequence starting at time
     step `start_step` and ending at time step `end_step`.
@@ -133,77 +133,77 @@ class ChordProgression(events_lib.SimpleEventSequence):
           steps.
       CoincidentChordsError: If any of the chords start on the same step.
     """
-    sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
-    self._reset()
+        sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
+        self._reset()
 
-    steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
-        quantized_sequence)
-    if steps_per_bar_float % 1 != 0:
-      raise events_lib.NonIntegerStepsPerBarError(
-          'There are %f timesteps per bar. Time signature: %d/%d' %
-          (steps_per_bar_float, quantized_sequence.time_signature.numerator,
-           quantized_sequence.time_signature.denominator))
-    self._steps_per_bar = int(steps_per_bar_float)
-    self._steps_per_quarter = (
-        quantized_sequence.quantization_info.steps_per_quarter)
+        steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
+            quantized_sequence)
+        if steps_per_bar_float % 1 != 0:
+            raise events_lib.NonIntegerStepsPerBarError(
+                'There are %f timesteps per bar. Time signature: %d/%d' %
+                (steps_per_bar_float, quantized_sequence.time_signature.numerator,
+                 quantized_sequence.time_signature.denominator))
+        self._steps_per_bar = int(steps_per_bar_float)
+        self._steps_per_quarter = (
+            quantized_sequence.quantization_info.steps_per_quarter)
 
-    # Sort track by chord times.
-    chords = sorted([a for a in quantized_sequence.text_annotations
-                     if a.annotation_type == CHORD_SYMBOL],
-                    key=lambda chord: chord.quantized_step)
+        # Sort track by chord times.
+        chords = sorted([a for a in quantized_sequence.text_annotations
+                         if a.annotation_type == CHORD_SYMBOL],
+                        key=lambda chord: chord.quantized_step)
 
-    prev_step = None
-    prev_figure = NO_CHORD
+        prev_step = None
+        prev_figure = NO_CHORD
 
-    for chord in chords:
-      if chord.quantized_step >= end_step:
-        # No more chords within range.
-        break
+        for chord in chords:
+            if chord.quantized_step >= end_step:
+                # No more chords within range.
+                break
 
-      elif chord.quantized_step < start_step:
-        # Chord is before start of range.
-        prev_step = chord.quantized_step
-        prev_figure = chord.text
-        continue
+            elif chord.quantized_step < start_step:
+                # Chord is before start of range.
+                prev_step = chord.quantized_step
+                prev_figure = chord.text
+                continue
 
-      if chord.quantized_step == prev_step:
-        if chord.text == prev_figure:
-          # Identical coincident chords, just skip.
-          continue
-        else:
-          # Two different chords start at the same time step.
-          self._reset()
-          raise CoincidentChordsError(
-              'chords %s and %s are coincident' % (prev_figure, chord.text))
+            if chord.quantized_step == prev_step:
+                if chord.text == prev_figure:
+                    # Identical coincident chords, just skip.
+                    continue
+                else:
+                    # Two different chords start at the same time step.
+                    self._reset()
+                    raise CoincidentChordsError(
+                        'chords %s and %s are coincident' % (prev_figure, chord.text))
 
-      if chord.quantized_step > start_step:
-        # Add the previous chord.
-        if prev_step is None:
-          start_index = 0
-        else:
-          start_index = max(prev_step, start_step) - start_step
-        end_index = chord.quantized_step - start_step
-        self._add_chord(prev_figure, start_index, end_index)
+            if chord.quantized_step > start_step:
+                # Add the previous chord.
+                if prev_step is None:
+                    start_index = 0
+                else:
+                    start_index = max(prev_step, start_step) - start_step
+                end_index = chord.quantized_step - start_step
+                self._add_chord(prev_figure, start_index, end_index)
 
-      prev_step = chord.quantized_step
-      prev_figure = chord.text
+            prev_step = chord.quantized_step
+            prev_figure = chord.text
 
-    if prev_step is None or prev_step < end_step:
-      # Add the last chord active before end_step.
-      if prev_step is None:
-        start_index = 0
-      else:
-        start_index = max(prev_step, start_step) - start_step
-      end_index = end_step - start_step
-      self._add_chord(prev_figure, start_index, end_index)
+        if prev_step is None or prev_step < end_step:
+            # Add the last chord active before end_step.
+            if prev_step is None:
+                start_index = 0
+            else:
+                start_index = max(prev_step, start_step) - start_step
+            end_index = end_step - start_step
+            self._add_chord(prev_figure, start_index, end_index)
 
-    self._start_step = start_step
-    self._end_step = end_step
+        self._start_step = start_step
+        self._end_step = end_step
 
-  def to_sequence(self,
-                  sequence_start_time=0.0,
-                  qpm=120.0):
-    """Converts the ChordProgression to NoteSequence proto.
+    def to_sequence(self,
+                    sequence_start_time=0.0,
+                    qpm=120.0):
+        """Converts the ChordProgression to NoteSequence proto.
 
     This doesn't generate actual notes, but text annotations specifying the
     chord changes when they occur.
@@ -216,25 +216,25 @@ class ChordProgression(events_lib.SimpleEventSequence):
     Returns:
       A NoteSequence proto encoding the given chords as text annotations.
     """
-    seconds_per_step = 60.0 / qpm / self.steps_per_quarter
+        seconds_per_step = 60.0 / qpm / self.steps_per_quarter
 
-    sequence = music_pb2.NoteSequence()
-    sequence.tempos.add().qpm = qpm
-    sequence.ticks_per_quarter = STANDARD_PPQ
+        sequence = music_pb2.NoteSequence()
+        sequence.tempos.add().qpm = qpm
+        sequence.ticks_per_quarter = STANDARD_PPQ
 
-    current_figure = NO_CHORD
-    for step, figure in enumerate(self):
-      if figure != current_figure:
-        current_figure = figure
-        chord = sequence.text_annotations.add()
-        chord.time = step * seconds_per_step + sequence_start_time
-        chord.text = figure
-        chord.annotation_type = CHORD_SYMBOL
+        current_figure = NO_CHORD
+        for step, figure in enumerate(self):
+            if figure != current_figure:
+                current_figure = figure
+                chord = sequence.text_annotations.add()
+                chord.time = step * seconds_per_step + sequence_start_time
+                chord.text = figure
+                chord.annotation_type = CHORD_SYMBOL
 
-    return sequence
+        return sequence
 
-  def transpose(self, transpose_amount):
-    """Transpose chords in this ChordProgression.
+    def transpose(self, transpose_amount):
+        """Transpose chords in this ChordProgression.
 
     Args:
       transpose_amount: The number of half steps to transpose this
@@ -245,14 +245,14 @@ class ChordProgression(events_lib.SimpleEventSequence):
       ChordSymbolError: If a chord (other than "no chord") fails to be
           interpreted by the `chord_symbols_lib` module.
     """
-    for i in range(len(self._events)):
-      if self._events[i] != NO_CHORD:
-        self._events[i] = chord_symbols_lib.transpose_chord_symbol(
-            self._events[i], transpose_amount % NOTES_PER_OCTAVE)
+        for i in range(len(self._events)):
+            if self._events[i] != NO_CHORD:
+                self._events[i] = chord_symbols_lib.transpose_chord_symbol(
+                    self._events[i], transpose_amount % NOTES_PER_OCTAVE)
 
 
 def event_list_chords(quantized_sequence, event_lists):
-  """Extract corresponding chords for multiple EventSequences.
+    """Extract corresponding chords for multiple EventSequences.
 
   Args:
     quantized_sequence: The underlying quantized NoteSequence from which to
@@ -265,25 +265,25 @@ def event_list_chords(quantized_sequence, event_lists):
     A nested list of chord the same length as `event_lists`, where each list is
     the same length as the corresponding EventSequence (in events, not steps).
   """
-  sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
+    sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
-  chords = ChordProgression()
-  if quantized_sequence.total_quantized_steps > 0:
-    chords.from_quantized_sequence(
-        quantized_sequence, 0, quantized_sequence.total_quantized_steps)
+    chords = ChordProgression()
+    if quantized_sequence.total_quantized_steps > 0:
+        chords.from_quantized_sequence(
+            quantized_sequence, 0, quantized_sequence.total_quantized_steps)
 
-  pad_chord = chords[-1] if chords else NO_CHORD
+    pad_chord = chords[-1] if chords else NO_CHORD
 
-  chord_lists = []
-  for e in event_lists:
-    chord_lists.append([chords[step] if step < len(chords) else pad_chord
-                        for step in e.steps])
+    chord_lists = []
+    for e in event_lists:
+        chord_lists.append([chords[step] if step < len(chords) else pad_chord
+                            for step in e.steps])
 
-  return chord_lists
+    return chord_lists
 
 
 def add_chords_to_sequence(note_sequence, chords, chord_times):
-  """Add chords to a NoteSequence at specified times.
+    """Add chords to a NoteSequence at specified times.
 
   Args:
     note_sequence: The NoteSequence proto to which chords will be added (in
@@ -297,29 +297,29 @@ def add_chords_to_sequence(note_sequence, chords, chord_times):
     ValueError: If `note_sequence` already has chords, or if `chord_times` is
         not sorted in ascending order.
   """
-  if any(ta.annotation_type == CHORD_SYMBOL
-         for ta in note_sequence.text_annotations):
-    raise ValueError('NoteSequence already has chords.')
-  if any(t1 > t2 for t1, t2 in zip(chord_times[:-1], chord_times[1:])):
-    raise ValueError('Chord times not sorted in ascending order.')
+    if any(ta.annotation_type == CHORD_SYMBOL
+           for ta in note_sequence.text_annotations):
+        raise ValueError('NoteSequence already has chords.')
+    if any(t1 > t2 for t1, t2 in zip(chord_times[:-1], chord_times[1:])):
+        raise ValueError('Chord times not sorted in ascending order.')
 
-  current_chord = None
-  for chord, time in zip(chords, chord_times):
-    if chord != current_chord:
-      current_chord = chord
-      ta = note_sequence.text_annotations.add()
-      ta.annotation_type = CHORD_SYMBOL
-      ta.time = time
-      ta.text = chord
+    current_chord = None
+    for chord, time in zip(chords, chord_times):
+        if chord != current_chord:
+            current_chord = chord
+            ta = note_sequence.text_annotations.add()
+            ta.annotation_type = CHORD_SYMBOL
+            ta.time = time
+            ta.text = chord
 
 
 class ChordRenderer(object):
-  """An abstract class for rendering NoteSequence chord symbols as notes."""
-  __metaclass__ = abc.ABCMeta
+    """An abstract class for rendering NoteSequence chord symbols as notes."""
+    __metaclass__ = abc.ABCMeta
 
-  @abc.abstractmethod
-  def render(self, sequence):
-    """Renders the chord symbols of a NoteSequence.
+    @abc.abstractmethod
+    def render(self, sequence):
+        """Renders the chord symbols of a NoteSequence.
 
     This function renders chord symbol annotations in a NoteSequence as actual
     notes. Notes are added to the NoteSequence object, and the chord symbols
@@ -328,19 +328,19 @@ class ChordRenderer(object):
     Args:
       sequence: The NoteSequence for which to render chord symbols.
     """
-    pass
+        pass
 
 
 class BasicChordRenderer(ChordRenderer):
-  """A chord renderer that holds each note for the duration of the chord."""
+    """A chord renderer that holds each note for the duration of the chord."""
 
-  def __init__(self,
-               velocity=100,
-               instrument=1,
-               program=88,
-               octave=4,
-               bass_octave=3):
-    """Initialize a BasicChordRenderer object.
+    def __init__(self,
+                 velocity=100,
+                 instrument=1,
+                 program=88,
+                 octave=4,
+                 bass_octave=3):
+        """Initialize a BasicChordRenderer object.
 
     Args:
       velocity: The MIDI note velocity to use.
@@ -350,61 +350,61 @@ class BasicChordRenderer(ChordRenderer):
           otherwise part of the chord, it will not be rendered in this octave.
       bass_octave: The octave in which to render chord bass notes.
     """
-    self._velocity = velocity
-    self._instrument = instrument
-    self._program = program
-    self._octave = octave
-    self._bass_octave = bass_octave
+        self._velocity = velocity
+        self._instrument = instrument
+        self._program = program
+        self._octave = octave
+        self._bass_octave = bass_octave
 
-  def _render_notes(self, sequence, pitches, bass_pitch, start_time, end_time):
-    """Renders notes."""
-    all_pitches = []
-    for pitch in pitches:
-      all_pitches.append(12 * self._octave + pitch % 12)
-    all_pitches.append(12 * self._bass_octave + bass_pitch % 12)
+    def _render_notes(self, sequence, pitches, bass_pitch, start_time, end_time):
+        """Renders notes."""
+        all_pitches = []
+        for pitch in pitches:
+            all_pitches.append(12 * self._octave + pitch % 12)
+        all_pitches.append(12 * self._bass_octave + bass_pitch % 12)
 
-    for pitch in all_pitches:
-      # Add a note.
-      note = sequence.notes.add()
-      note.start_time = start_time
-      note.end_time = end_time
-      note.pitch = pitch
-      note.velocity = self._velocity
-      note.instrument = self._instrument
-      note.program = self._program
+        for pitch in all_pitches:
+            # Add a note.
+            note = sequence.notes.add()
+            note.start_time = start_time
+            note.end_time = end_time
+            note.pitch = pitch
+            note.velocity = self._velocity
+            note.instrument = self._instrument
+            note.program = self._program
 
-  def render(self, sequence):
-    # Sort text annotations by time.
-    annotations = sorted(sequence.text_annotations, key=lambda a: a.time)
+    def render(self, sequence):
+        # Sort text annotations by time.
+        annotations = sorted(sequence.text_annotations, key=lambda a: a.time)
 
-    prev_time = 0.0
-    prev_figure = NO_CHORD
+        prev_time = 0.0
+        prev_figure = NO_CHORD
 
-    for annotation in annotations:
-      if annotation.time >= sequence.total_time:
-        break
+        for annotation in annotations:
+            if annotation.time >= sequence.total_time:
+                break
 
-      if annotation.annotation_type == CHORD_SYMBOL:
-        if prev_figure != NO_CHORD:
-          # Render the previous chord.
-          pitches = chord_symbols_lib.chord_symbol_pitches(prev_figure)
-          bass_pitch = chord_symbols_lib.chord_symbol_bass(prev_figure)
-          self._render_notes(sequence=sequence,
-                             pitches=pitches,
-                             bass_pitch=bass_pitch,
-                             start_time=prev_time,
-                             end_time=annotation.time)
+            if annotation.annotation_type == CHORD_SYMBOL:
+                if prev_figure != NO_CHORD:
+                    # Render the previous chord.
+                    pitches = chord_symbols_lib.chord_symbol_pitches(prev_figure)
+                    bass_pitch = chord_symbols_lib.chord_symbol_bass(prev_figure)
+                    self._render_notes(sequence=sequence,
+                                       pitches=pitches,
+                                       bass_pitch=bass_pitch,
+                                       start_time=prev_time,
+                                       end_time=annotation.time)
 
-        prev_time = annotation.time
-        prev_figure = annotation.text
+                prev_time = annotation.time
+                prev_figure = annotation.text
 
-    if (prev_time < sequence.total_time and
-        prev_figure != NO_CHORD):
-      # Render the last chord.
-      pitches = chord_symbols_lib.chord_symbol_pitches(prev_figure)
-      bass_pitch = chord_symbols_lib.chord_symbol_bass(prev_figure)
-      self._render_notes(sequence=sequence,
-                         pitches=pitches,
-                         bass_pitch=bass_pitch,
-                         start_time=prev_time,
-                         end_time=sequence.total_time)
+        if (prev_time < sequence.total_time and
+                prev_figure != NO_CHORD):
+            # Render the last chord.
+            pitches = chord_symbols_lib.chord_symbol_pitches(prev_figure)
+            bass_pitch = chord_symbols_lib.chord_symbol_bass(prev_figure)
+            self._render_notes(sequence=sequence,
+                               pitches=pitches,
+                               bass_pitch=bass_pitch,
+                               start_time=prev_time,
+                               end_time=sequence.total_time)

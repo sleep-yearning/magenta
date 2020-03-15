@@ -38,11 +38,11 @@ tf.app.flags.DEFINE_string(
 
 
 class DrumsRnnConfigError(Exception):
-  pass
+    pass
 
 
 def config_from_flags():
-  """Parses flags and returns the appropriate DrumsRnnConfig.
+    """Parses flags and returns the appropriate DrumsRnnConfig.
 
   Returns:
     The appropriate DrumsRnnConfig based on the supplied flags.
@@ -50,14 +50,14 @@ def config_from_flags():
   Raises:
      DrumsRnnConfigError: When an invalid config is supplied.
   """
-  if FLAGS.config not in drums_rnn_model.default_configs:
-    raise DrumsRnnConfigError(
-        '`--config` must be one of %s. Got %s.' % (
-            drums_rnn_model.default_configs.keys(), FLAGS.config))
-  config = drums_rnn_model.default_configs[FLAGS.config]
-  config.hparams.parse(FLAGS.hparams)
-  if FLAGS.generator_id is not None:
-    config.details.id = FLAGS.generator_id
-  if FLAGS.generator_description is not None:
-    config.details.description = FLAGS.generator_description
-  return config
+    if FLAGS.config not in drums_rnn_model.default_configs:
+        raise DrumsRnnConfigError(
+            '`--config` must be one of %s. Got %s.' % (
+                drums_rnn_model.default_configs.keys(), FLAGS.config))
+    config = drums_rnn_model.default_configs[FLAGS.config]
+    config.hparams.parse(FLAGS.hparams)
+    if FLAGS.generator_id is not None:
+        config.details.id = FLAGS.generator_id
+    if FLAGS.generator_description is not None:
+        config.details.description = FLAGS.generator_description
+    return config

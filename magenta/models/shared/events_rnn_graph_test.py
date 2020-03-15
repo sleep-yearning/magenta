@@ -25,70 +25,70 @@ from tensorflow.contrib import training as contrib_training
 
 class EventSequenceRNNGraphTest(tf.test.TestCase):
 
-  def setUp(self):
-    self._sequence_file = tempfile.NamedTemporaryFile(
-        prefix='EventSequenceRNNGraphTest')
+    def setUp(self):
+        self._sequence_file = tempfile.NamedTemporaryFile(
+            prefix='EventSequenceRNNGraphTest')
 
-    self.config = events_rnn_model.EventSequenceRnnConfig(
-        None,
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.testing_lib.TrivialOneHotEncoding(12)),
-        contrib_training.HParams(
-            batch_size=128,
-            rnn_layer_sizes=[128, 128],
-            dropout_keep_prob=0.5,
-            clip_norm=5,
-            learning_rate=0.01))
+        self.config = events_rnn_model.EventSequenceRnnConfig(
+            None,
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.testing_lib.TrivialOneHotEncoding(12)),
+            contrib_training.HParams(
+                batch_size=128,
+                rnn_layer_sizes=[128, 128],
+                dropout_keep_prob=0.5,
+                clip_norm=5,
+                learning_rate=0.01))
 
-  def testBuildTrainGraph(self):
-    with tf.Graph().as_default():
-      events_rnn_graph.get_build_graph_fn(
-          'train', self.config,
-          sequence_example_file_paths=[self._sequence_file.name])()
+    def testBuildTrainGraph(self):
+        with tf.Graph().as_default():
+            events_rnn_graph.get_build_graph_fn(
+                'train', self.config,
+                sequence_example_file_paths=[self._sequence_file.name])()
 
-  def testBuildEvalGraph(self):
-    with tf.Graph().as_default():
-      events_rnn_graph.get_build_graph_fn(
-          'eval', self.config,
-          sequence_example_file_paths=[self._sequence_file.name])()
+    def testBuildEvalGraph(self):
+        with tf.Graph().as_default():
+            events_rnn_graph.get_build_graph_fn(
+                'eval', self.config,
+                sequence_example_file_paths=[self._sequence_file.name])()
 
-  def testBuildGenerateGraph(self):
-    with tf.Graph().as_default():
-      events_rnn_graph.get_build_graph_fn('generate', self.config)()
+    def testBuildGenerateGraph(self):
+        with tf.Graph().as_default():
+            events_rnn_graph.get_build_graph_fn('generate', self.config)()
 
-  def testBuildGraphWithAttention(self):
-    self.config.hparams.attn_length = 10
-    with tf.Graph().as_default():
-      events_rnn_graph.get_build_graph_fn(
-          'train', self.config,
-          sequence_example_file_paths=[self._sequence_file.name])()
+    def testBuildGraphWithAttention(self):
+        self.config.hparams.attn_length = 10
+        with tf.Graph().as_default():
+            events_rnn_graph.get_build_graph_fn(
+                'train', self.config,
+                sequence_example_file_paths=[self._sequence_file.name])()
 
-  def testBuildCudnnGraph(self):
-    self.config.hparams.use_cudnn = True
-    with tf.Graph().as_default():
-      events_rnn_graph.get_build_graph_fn(
-          'train', self.config,
-          sequence_example_file_paths=[self._sequence_file.name])()
+    def testBuildCudnnGraph(self):
+        self.config.hparams.use_cudnn = True
+        with tf.Graph().as_default():
+            events_rnn_graph.get_build_graph_fn(
+                'train', self.config,
+                sequence_example_file_paths=[self._sequence_file.name])()
 
-  def testBuildCudnnGenerateGraph(self):
-    self.config.hparams.use_cudnn = True
-    with tf.Graph().as_default():
-      events_rnn_graph.get_build_graph_fn('generate', self.config)()
+    def testBuildCudnnGenerateGraph(self):
+        self.config.hparams.use_cudnn = True
+        with tf.Graph().as_default():
+            events_rnn_graph.get_build_graph_fn('generate', self.config)()
 
-  def testBuildCudnnGraphWithResidualConnections(self):
-    self.config.hparams.use_cudnn = True
-    self.config.hparams.residual_connections = True
-    with tf.Graph().as_default():
-      events_rnn_graph.get_build_graph_fn(
-          'train', self.config,
-          sequence_example_file_paths=[self._sequence_file.name])()
+    def testBuildCudnnGraphWithResidualConnections(self):
+        self.config.hparams.use_cudnn = True
+        self.config.hparams.residual_connections = True
+        with tf.Graph().as_default():
+            events_rnn_graph.get_build_graph_fn(
+                'train', self.config,
+                sequence_example_file_paths=[self._sequence_file.name])()
 
-  def testBuildCudnnGenerateGraphWithResidualConnections(self):
-    self.config.hparams.use_cudnn = True
-    self.config.hparams.residual_connections = True
-    with tf.Graph().as_default():
-      events_rnn_graph.get_build_graph_fn('generate', self.config)()
+    def testBuildCudnnGenerateGraphWithResidualConnections(self):
+        self.config.hparams.use_cudnn = True
+        self.config.hparams.residual_connections = True
+        with tf.Graph().as_default():
+            events_rnn_graph.get_build_graph_fn('generate', self.config)()
 
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

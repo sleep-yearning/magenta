@@ -24,27 +24,27 @@ from magenta.pipelines import pipelines_common
 
 
 class PolyphonicSequenceExtractor(pipeline.Pipeline):
-  """Extracts polyphonic tracks from a quantized NoteSequence."""
+    """Extracts polyphonic tracks from a quantized NoteSequence."""
 
-  def __init__(self, min_steps, max_steps, name=None):
-    super(PolyphonicSequenceExtractor, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=polyphony_lib.PolyphonicSequence,
-        name=name)
-    self._min_steps = min_steps
-    self._max_steps = max_steps
+    def __init__(self, min_steps, max_steps, name=None):
+        super(PolyphonicSequenceExtractor, self).__init__(
+            input_type=music_pb2.NoteSequence,
+            output_type=polyphony_lib.PolyphonicSequence,
+            name=name)
+        self._min_steps = min_steps
+        self._max_steps = max_steps
 
-  def transform(self, quantized_sequence):
-    poly_seqs, stats = polyphony_lib.extract_polyphonic_sequences(
-        quantized_sequence,
-        min_steps_discard=self._min_steps,
-        max_steps_discard=self._max_steps)
-    self._set_stats(stats)
-    return poly_seqs
+    def transform(self, quantized_sequence):
+        poly_seqs, stats = polyphony_lib.extract_polyphonic_sequences(
+            quantized_sequence,
+            min_steps_discard=self._min_steps,
+            max_steps_discard=self._max_steps)
+        self._set_stats(stats)
+        return poly_seqs
 
 
 def get_pipeline(config, min_steps, max_steps, eval_ratio):
-  """Returns the Pipeline instance which creates the RNN dataset.
+    """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
     config: An EventSequenceRnnConfig.
@@ -55,36 +55,36 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
   Returns:
     A pipeline.Pipeline instance.
   """
-  # Transpose up to a major third in either direction.
-  # Because our current dataset is Bach chorales, transposing more than a major
-  # third in either direction probably doesn't makes sense (e.g., because it is
-  # likely to exceed normal singing range).
-  transposition_range = range(-4, 5)
+    # Transpose up to a major third in either direction.
+    # Because our current dataset is Bach chorales, transposing more than a major
+    # third in either direction probably doesn't makes sense (e.g., because it is
+    # likely to exceed normal singing range).
+    transposition_range = range(-4, 5)
 
-  partitioner = pipelines_common.RandomPartition(
-      music_pb2.NoteSequence,
-      ['eval_poly_tracks', 'training_poly_tracks'],
-      [eval_ratio])
-  dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
+    partitioner = pipelines_common.RandomPartition(
+        music_pb2.NoteSequence,
+        ['eval_poly_tracks', 'training_poly_tracks'],
+        [eval_ratio])
+    dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
-  for mode in ['eval', 'training']:
-    time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(
-        name='TimeChangeSplitter_' + mode)
-    quantizer = note_sequence_pipelines.Quantizer(
-        steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
-    transposition_pipeline = note_sequence_pipelines.TranspositionPipeline(
-        transposition_range, name='TranspositionPipeline_' + mode)
-    poly_extractor = PolyphonicSequenceExtractor(
-        min_steps=min_steps, max_steps=max_steps, name='PolyExtractor_' + mode)
-    encoder_pipeline = event_sequence_pipeline.EncoderPipeline(
-        polyphony_lib.PolyphonicSequence, config.encoder_decoder,
-        name='EncoderPipeline_' + mode)
+    for mode in ['eval', 'training']:
+        time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(
+            name='TimeChangeSplitter_' + mode)
+        quantizer = note_sequence_pipelines.Quantizer(
+            steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
+        transposition_pipeline = note_sequence_pipelines.TranspositionPipeline(
+            transposition_range, name='TranspositionPipeline_' + mode)
+        poly_extractor = PolyphonicSequenceExtractor(
+            min_steps=min_steps, max_steps=max_steps, name='PolyExtractor_' + mode)
+        encoder_pipeline = event_sequence_pipeline.EncoderPipeline(
+            polyphony_lib.PolyphonicSequence, config.encoder_decoder,
+            name='EncoderPipeline_' + mode)
 
-    dag[time_change_splitter] = partitioner[mode + '_poly_tracks']
-    dag[quantizer] = time_change_splitter
-    dag[transposition_pipeline] = quantizer
-    dag[poly_extractor] = transposition_pipeline
-    dag[encoder_pipeline] = poly_extractor
-    dag[dag_pipeline.DagOutput(mode + '_poly_tracks')] = encoder_pipeline
+        dag[time_change_splitter] = partitioner[mode + '_poly_tracks']
+        dag[quantizer] = time_change_splitter
+        dag[transposition_pipeline] = quantizer
+        dag[poly_extractor] = transposition_pipeline
+        dag[encoder_pipeline] = poly_extractor
+        dag[dag_pipeline.DagOutput(mode + '_poly_tracks')] = encoder_pipeline
 
-  return dag_pipeline.DAGPipeline(dag)
+    return dag_pipeline.DAGPipeline(dag)

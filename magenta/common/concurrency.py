@@ -20,32 +20,32 @@ import time
 
 
 def serialized(func):
-  """Decorator to provide mutual exclusion for method using _lock attribute."""
+    """Decorator to provide mutual exclusion for method using _lock attribute."""
 
-  @functools.wraps(func)
-  def serialized_method(self, *args, **kwargs):
-    lock = getattr(self, '_lock')
-    with lock:
-      return func(self, *args, **kwargs)
+    @functools.wraps(func)
+    def serialized_method(self, *args, **kwargs):
+        lock = getattr(self, '_lock')
+        with lock:
+            return func(self, *args, **kwargs)
 
-  return serialized_method
+    return serialized_method
 
 
 class Singleton(type):
-  """A threadsafe singleton meta-class."""
+    """A threadsafe singleton meta-class."""
 
-  _singleton_lock = threading.RLock()
-  _instances = {}
+    _singleton_lock = threading.RLock()
+    _instances = {}
 
-  def __call__(cls, *args, **kwargs):
-    with Singleton._singleton_lock:
-      if cls not in cls._instances:
-        cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-      return cls._instances[cls]
+    def __call__(cls, *args, **kwargs):
+        with Singleton._singleton_lock:
+            if cls not in cls._instances:
+                cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+            return cls._instances[cls]
 
 
 class Sleeper(object):
-  """A threadsafe, singleton wrapper for time.sleep that improves accuracy.
+    """A threadsafe, singleton wrapper for time.sleep that improves accuracy.
 
   The time.sleep function is inaccurate and sometimes returns early or late. To
   improve accuracy, this class sleeps for a shorter time than requested and
@@ -63,58 +63,58 @@ class Sleeper(object):
   Raises:
     ValueError: When `initial_offset` is less than `_MIN_OFFSET`.
   """
-  __metaclass__ = Singleton
+    __metaclass__ = Singleton
 
-  _MIN_OFFSET = 0.001
+    _MIN_OFFSET = 0.001
 
-  def __init__(self, initial_offset=0.001):
-    if initial_offset < Sleeper._MIN_OFFSET:
-      raise ValueError(
-          '`initial_offset` must be at least %f. Got %f.' %
-          (Sleeper._MIN_OFFSET, initial_offset))
-    self._lock = threading.RLock()
-    self.offset = initial_offset
+    def __init__(self, initial_offset=0.001):
+        if initial_offset < Sleeper._MIN_OFFSET:
+            raise ValueError(
+                '`initial_offset` must be at least %f. Got %f.' %
+                (Sleeper._MIN_OFFSET, initial_offset))
+        self._lock = threading.RLock()
+        self.offset = initial_offset
 
-  @property
-  @serialized
-  def offset(self):
-    """Threadsafe accessor for offset attribute."""
-    return self._offset
+    @property
+    @serialized
+    def offset(self):
+        """Threadsafe accessor for offset attribute."""
+        return self._offset
 
-  @offset.setter
-  @serialized
-  def offset(self, value):
-    """Threadsafe mutator for offset attribute."""
-    self._offset = value
+    @offset.setter
+    @serialized
+    def offset(self, value):
+        """Threadsafe mutator for offset attribute."""
+        self._offset = value
 
-  def sleep(self, seconds):
-    """Sleeps the requested number of seconds."""
-    wake_time = time.time() + seconds
-    self.sleep_until(wake_time)
+    def sleep(self, seconds):
+        """Sleeps the requested number of seconds."""
+        wake_time = time.time() + seconds
+        self.sleep_until(wake_time)
 
-  def sleep_until(self, wake_time):
-    """Sleeps until the requested time."""
-    delta = wake_time - time.time()
+    def sleep_until(self, wake_time):
+        """Sleeps until the requested time."""
+        delta = wake_time - time.time()
 
-    if delta <= 0:
-      return
+        if delta <= 0:
+            return
 
-    # Copy the current offset, since it might change.
-    offset_ = self.offset
+        # Copy the current offset, since it might change.
+        offset_ = self.offset
 
-    if delta > offset_:
-      time.sleep(delta - offset_)
+        if delta > offset_:
+            time.sleep(delta - offset_)
 
-    remaining_time = time.time() - wake_time
-    # Enter critical section for updating the offset.
-    with self._lock:
-      # Only update if the current offset value is what was used in this call.
-      if self.offset == offset_:
-        offset_delta = (offset_ - Sleeper._MIN_OFFSET) / 2
-        if remaining_time > 0:
-          self.offset -= offset_delta
-        elif remaining_time < -Sleeper._MIN_OFFSET:
-          self.offset += offset_delta
+        remaining_time = time.time() - wake_time
+        # Enter critical section for updating the offset.
+        with self._lock:
+            # Only update if the current offset value is what was used in this call.
+            if self.offset == offset_:
+                offset_delta = (offset_ - Sleeper._MIN_OFFSET) / 2
+                if remaining_time > 0:
+                    self.offset -= offset_delta
+                elif remaining_time < -Sleeper._MIN_OFFSET:
+                    self.offset += offset_delta
 
-    while time.time() < wake_time:
-      pass
+        while time.time() < wake_time:
+            pass

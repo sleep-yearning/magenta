@@ -23,12 +23,12 @@ from tensorflow.contrib import training as contrib_training
 
 
 class PolyphonyRnnModel(events_rnn_model.EventSequenceRnnModel):
-  """Class for RNN polyphonic sequence generation models."""
+    """Class for RNN polyphonic sequence generation models."""
 
-  def generate_polyphonic_sequence(
-      self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
-      branch_factor=1, steps_per_iteration=1, modify_events_callback=None):
-    """Generate a polyphonic track from a primer polyphonic track.
+    def generate_polyphonic_sequence(
+            self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
+            branch_factor=1, steps_per_iteration=1, modify_events_callback=None):
+        """Generate a polyphonic track from a primer polyphonic track.
 
     Args:
       num_steps: The integer length in steps of the final track, after
@@ -51,12 +51,12 @@ class PolyphonyRnnModel(events_rnn_model.EventSequenceRnnModel):
       The generated PolyphonicSequence object (which begins with the provided
       primer track).
     """
-    return self._generate_events(num_steps, primer_sequence, temperature,
-                                 beam_size, branch_factor, steps_per_iteration,
-                                 modify_events_callback=modify_events_callback)
+        return self._generate_events(num_steps, primer_sequence, temperature,
+                                     beam_size, branch_factor, steps_per_iteration,
+                                     modify_events_callback=modify_events_callback)
 
-  def polyphonic_sequence_log_likelihood(self, sequence):
-    """Evaluate the log likelihood of a polyphonic sequence.
+    def polyphonic_sequence_log_likelihood(self, sequence):
+        """Evaluate the log likelihood of a polyphonic sequence.
 
     Args:
       sequence: The PolyphonicSequence object for which to evaluate the log
@@ -65,7 +65,7 @@ class PolyphonyRnnModel(events_rnn_model.EventSequenceRnnModel):
     Returns:
       The log likelihood of `sequence` under this model.
     """
-    return self._evaluate_log_likelihood([sequence])[0]
+        return self._evaluate_log_likelihood([sequence])[0]
 
 
 default_configs = {

@@ -22,7 +22,7 @@ import numpy as np
 
 
 class RandomPartition(pipeline.Pipeline):
-  """Outputs multiple datasets.
+    """Outputs multiple datasets.
 
   This Pipeline will take a single input feed and randomly partition the inputs
   into multiple output datasets. The probabilities of an input landing in each
@@ -31,29 +31,29 @@ class RandomPartition(pipeline.Pipeline):
   test sets.
   """
 
-  def __init__(self, type_, partition_names, partition_probabilities):
-    super(RandomPartition, self).__init__(
-        type_, dict((name, type_) for name in partition_names))
-    if len(partition_probabilities) != len(partition_names) - 1:
-      raise ValueError('len(partition_probabilities) != '
-                       'len(partition_names) - 1. '
-                       'Last probability is implicity.')
-    self.partition_names = partition_names
-    self.cumulative_density = np.cumsum(partition_probabilities).tolist()
-    self.rand_func = random.random
+    def __init__(self, type_, partition_names, partition_probabilities):
+        super(RandomPartition, self).__init__(
+            type_, dict((name, type_) for name in partition_names))
+        if len(partition_probabilities) != len(partition_names) - 1:
+            raise ValueError('len(partition_probabilities) != '
+                             'len(partition_names) - 1. '
+                             'Last probability is implicity.')
+        self.partition_names = partition_names
+        self.cumulative_density = np.cumsum(partition_probabilities).tolist()
+        self.rand_func = random.random
 
-  def transform(self, input_object):
-    r = self.rand_func()
-    if r >= self.cumulative_density[-1]:
-      bucket = len(self.cumulative_density)
-    else:
-      for i, cpd in enumerate(self.cumulative_density):
-        if r < cpd:
-          bucket = i
-          break
-    self._set_stats(self._make_stats(self.partition_names[bucket]))
-    return dict((name, [] if i != bucket else [input_object])
-                for i, name in enumerate(self.partition_names))
+    def transform(self, input_object):
+        r = self.rand_func()
+        if r >= self.cumulative_density[-1]:
+            bucket = len(self.cumulative_density)
+        else:
+            for i, cpd in enumerate(self.cumulative_density):
+                if r < cpd:
+                    bucket = i
+                    break
+        self._set_stats(self._make_stats(self.partition_names[bucket]))
+        return dict((name, [] if i != bucket else [input_object])
+                    for i, name in enumerate(self.partition_names))
 
-  def _make_stats(self, increment_partition=None):
-    return [statistics.Counter(increment_partition + '_count', 1)]
+    def _make_stats(self, increment_partition=None):
+        return [statistics.Counter(increment_partition + '_count', 1)]

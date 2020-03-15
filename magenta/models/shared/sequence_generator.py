@@ -26,24 +26,24 @@ import tensorflow.compat.v1 as tf
 
 
 class SequenceGeneratorError(Exception):  # pylint:disable=g-bad-exception-name
-  """Generic exception for sequence generation errors."""
-  pass
+    """Generic exception for sequence generation errors."""
+    pass
 
 
 # TODO(adarob): Replace with tf.saver.checkpoint_file_exists when released.
 def _checkpoint_file_exists(checkpoint_file_or_prefix):
-  """Returns True if checkpoint file or files (for V2) exist."""
-  return (tf.gfile.Exists(checkpoint_file_or_prefix) or
-          tf.gfile.Exists(checkpoint_file_or_prefix + '.index'))
+    """Returns True if checkpoint file or files (for V2) exist."""
+    return (tf.gfile.Exists(checkpoint_file_or_prefix) or
+            tf.gfile.Exists(checkpoint_file_or_prefix + '.index'))
 
 
 class BaseSequenceGenerator(object):
-  """Abstract class for generators."""
+    """Abstract class for generators."""
 
-  __metaclass__ = abc.ABCMeta
+    __metaclass__ = abc.ABCMeta
 
-  def __init__(self, model, details, checkpoint, bundle):
-    """Constructs a BaseSequenceGenerator.
+    def __init__(self, model, details, checkpoint, bundle):
+        """Constructs a BaseSequenceGenerator.
 
     Args:
       model: An instance of BaseModel.
@@ -57,42 +57,42 @@ class BaseSequenceGenerator(object):
     Raises:
       SequenceGeneratorError: if neither checkpoint nor bundle is set.
     """
-    self._model = model
-    self._details = details
-    self._checkpoint = checkpoint
-    self._bundle = bundle
+        self._model = model
+        self._details = details
+        self._checkpoint = checkpoint
+        self._bundle = bundle
 
-    if self._checkpoint is None and self._bundle is None:
-      raise SequenceGeneratorError(
-          'Either checkpoint or bundle must be set')
-    if self._checkpoint is not None and self._bundle is not None:
-      raise SequenceGeneratorError(
-          'Checkpoint and bundle cannot both be set')
+        if self._checkpoint is None and self._bundle is None:
+            raise SequenceGeneratorError(
+                'Either checkpoint or bundle must be set')
+        if self._checkpoint is not None and self._bundle is not None:
+            raise SequenceGeneratorError(
+                'Checkpoint and bundle cannot both be set')
 
-    if self._bundle:
-      if self._bundle.generator_details.id != self._details.id:
-        raise SequenceGeneratorError(
-            'Generator id in bundle (%s) does not match this generator\'s id '
-            '(%s)' % (self._bundle.generator_details.id,
-                      self._details.id))
+        if self._bundle:
+            if self._bundle.generator_details.id != self._details.id:
+                raise SequenceGeneratorError(
+                    'Generator id in bundle (%s) does not match this generator\'s id '
+                    '(%s)' % (self._bundle.generator_details.id,
+                              self._details.id))
 
-    self._initialized = False
+        self._initialized = False
 
-  @property
-  def details(self):
-    """Returns a GeneratorDetails description of this generator."""
-    return self._details
+    @property
+    def details(self):
+        """Returns a GeneratorDetails description of this generator."""
+        return self._details
 
-  @property
-  def bundle_details(self):
-    """Returns the BundleDetails or None if checkpoint was used."""
-    if self._bundle is None:
-      return None
-    return self._bundle.bundle_details
+    @property
+    def bundle_details(self):
+        """Returns the BundleDetails or None if checkpoint was used."""
+        if self._bundle is None:
+            return None
+        return self._bundle.bundle_details
 
-  @abc.abstractmethod
-  def _generate(self, input_sequence, generator_options):
-    """Implementation for sequence generation based on sequence and options.
+    @abc.abstractmethod
+    def _generate(self, input_sequence, generator_options):
+        """Implementation for sequence generation based on sequence and options.
 
     The implementation can assume that _initialize has been called before this
     method is called.
@@ -104,81 +104,81 @@ class BaseSequenceGenerator(object):
     Returns:
       The generated NoteSequence proto.
     """
-    pass
+        pass
 
-  def initialize(self):
-    """Builds the TF graph and loads the checkpoint.
+    def initialize(self):
+        """Builds the TF graph and loads the checkpoint.
 
     If the graph has already been initialized, this is a no-op.
 
     Raises:
       SequenceGeneratorError: If the checkpoint cannot be found.
     """
-    if self._initialized:
-      return
+        if self._initialized:
+            return
 
-    # Either self._checkpoint or self._bundle should be set.
-    # This is enforced by the constructor.
-    if self._checkpoint is not None:
-      # Check if the checkpoint file exists.
-      if not _checkpoint_file_exists(self._checkpoint):
-        raise SequenceGeneratorError(
-            'Checkpoint path does not exist: %s' % (self._checkpoint))
-      checkpoint_file = self._checkpoint
-      # If this is a directory, try to determine the latest checkpoint in it.
-      if tf.gfile.IsDirectory(checkpoint_file):
-        checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
-      if checkpoint_file is None:
-        raise SequenceGeneratorError(
-            'No checkpoint file found in directory: %s' % self._checkpoint)
-      if (not _checkpoint_file_exists(self._checkpoint) or
-          tf.gfile.IsDirectory(checkpoint_file)):
-        raise SequenceGeneratorError(
-            'Checkpoint path is not a file: %s (supplied path: %s)' % (
-                checkpoint_file, self._checkpoint))
-      self._model.initialize_with_checkpoint(checkpoint_file)
-    else:
-      # Write checkpoint and metagraph files to a temp dir.
-      tempdir = None
-      try:
-        tempdir = tempfile.mkdtemp()
-        checkpoint_filename = os.path.join(tempdir, 'model.ckpt')
-        with tf.gfile.Open(checkpoint_filename, 'wb') as f:
-          # For now, we support only 1 checkpoint file.
-          # If needed, we can later change this to support sharded checkpoints.
-          f.write(self._bundle.checkpoint_file[0])
-        metagraph_filename = os.path.join(tempdir, 'model.ckpt.meta')
-        with tf.gfile.Open(metagraph_filename, 'wb') as f:
-          f.write(self._bundle.metagraph_file)
+        # Either self._checkpoint or self._bundle should be set.
+        # This is enforced by the constructor.
+        if self._checkpoint is not None:
+            # Check if the checkpoint file exists.
+            if not _checkpoint_file_exists(self._checkpoint):
+                raise SequenceGeneratorError(
+                    'Checkpoint path does not exist: %s' % (self._checkpoint))
+            checkpoint_file = self._checkpoint
+            # If this is a directory, try to determine the latest checkpoint in it.
+            if tf.gfile.IsDirectory(checkpoint_file):
+                checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
+            if checkpoint_file is None:
+                raise SequenceGeneratorError(
+                    'No checkpoint file found in directory: %s' % self._checkpoint)
+            if (not _checkpoint_file_exists(self._checkpoint) or
+                    tf.gfile.IsDirectory(checkpoint_file)):
+                raise SequenceGeneratorError(
+                    'Checkpoint path is not a file: %s (supplied path: %s)' % (
+                        checkpoint_file, self._checkpoint))
+            self._model.initialize_with_checkpoint(checkpoint_file)
+        else:
+            # Write checkpoint and metagraph files to a temp dir.
+            tempdir = None
+            try:
+                tempdir = tempfile.mkdtemp()
+                checkpoint_filename = os.path.join(tempdir, 'model.ckpt')
+                with tf.gfile.Open(checkpoint_filename, 'wb') as f:
+                    # For now, we support only 1 checkpoint file.
+                    # If needed, we can later change this to support sharded checkpoints.
+                    f.write(self._bundle.checkpoint_file[0])
+                metagraph_filename = os.path.join(tempdir, 'model.ckpt.meta')
+                with tf.gfile.Open(metagraph_filename, 'wb') as f:
+                    f.write(self._bundle.metagraph_file)
 
-        self._model.initialize_with_checkpoint_and_metagraph(
-            checkpoint_filename, metagraph_filename)
-      finally:
-        # Clean up the temp dir.
-        if tempdir is not None:
-          tf.gfile.DeleteRecursively(tempdir)
-    self._initialized = True
+                self._model.initialize_with_checkpoint_and_metagraph(
+                    checkpoint_filename, metagraph_filename)
+            finally:
+                # Clean up the temp dir.
+                if tempdir is not None:
+                    tf.gfile.DeleteRecursively(tempdir)
+        self._initialized = True
 
-  def close(self):
-    """Closes the TF session.
+    def close(self):
+        """Closes the TF session.
 
     If the session was already closed, this is a no-op.
     """
-    if self._initialized:
-      self._model.close()
-      self._initialized = False
+        if self._initialized:
+            self._model.close()
+            self._initialized = False
 
-  def __enter__(self):
-    """When used as a context manager, initializes the TF session."""
-    self.initialize()
-    return self
+    def __enter__(self):
+        """When used as a context manager, initializes the TF session."""
+        self.initialize()
+        return self
 
-  def __exit__(self, *args):
-    """When used as a context manager, closes the TF session."""
-    self.close()
+    def __exit__(self, *args):
+        """When used as a context manager, closes the TF session."""
+        self.close()
 
-  def generate(self, input_sequence, generator_options):
-    """Generates a sequence from the model based on sequence and options.
+    def generate(self, input_sequence, generator_options):
+        """Generates a sequence from the model based on sequence and options.
 
     Also initializes the TF graph if not yet initialized.
 
@@ -190,11 +190,11 @@ class BaseSequenceGenerator(object):
     Returns:
       The generated NoteSequence proto.
     """
-    self.initialize()
-    return self._generate(input_sequence, generator_options)
+        self.initialize()
+        return self._generate(input_sequence, generator_options)
 
-  def create_bundle_file(self, bundle_file, bundle_description=None):
-    """Writes a generator_pb2.GeneratorBundle file in the specified location.
+    def create_bundle_file(self, bundle_file, bundle_description=None):
+        """Writes a generator_pb2.GeneratorBundle file in the specified location.
 
     Saves the checkpoint, metagraph, and generator id in one file.
 
@@ -206,46 +206,46 @@ class BaseSequenceGenerator(object):
     Raises:
       SequenceGeneratorError: if there is an error creating the bundle file.
     """
-    if not bundle_file:
-      raise SequenceGeneratorError('Bundle file location not specified.')
-    if not self.details.id:
-      raise SequenceGeneratorError(
-          'Generator id must be included in GeneratorDetails when creating '
-          'a bundle file.')
+        if not bundle_file:
+            raise SequenceGeneratorError('Bundle file location not specified.')
+        if not self.details.id:
+            raise SequenceGeneratorError(
+                'Generator id must be included in GeneratorDetails when creating '
+                'a bundle file.')
 
-    if not self.details.description:
-      tf.logging.warn('Writing bundle file with no generator description.')
-    if not bundle_description:
-      tf.logging.warn('Writing bundle file with no bundle description.')
+        if not self.details.description:
+            tf.logging.warn('Writing bundle file with no generator description.')
+        if not bundle_description:
+            tf.logging.warn('Writing bundle file with no bundle description.')
 
-    self.initialize()
+        self.initialize()
 
-    tempdir = None
-    try:
-      tempdir = tempfile.mkdtemp()
-      checkpoint_filename = os.path.join(tempdir, 'model.ckpt')
+        tempdir = None
+        try:
+            tempdir = tempfile.mkdtemp()
+            checkpoint_filename = os.path.join(tempdir, 'model.ckpt')
 
-      self._model.write_checkpoint_with_metagraph(checkpoint_filename)
+            self._model.write_checkpoint_with_metagraph(checkpoint_filename)
 
-      if not os.path.isfile(checkpoint_filename):
-        raise SequenceGeneratorError(
-            'Could not read checkpoint file: %s' % (checkpoint_filename))
-      metagraph_filename = checkpoint_filename + '.meta'
-      if not os.path.isfile(metagraph_filename):
-        raise SequenceGeneratorError(
-            'Could not read metagraph file: %s' % (metagraph_filename))
+            if not os.path.isfile(checkpoint_filename):
+                raise SequenceGeneratorError(
+                    'Could not read checkpoint file: %s' % (checkpoint_filename))
+            metagraph_filename = checkpoint_filename + '.meta'
+            if not os.path.isfile(metagraph_filename):
+                raise SequenceGeneratorError(
+                    'Could not read metagraph file: %s' % (metagraph_filename))
 
-      bundle = generator_pb2.GeneratorBundle()
-      bundle.generator_details.CopyFrom(self.details)
-      if bundle_description:
-        bundle.bundle_details.description = bundle_description
-      with tf.gfile.Open(checkpoint_filename, 'rb') as f:
-        bundle.checkpoint_file.append(f.read())
-      with tf.gfile.Open(metagraph_filename, 'rb') as f:
-        bundle.metagraph_file = f.read()
+            bundle = generator_pb2.GeneratorBundle()
+            bundle.generator_details.CopyFrom(self.details)
+            if bundle_description:
+                bundle.bundle_details.description = bundle_description
+            with tf.gfile.Open(checkpoint_filename, 'rb') as f:
+                bundle.checkpoint_file.append(f.read())
+            with tf.gfile.Open(metagraph_filename, 'rb') as f:
+                bundle.metagraph_file = f.read()
 
-      with tf.gfile.Open(bundle_file, 'wb') as f:
-        f.write(bundle.SerializeToString())
-    finally:
-      if tempdir is not None:
-        tf.gfile.DeleteRecursively(tempdir)
+            with tf.gfile.Open(bundle_file, 'wb') as f:
+                f.write(bundle.SerializeToString())
+        finally:
+            if tempdir is not None:
+                tf.gfile.DeleteRecursively(tempdir)

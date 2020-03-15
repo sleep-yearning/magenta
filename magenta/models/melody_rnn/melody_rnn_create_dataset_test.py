@@ -28,51 +28,51 @@ FLAGS = tf.app.flags.FLAGS
 
 class MelodyRNNPipelineTest(tf.test.TestCase):
 
-  def setUp(self):
-    self.config = melody_rnn_model.MelodyRnnConfig(
-        None,
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.MelodyOneHotEncoding(0, 127)),
-        contrib_training.HParams(),
-        min_note=0,
-        max_note=127,
-        transpose_to_key=0)
+    def setUp(self):
+        self.config = melody_rnn_model.MelodyRnnConfig(
+            None,
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.MelodyOneHotEncoding(0, 127)),
+            contrib_training.HParams(),
+            min_note=0,
+            max_note=127,
+            transpose_to_key=0)
 
-  def testMelodyRNNPipeline(self):
-    note_sequence = magenta.common.testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
+    def testMelodyRNNPipeline(self):
+        note_sequence = magenta.common.testing_lib.parse_test_proto(
+            music_pb2.NoteSequence,
+            """
         time_signatures: {
           numerator: 4
           denominator: 4}
         tempos: {
           qpm: 120}""")
-    magenta.music.testing_lib.add_track_to_sequence(
-        note_sequence, 0,
-        [(12, 100, 0.00, 2.0), (11, 55, 2.1, 5.0), (40, 45, 5.1, 8.0),
-         (55, 120, 8.1, 11.0), (53, 99, 11.1, 14.1)])
+        magenta.music.testing_lib.add_track_to_sequence(
+            note_sequence, 0,
+            [(12, 100, 0.00, 2.0), (11, 55, 2.1, 5.0), (40, 45, 5.1, 8.0),
+             (55, 120, 8.1, 11.0), (53, 99, 11.1, 14.1)])
 
-    quantizer = note_sequence_pipelines.Quantizer(steps_per_quarter=4)
-    melody_extractor = melody_pipelines.MelodyExtractor(
-        min_bars=7, min_unique_pitches=5, gap_bars=1.0,
-        ignore_polyphonic_notes=False)
-    one_hot_encoding = magenta.music.OneHotEventSequenceEncoderDecoder(
-        magenta.music.MelodyOneHotEncoding(
-            self.config.min_note, self.config.max_note))
-    quantized = quantizer.transform(note_sequence)[0]
-    melody = melody_extractor.transform(quantized)[0]
-    melody.squash(
-        self.config.min_note,
-        self.config.max_note,
-        self.config.transpose_to_key)
-    one_hot = one_hot_encoding.encode(melody)
-    expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
+        quantizer = note_sequence_pipelines.Quantizer(steps_per_quarter=4)
+        melody_extractor = melody_pipelines.MelodyExtractor(
+            min_bars=7, min_unique_pitches=5, gap_bars=1.0,
+            ignore_polyphonic_notes=False)
+        one_hot_encoding = magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
+                self.config.min_note, self.config.max_note))
+        quantized = quantizer.transform(note_sequence)[0]
+        melody = melody_extractor.transform(quantized)[0]
+        melody.squash(
+            self.config.min_note,
+            self.config.max_note,
+            self.config.transpose_to_key)
+        one_hot = one_hot_encoding.encode(melody)
+        expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
 
-    pipeline_inst = melody_rnn_pipeline.get_pipeline(
-        self.config, eval_ratio=0.0)
-    result = pipeline_inst.transform(note_sequence)
-    self.assertEqual(expected_result, result)
+        pipeline_inst = melody_rnn_pipeline.get_pipeline(
+            self.config, eval_ratio=0.0)
+        result = pipeline_inst.transform(note_sequence)
+        self.assertEqual(expected_result, result)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

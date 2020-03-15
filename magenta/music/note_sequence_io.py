@@ -21,7 +21,7 @@ import tensorflow.compat.v1 as tf
 
 
 def generate_note_sequence_id(filename, collection_name, source_type):
-  """Generates a unique ID for a sequence.
+    """Generates a unique ID for a sequence.
 
   The format is:'/id/<type>/<collection name>/<hash>'.
 
@@ -34,14 +34,14 @@ def generate_note_sequence_id(filename, collection_name, source_type):
   Returns:
     The generated sequence ID as a string.
   """
-  # TODO(adarob): Replace with FarmHash when it becomes a part of TensorFlow.
-  filename_fingerprint = hashlib.sha1(filename.encode('utf-8'))
-  return '/id/%s/%s/%s' % (
-      source_type.lower(), collection_name, filename_fingerprint.hexdigest())
+    # TODO(adarob): Replace with FarmHash when it becomes a part of TensorFlow.
+    filename_fingerprint = hashlib.sha1(filename.encode('utf-8'))
+    return '/id/%s/%s/%s' % (
+        source_type.lower(), collection_name, filename_fingerprint.hexdigest())
 
 
 def note_sequence_record_iterator(path):
-  """An iterator that reads and parses NoteSequence protos from a TFRecord file.
+    """An iterator that reads and parses NoteSequence protos from a TFRecord file.
 
   Args:
     path: The path to the TFRecord file containing serialized NoteSequences.
@@ -52,13 +52,13 @@ def note_sequence_record_iterator(path):
   Raises:
     IOError: If `path` cannot be opened for reading.
   """
-  reader = tf.python_io.tf_record_iterator(path)
-  for serialized_sequence in reader:
-    yield music_pb2.NoteSequence.FromString(serialized_sequence)
+    reader = tf.python_io.tf_record_iterator(path)
+    for serialized_sequence in reader:
+        yield music_pb2.NoteSequence.FromString(serialized_sequence)
 
 
 class NoteSequenceRecordWriter(tf.io.TFRecordWriter):
-  """A class to write serialized NoteSequence protos to a TFRecord file.
+    """A class to write serialized NoteSequence protos to a TFRecord file.
 
   This class implements `__enter__` and `__exit__`, and can be used in `with`
   blocks like a normal file.
@@ -68,10 +68,10 @@ class NoteSequenceRecordWriter(tf.io.TFRecordWriter):
   @@close
   """
 
-  def write(self, note_sequence):
-    """Serializes a NoteSequence proto and writes it to the file.
+    def write(self, note_sequence):
+        """Serializes a NoteSequence proto and writes it to the file.
 
     Args:
       note_sequence: A NoteSequence proto to write.
     """
-    tf.io.TFRecordWriter.write(self, note_sequence.SerializeToString())
+        tf.io.TFRecordWriter.write(self, note_sequence.SerializeToString())

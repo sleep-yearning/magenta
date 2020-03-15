@@ -19,7 +19,7 @@ from tensorflow.python.util import nest as tf_nest
 
 
 def unbatch(batched_states, batch_size=1):
-  """Splits a state structure into a list of individual states.
+    """Splits a state structure into a list of individual states.
 
   Args:
     batched_states: A nested structure with entries whose first dimensions all
@@ -29,11 +29,11 @@ def unbatch(batched_states, batch_size=1):
   Returns:
     A list of `batch_size` state structures, each representing a single state.
   """
-  return [extract_state(batched_states, i) for i in range(batch_size)]
+    return [extract_state(batched_states, i) for i in range(batch_size)]
 
 
 def extract_state(batched_states, i):
-  """Extracts a single state from a batch of states.
+    """Extracts a single state from a batch of states.
 
   Args:
     batched_states: A nested structure with entries whose first dimensions all
@@ -45,11 +45,11 @@ def extract_state(batched_states, i):
     rnn_nade_state, but containing only the state values that represent the
     state at index i. The tensors will now have the shape (1, N).
   """
-  return tf_nest.map_structure(lambda x: x[i], batched_states)
+    return tf_nest.map_structure(lambda x: x[i], batched_states)
 
 
 def batch(states, batch_size=None):
-  """Combines a collection of state structures into a batch, padding if needed.
+    """Combines a collection of state structures into a batch, padding if needed.
 
   Args:
     states: A collection of individual nested state structures.
@@ -63,12 +63,13 @@ def batch(states, batch_size=None):
   Raises:
     ValueError: If the number of input states is larger than `batch_size`.
   """
-  if batch_size and len(states) > batch_size:
-    raise ValueError('Combined state is larger than the requested batch size')
+    if batch_size and len(states) > batch_size:
+        raise ValueError('Combined state is larger than the requested batch size')
 
-  def stack_and_pad(*states):
-    stacked = np.stack(states)
-    if batch_size:
-      stacked.resize([batch_size] + list(stacked.shape)[1:])
-    return stacked
-  return tf_nest.map_structure(stack_and_pad, *states)
+    def stack_and_pad(*states):
+        stacked = np.stack(states)
+        if batch_size:
+            stacked.resize([batch_size] + list(stacked.shape)[1:])
+        return stacked
+
+    return tf_nest.map_structure(stack_and_pad, *states)

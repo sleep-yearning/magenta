@@ -28,36 +28,37 @@ import tensorflow.compat.v1 as tf
 
 class NoteSequenceIoTest(tf.test.TestCase):
 
-  def testGenerateId(self):
-    sequence_id_1 = note_sequence_io.generate_note_sequence_id(
-        '/my/file/name', 'my_collection', 'midi')
-    self.assertEqual('/id/midi/my_collection/', sequence_id_1[0:23])
-    sequence_id_2 = note_sequence_io.generate_note_sequence_id(
-        '/my/file/name', 'your_collection', 'abc')
-    self.assertEqual('/id/abc/your_collection/', sequence_id_2[0:24])
-    self.assertEqual(sequence_id_1[23:], sequence_id_2[24:])
+    def testGenerateId(self):
+        sequence_id_1 = note_sequence_io.generate_note_sequence_id(
+            '/my/file/name', 'my_collection', 'midi')
+        self.assertEqual('/id/midi/my_collection/', sequence_id_1[0:23])
+        sequence_id_2 = note_sequence_io.generate_note_sequence_id(
+            '/my/file/name', 'your_collection', 'abc')
+        self.assertEqual('/id/abc/your_collection/', sequence_id_2[0:24])
+        self.assertEqual(sequence_id_1[23:], sequence_id_2[24:])
 
-    sequence_id_3 = note_sequence_io.generate_note_sequence_id(
-        '/your/file/name', 'my_collection', 'abc')
-    self.assertNotEqual(sequence_id_3[22:], sequence_id_1[23:])
-    self.assertNotEqual(sequence_id_3[22:], sequence_id_2[24:])
+        sequence_id_3 = note_sequence_io.generate_note_sequence_id(
+            '/your/file/name', 'my_collection', 'abc')
+        self.assertNotEqual(sequence_id_3[22:], sequence_id_1[23:])
+        self.assertNotEqual(sequence_id_3[22:], sequence_id_2[24:])
 
-  def testNoteSequenceRecordWriterAndIterator(self):
-    sequences = []
-    for i in range(4):
-      sequence = music_pb2.NoteSequence()
-      sequence.id = str(i)
-      sequence.notes.add().pitch = i
-      sequences.append(sequence)
+    def testNoteSequenceRecordWriterAndIterator(self):
+        sequences = []
+        for i in range(4):
+            sequence = music_pb2.NoteSequence()
+            sequence.id = str(i)
+            sequence.notes.add().pitch = i
+            sequences.append(sequence)
 
-    with tempfile.NamedTemporaryFile(prefix='NoteSequenceIoTest') as temp_file:
-      with note_sequence_io.NoteSequenceRecordWriter(temp_file.name) as writer:
-        for sequence in sequences:
-          writer.write(sequence)
+        with tempfile.NamedTemporaryFile(prefix='NoteSequenceIoTest') as temp_file:
+            with note_sequence_io.NoteSequenceRecordWriter(temp_file.name) as writer:
+                for sequence in sequences:
+                    writer.write(sequence)
 
-      for i, sequence in enumerate(
-          note_sequence_io.note_sequence_record_iterator(temp_file.name)):
-        self.assertEqual(sequence, sequences[i])
+            for i, sequence in enumerate(
+                    note_sequence_io.note_sequence_record_iterator(temp_file.name)):
+                self.assertEqual(sequence, sequences[i])
+
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

@@ -37,11 +37,11 @@ _PITCH_CLASS_MAPPING = ['C', 'C#', 'D', 'Eb', 'E', 'F',
 
 
 class ChordEncodingError(Exception):
-  pass
+    pass
 
 
 class MajorMinorChordOneHotEncoding(encoder_decoder.OneHotEncoding):
-  """Encodes chords as root + major/minor, with zero index for "no chord".
+    """Encodes chords as root + major/minor, with zero index for "no chord".
 
   Encodes chords as follows:
     0:     "no chord"
@@ -49,41 +49,41 @@ class MajorMinorChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     13-24: chords with a minor triad, where 13 is C minor, 14 is C# minor, etc.
   """
 
-  @property
-  def num_classes(self):
-    return 2 * NOTES_PER_OCTAVE + 1
+    @property
+    def num_classes(self):
+        return 2 * NOTES_PER_OCTAVE + 1
 
-  @property
-  def default_event(self):
-    return NO_CHORD
+    @property
+    def default_event(self):
+        return NO_CHORD
 
-  def encode_event(self, event):
-    if event == NO_CHORD:
-      return 0
+    def encode_event(self, event):
+        if event == NO_CHORD:
+            return 0
 
-    root = chord_symbols_lib.chord_symbol_root(event)
-    quality = chord_symbols_lib.chord_symbol_quality(event)
+        root = chord_symbols_lib.chord_symbol_root(event)
+        quality = chord_symbols_lib.chord_symbol_quality(event)
 
-    if quality == chord_symbols_lib.CHORD_QUALITY_MAJOR:
-      return root + 1
-    elif quality == chord_symbols_lib.CHORD_QUALITY_MINOR:
-      return root + NOTES_PER_OCTAVE + 1
-    else:
-      raise ChordEncodingError('chord is neither major nor minor: %s' % event)
+        if quality == chord_symbols_lib.CHORD_QUALITY_MAJOR:
+            return root + 1
+        elif quality == chord_symbols_lib.CHORD_QUALITY_MINOR:
+            return root + NOTES_PER_OCTAVE + 1
+        else:
+            raise ChordEncodingError('chord is neither major nor minor: %s' % event)
 
-  def decode_event(self, index):
-    if index == 0:
-      return NO_CHORD
-    elif index - 1 < 12:
-      # major
-      return _PITCH_CLASS_MAPPING[index - 1]
-    else:
-      # minor
-      return _PITCH_CLASS_MAPPING[index - NOTES_PER_OCTAVE - 1] + 'm'
+    def decode_event(self, index):
+        if index == 0:
+            return NO_CHORD
+        elif index - 1 < 12:
+            # major
+            return _PITCH_CLASS_MAPPING[index - 1]
+        else:
+            # minor
+            return _PITCH_CLASS_MAPPING[index - NOTES_PER_OCTAVE - 1] + 'm'
 
 
 class TriadChordOneHotEncoding(encoder_decoder.OneHotEncoding):
-  """Encodes chords as root + triad type, with zero index for "no chord".
+    """Encodes chords as root + triad type, with zero index for "no chord".
 
   Encodes chords as follows:
     0:     "no chord"
@@ -93,71 +93,71 @@ class TriadChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     37-48: chords with a diminished triad, where 37 is C diminished, etc.
   """
 
-  @property
-  def num_classes(self):
-    return 4 * NOTES_PER_OCTAVE + 1
+    @property
+    def num_classes(self):
+        return 4 * NOTES_PER_OCTAVE + 1
 
-  @property
-  def default_event(self):
-    return NO_CHORD
+    @property
+    def default_event(self):
+        return NO_CHORD
 
-  def encode_event(self, event):
-    if event == NO_CHORD:
-      return 0
+    def encode_event(self, event):
+        if event == NO_CHORD:
+            return 0
 
-    root = chord_symbols_lib.chord_symbol_root(event)
-    quality = chord_symbols_lib.chord_symbol_quality(event)
+        root = chord_symbols_lib.chord_symbol_root(event)
+        quality = chord_symbols_lib.chord_symbol_quality(event)
 
-    if quality == chord_symbols_lib.CHORD_QUALITY_MAJOR:
-      return root + 1
-    elif quality == chord_symbols_lib.CHORD_QUALITY_MINOR:
-      return root + NOTES_PER_OCTAVE + 1
-    elif quality == chord_symbols_lib.CHORD_QUALITY_AUGMENTED:
-      return root + 2 * NOTES_PER_OCTAVE + 1
-    elif quality == chord_symbols_lib.CHORD_QUALITY_DIMINISHED:
-      return root + 3 * NOTES_PER_OCTAVE + 1
-    else:
-      raise ChordEncodingError('chord is not a standard triad: %s' % event)
+        if quality == chord_symbols_lib.CHORD_QUALITY_MAJOR:
+            return root + 1
+        elif quality == chord_symbols_lib.CHORD_QUALITY_MINOR:
+            return root + NOTES_PER_OCTAVE + 1
+        elif quality == chord_symbols_lib.CHORD_QUALITY_AUGMENTED:
+            return root + 2 * NOTES_PER_OCTAVE + 1
+        elif quality == chord_symbols_lib.CHORD_QUALITY_DIMINISHED:
+            return root + 3 * NOTES_PER_OCTAVE + 1
+        else:
+            raise ChordEncodingError('chord is not a standard triad: %s' % event)
 
-  def decode_event(self, index):
-    if index == 0:
-      return NO_CHORD
-    elif index - 1 < 12:
-      # major
-      return _PITCH_CLASS_MAPPING[index - 1]
-    elif index - NOTES_PER_OCTAVE - 1 < 12:
-      # minor
-      return _PITCH_CLASS_MAPPING[index - NOTES_PER_OCTAVE - 1] + 'm'
-    elif index - 2 * NOTES_PER_OCTAVE - 1 < 12:
-      # augmented
-      return _PITCH_CLASS_MAPPING[index - 2 * NOTES_PER_OCTAVE - 1] + 'aug'
-    else:
-      # diminished
-      return _PITCH_CLASS_MAPPING[index - 3 * NOTES_PER_OCTAVE - 1] + 'dim'
+    def decode_event(self, index):
+        if index == 0:
+            return NO_CHORD
+        elif index - 1 < 12:
+            # major
+            return _PITCH_CLASS_MAPPING[index - 1]
+        elif index - NOTES_PER_OCTAVE - 1 < 12:
+            # minor
+            return _PITCH_CLASS_MAPPING[index - NOTES_PER_OCTAVE - 1] + 'm'
+        elif index - 2 * NOTES_PER_OCTAVE - 1 < 12:
+            # augmented
+            return _PITCH_CLASS_MAPPING[index - 2 * NOTES_PER_OCTAVE - 1] + 'aug'
+        else:
+            # diminished
+            return _PITCH_CLASS_MAPPING[index - 3 * NOTES_PER_OCTAVE - 1] + 'dim'
 
 
 class PitchChordsEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
-  """An encoder/decoder for chords that encodes chord root, pitches, and bass.
+    """An encoder/decoder for chords that encodes chord root, pitches, and bass.
 
   This class has no label encoding and can only be used to encode chords as
   model input vectors. It can be used to help generate another type of event
   sequence (e.g. melody) conditioned on chords.
   """
 
-  @property
-  def input_size(self):
-    return 3 * NOTES_PER_OCTAVE + 1
+    @property
+    def input_size(self):
+        return 3 * NOTES_PER_OCTAVE + 1
 
-  @property
-  def num_classes(self):
-    raise NotImplementedError
+    @property
+    def num_classes(self):
+        raise NotImplementedError
 
-  @property
-  def default_event_label(self):
-    raise NotImplementedError
+    @property
+    def default_event_label(self):
+        raise NotImplementedError
 
-  def events_to_input(self, events, position):
-    """Returns the input vector for the given position in the chord progression.
+    def events_to_input(self, events, position):
+        """Returns the input vector for the given position in the chord progression.
 
     Indices [0, 36]:
     [0]: Whether or not this chord is "no chord".
@@ -172,27 +172,27 @@ class PitchChordsEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
     Returns:
       An input vector, an self.input_size length list of floats.
     """
-    chord = events[position]
-    input_ = [0.0] * self.input_size
+        chord = events[position]
+        input_ = [0.0] * self.input_size
 
-    if chord == NO_CHORD:
-      input_[0] = 1.0
-      return input_
+        if chord == NO_CHORD:
+            input_[0] = 1.0
+            return input_
 
-    root = chord_symbols_lib.chord_symbol_root(chord)
-    input_[1 + root] = 1.0
+        root = chord_symbols_lib.chord_symbol_root(chord)
+        input_[1 + root] = 1.0
 
-    pitches = chord_symbols_lib.chord_symbol_pitches(chord)
-    for pitch in pitches:
-      input_[1 + NOTES_PER_OCTAVE + pitch] = 1.0
+        pitches = chord_symbols_lib.chord_symbol_pitches(chord)
+        for pitch in pitches:
+            input_[1 + NOTES_PER_OCTAVE + pitch] = 1.0
 
-    bass = chord_symbols_lib.chord_symbol_bass(chord)
-    input_[1 + 2 * NOTES_PER_OCTAVE + bass] = 1.0
+        bass = chord_symbols_lib.chord_symbol_bass(chord)
+        input_[1 + 2 * NOTES_PER_OCTAVE + bass] = 1.0
 
-    return input_
+        return input_
 
-  def events_to_label(self, events, position):
-    raise NotImplementedError
+    def events_to_label(self, events, position):
+        raise NotImplementedError
 
-  def class_index_to_event(self, class_index, events):
-    raise NotImplementedError
+    def class_index_to_event(self, class_index, events):
+        raise NotImplementedError

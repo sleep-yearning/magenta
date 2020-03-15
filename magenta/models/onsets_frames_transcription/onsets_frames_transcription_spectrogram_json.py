@@ -42,30 +42,31 @@ tf.app.flags.DEFINE_string(
 
 
 def create_spec(filename, hparams):
-  """Processes an audio file into a spectrogram."""
-  wav_data = tf.gfile.Open(filename).read()
-  spec = data.wav_to_spec(wav_data, hparams)
-  return spec
+    """Processes an audio file into a spectrogram."""
+    wav_data = tf.gfile.Open(filename).read()
+    spec = data.wav_to_spec(wav_data, hparams)
+    return spec
 
 
 def main(argv):
-  tf.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
-  config = configs.CONFIG_MAP[FLAGS.config]
-  hparams = config.hparams
+    config = configs.CONFIG_MAP[FLAGS.config]
+    hparams = config.hparams
 
-  for filename in argv[1:]:
-    tf.logging.info('Generating spectrogram for %s...', filename)
+    for filename in argv[1:]:
+        tf.logging.info('Generating spectrogram for %s...', filename)
 
-    spec = create_spec(filename, hparams)
-    spec_filename = filename + '.json'
-    with tf.gfile.Open(spec_filename, 'w') as f:
-      f.write(json.dumps(spec.tolist()))
-      tf.logging.info('Wrote spectrogram json to %s.', spec_filename)
+        spec = create_spec(filename, hparams)
+        spec_filename = filename + '.json'
+        with tf.gfile.Open(spec_filename, 'w') as f:
+            f.write(json.dumps(spec.tolist()))
+            tf.logging.info('Wrote spectrogram json to %s.', spec_filename)
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
+
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

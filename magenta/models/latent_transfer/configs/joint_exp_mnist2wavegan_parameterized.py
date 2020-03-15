@@ -55,21 +55,21 @@ vae_config_A = {
 
 
 def make_Encoder_B(n_latent):
-  return functools.partial(
-      model_joint.EncoderLatentFull,
-      input_size=n_latent,
-      output_size=n_latent_shared,
-      layers=layers_B,
-  )
+    return functools.partial(
+        model_joint.EncoderLatentFull,
+        input_size=n_latent,
+        output_size=n_latent_shared,
+        layers=layers_B,
+    )
 
 
 def make_Decoder_B(n_latent):
-  return functools.partial(
-      model_joint.DecoderLatentFull,
-      input_size=n_latent_shared,
-      output_size=n_latent,
-      layers=layers_B,
-  )
+    return functools.partial(
+        model_joint.DecoderLatentFull,
+        input_size=n_latent_shared,
+        output_size=n_latent,
+        layers=layers_B,
+    )
 
 
 wavegan_config_B = {

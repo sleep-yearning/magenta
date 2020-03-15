@@ -26,11 +26,11 @@ import tensorflow.compat.v1 as tf
 
 
 class MergeStatisticsError(Exception):
-  pass
+    pass
 
 
 class Statistic(object):
-  """Holds statistics about a Pipeline run.
+    """Holds statistics about a Pipeline run.
 
   Pipelines produce statistics on each call to `transform`.
   `Statistic` objects can be merged together to aggregate
@@ -44,10 +44,10 @@ class Statistic(object):
   its own name, effectively creating a namespace for each `Pipeline`.
   """
 
-  __metaclass__ = abc.ABCMeta
+    __metaclass__ = abc.ABCMeta
 
-  def __init__(self, name):
-    """Constructs a `Statistic`.
+    def __init__(self, name):
+        """Constructs a `Statistic`.
 
     Subclass constructors are expected to call this constructor.
 
@@ -56,11 +56,11 @@ class Statistic(object):
           with the same name will be merged together. The name should also
           describe what this Statistic is measuring.
     """
-    self.name = name
+        self.name = name
 
-  @abc.abstractmethod
-  def _merge_from(self, other):
-    """Merge another Statistic into this instance.
+    @abc.abstractmethod
+    def _merge_from(self, other):
+        """Merge another Statistic into this instance.
 
     Takes another Statistic of the same type, and merges its information into
     this instance.
@@ -68,11 +68,11 @@ class Statistic(object):
     Args:
       other: Another Statistic instance.
     """
-    pass
+        pass
 
-  @abc.abstractmethod
-  def _pretty_print(self, name):
-    """Return a string representation of this instance using the given name.
+    @abc.abstractmethod
+    def _pretty_print(self, name):
+        """Return a string representation of this instance using the given name.
 
     Returns a human readable and nicely presented representation of this
     instance. Since this instance does not know what it's measuring, a string
@@ -88,28 +88,28 @@ class Statistic(object):
       A human readable and preferably a nicely presented string representation
       of this instance.
     """
-    pass
+        pass
 
-  @abc.abstractmethod
-  def copy(self):
-    """Returns a new copy of `self`."""
-    pass
+    @abc.abstractmethod
+    def copy(self):
+        """Returns a new copy of `self`."""
+        pass
 
-  def merge_from(self, other):
-    if not isinstance(other, Statistic):
-      raise MergeStatisticsError(
-          'Cannot merge with non-Statistic of type %s' % type(other))
-    if self.name != other.name:
-      raise MergeStatisticsError(
-          'Name "%s" does not match this name "%s"' % (other.name, self.name))
-    self._merge_from(other)
+    def merge_from(self, other):
+        if not isinstance(other, Statistic):
+            raise MergeStatisticsError(
+                'Cannot merge with non-Statistic of type %s' % type(other))
+        if self.name != other.name:
+            raise MergeStatisticsError(
+                'Name "%s" does not match this name "%s"' % (other.name, self.name))
+        self._merge_from(other)
 
-  def __str__(self):
-    return self._pretty_print(self.name)
+    def __str__(self):
+        return self._pretty_print(self.name)
 
 
 def merge_statistics(stats_list):
-  """Merge together Statistics of the same name in the given list.
+    """Merge together Statistics of the same name in the given list.
 
   Any two Statistics in the list with the same name will be merged into a
   single Statistic using the `merge_from` method.
@@ -120,69 +120,69 @@ def merge_statistics(stats_list):
   Returns:
     A list of merged Statistics. Each name will appear only once.
   """
-  name_map = {}
-  for stat in stats_list:
-    if stat.name in name_map:
-      name_map[stat.name].merge_from(stat)
-    else:
-      name_map[stat.name] = stat
-  return list(name_map.values())
+    name_map = {}
+    for stat in stats_list:
+        if stat.name in name_map:
+            name_map[stat.name].merge_from(stat)
+        else:
+            name_map[stat.name] = stat
+    return list(name_map.values())
 
 
 def log_statistics_list(stats_list, logger_fn=tf.logging.info):
-  """Calls the given logger function on each `Statistic` in the list.
+    """Calls the given logger function on each `Statistic` in the list.
 
   Args:
     stats_list: A list of `Statistic` objects.
     logger_fn: The function which will be called on the string representation
         of each `Statistic`.
   """
-  for stat in sorted(stats_list, key=lambda s: s.name):
-    logger_fn(str(stat))
+    for stat in sorted(stats_list, key=lambda s: s.name):
+        logger_fn(str(stat))
 
 
 class Counter(Statistic):
-  """Represents a count of occurrences of events or objects.
+    """Represents a count of occurrences of events or objects.
 
   `Counter` can help debug Pipeline computations. For example, by counting
   objects (consumed, produced, etc...) by the Pipeline, or occurrences of
   certain cases in the Pipeline.
   """
 
-  def __init__(self, name, start_value=0):
-    """Constructs a Counter.
+    def __init__(self, name, start_value=0):
+        """Constructs a Counter.
 
     Args:
       name: String name of this counter.
       start_value: What value to start the count at.
     """
-    super(Counter, self).__init__(name)
-    self.count = start_value
+        super(Counter, self).__init__(name)
+        self.count = start_value
 
-  def increment(self, inc=1):
-    """Increment the count.
+    def increment(self, inc=1):
+        """Increment the count.
 
     Args:
       inc: (defaults to 1) How much to increment the count by.
     """
-    self.count += inc
+        self.count += inc
 
-  def _merge_from(self, other):
-    """Adds the count of another Counter into this instance."""
-    if not isinstance(other, Counter):
-      raise MergeStatisticsError(
-          'Cannot merge %s into Counter' % other.__class__.__name__)
-    self.count += other.count
+    def _merge_from(self, other):
+        """Adds the count of another Counter into this instance."""
+        if not isinstance(other, Counter):
+            raise MergeStatisticsError(
+                'Cannot merge %s into Counter' % other.__class__.__name__)
+        self.count += other.count
 
-  def _pretty_print(self, name):
-    return '%s: %d' % (name, self.count)
+    def _pretty_print(self, name):
+        return '%s: %d' % (name, self.count)
 
-  def copy(self):
-    return copy.copy(self)
+    def copy(self):
+        return copy.copy(self)
 
 
 class Histogram(Statistic):
-  """Represents a histogram of real-valued events.
+    """Represents a histogram of real-valued events.
 
   A histogram is a list of counts, each over a range of values.
   For example, given this list of values [0.5, 0.0, 1.0, 0.6, 1.5, 2.4, 0.1],
@@ -198,8 +198,8 @@ class Histogram(Statistic):
       A distribution over compute times.
   """
 
-  def __init__(self, name, buckets, verbose_pretty_print=False):
-    """Initializes the histogram with the given ranges.
+    def __init__(self, name, buckets, verbose_pretty_print=False):
+        """Initializes the histogram with the given ranges.
 
     Args:
       name: String name of this histogram.
@@ -215,23 +215,23 @@ class Histogram(Statistic):
           every bucket. If False, only buckets with positive counts will be
           printed.
     """
-    super(Histogram, self).__init__(name)
+        super(Histogram, self).__init__(name)
 
-    # List of inclusive lowest values in each bucket.
-    self.buckets = [float('-inf')] + sorted(set(buckets))
-    self.counters = dict((bucket_lower, 0) for bucket_lower in self.buckets)
-    self.verbose_pretty_print = verbose_pretty_print
+        # List of inclusive lowest values in each bucket.
+        self.buckets = [float('-inf')] + sorted(set(buckets))
+        self.counters = dict((bucket_lower, 0) for bucket_lower in self.buckets)
+        self.verbose_pretty_print = verbose_pretty_print
 
-  # https://docs.python.org/2/library/bisect.html#searching-sorted-lists
-  def _find_le(self, x):
-    """Find rightmost bucket less than or equal to x."""
-    i = bisect.bisect_right(self.buckets, x)
-    if i:
-      return self.buckets[i-1]
-    raise ValueError
+    # https://docs.python.org/2/library/bisect.html#searching-sorted-lists
+    def _find_le(self, x):
+        """Find rightmost bucket less than or equal to x."""
+        i = bisect.bisect_right(self.buckets, x)
+        if i:
+            return self.buckets[i - 1]
+        raise ValueError
 
-  def increment(self, value, inc=1):
-    """Increment the bucket containing the given value.
+    def increment(self, value, inc=1):
+        """Increment the bucket containing the given value.
 
     The bucket count for which ever range `value` falls in will be incremented.
 
@@ -239,11 +239,11 @@ class Histogram(Statistic):
       value: Any number.
       inc: An integer. How much to increment the bucket count by.
     """
-    bucket_lower = self._find_le(value)
-    self.counters[bucket_lower] += inc
+        bucket_lower = self._find_le(value)
+        self.counters[bucket_lower] += inc
 
-  def _merge_from(self, other):
-    """Adds the counts of another Histogram into this instance.
+    def _merge_from(self, other):
+        """Adds the counts of another Histogram into this instance.
 
     `other` must have the same buckets as this instance. The counts
     from `other` are added to the counts for this instance.
@@ -255,22 +255,22 @@ class Histogram(Statistic):
       MergeStatisticsError: If `other` is not a Histogram or the buckets
           are not the same.
     """
-    if not isinstance(other, Histogram):
-      raise MergeStatisticsError(
-          'Cannot merge %s into Histogram' % other.__class__.__name__)
-    if self.buckets != other.buckets:
-      raise MergeStatisticsError(
-          'Histogram buckets do not match. Expected %s, got %s'
-          % (self.buckets, other.buckets))
-    for bucket_lower, count in other.counters.items():
-      self.counters[bucket_lower] += count
+        if not isinstance(other, Histogram):
+            raise MergeStatisticsError(
+                'Cannot merge %s into Histogram' % other.__class__.__name__)
+        if self.buckets != other.buckets:
+            raise MergeStatisticsError(
+                'Histogram buckets do not match. Expected %s, got %s'
+                % (self.buckets, other.buckets))
+        for bucket_lower, count in other.counters.items():
+            self.counters[bucket_lower] += count
 
-  def _pretty_print(self, name):
-    b = self.buckets + [float('inf')]
-    return ('%s:\n' % name) + '\n'.join(
-        ['  [%s,%s): %d' % (lower, b[i+1], self.counters[lower])
-         for i, lower in enumerate(self.buckets)
-         if self.verbose_pretty_print or self.counters[lower]])
+    def _pretty_print(self, name):
+        b = self.buckets + [float('inf')]
+        return ('%s:\n' % name) + '\n'.join(
+            ['  [%s,%s): %d' % (lower, b[i + 1], self.counters[lower])
+             for i, lower in enumerate(self.buckets)
+             if self.verbose_pretty_print or self.counters[lower]])
 
-  def copy(self):
-    return copy.copy(self)
+    def copy(self):
+        return copy.copy(self)

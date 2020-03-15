@@ -23,32 +23,32 @@ import tensorflow.compat.v1 as tf
 
 class ConcurrencyTest(tf.test.TestCase):
 
-  def testSleeper_SleepUntil(self):
-    # Burn in.
-    for _ in range(10):
-      concurrency.Sleeper().sleep(.01)
+    def testSleeper_SleepUntil(self):
+        # Burn in.
+        for _ in range(10):
+            concurrency.Sleeper().sleep(.01)
 
-    future_time = time.time() + 0.5
-    concurrency.Sleeper().sleep_until(future_time)
-    self.assertAlmostEqual(time.time(), future_time, delta=0.005)
+        future_time = time.time() + 0.5
+        concurrency.Sleeper().sleep_until(future_time)
+        self.assertAlmostEqual(time.time(), future_time, delta=0.005)
 
-  def testSleeper_Sleep(self):
-    # Burn in.
-    for _ in range(10):
-      concurrency.Sleeper().sleep(.01)
+    def testSleeper_Sleep(self):
+        # Burn in.
+        for _ in range(10):
+            concurrency.Sleeper().sleep(.01)
 
-    def sleep_test_thread(duration):
-      start_time = time.time()
-      concurrency.Sleeper().sleep(duration)
-      self.assertAlmostEqual(time.time(), start_time + duration, delta=0.005)
+        def sleep_test_thread(duration):
+            start_time = time.time()
+            concurrency.Sleeper().sleep(duration)
+            self.assertAlmostEqual(time.time(), start_time + duration, delta=0.005)
 
-    threads = [threading.Thread(target=sleep_test_thread, args=[i * 0.1])
-               for i in range(10)]
-    for t in threads:
-      t.start()
-    for t in threads:
-      t.join()
+        threads = [threading.Thread(target=sleep_test_thread, args=[i * 0.1])
+                   for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

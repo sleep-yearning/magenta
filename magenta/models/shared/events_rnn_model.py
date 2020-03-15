@@ -35,11 +35,11 @@ ModelState = collections.namedtuple(
 
 
 class EventSequenceRnnModelError(Exception):
-  pass
+    pass
 
 
 def _extend_control_events_default(control_events, events, state):
-  """Default function for extending control event sequence.
+    """Default function for extending control event sequence.
 
   This function extends a control event sequence by duplicating the final event
   in the sequence.  The control event sequence will be extended to have length
@@ -54,39 +54,39 @@ def _extend_control_events_default(control_events, events, state):
     The resulting state after extending the control sequence (in this case the
     state will be returned unmodified).
   """
-  while len(control_events) <= len(events):
-    control_events.append(control_events[-1])
-  return state
+    while len(control_events) <= len(events):
+        control_events.append(control_events[-1])
+    return state
 
 
 class EventSequenceRnnModel(mm.BaseModel):
-  """Class for RNN event sequence generation models.
+    """Class for RNN event sequence generation models.
 
   Currently this class only supports generation, of both event sequences and
   note sequences (via event sequences). Support for model training will be added
   at a later time.
   """
 
-  def __init__(self, config):
-    """Initialize the EventSequenceRnnModel.
+    def __init__(self, config):
+        """Initialize the EventSequenceRnnModel.
 
     Args:
       config: An EventSequenceRnnConfig containing the encoder/decoder and
         HParams to use.
     """
-    super(EventSequenceRnnModel, self).__init__()
-    self._config = config
+        super(EventSequenceRnnModel, self).__init__()
+        self._config = config
 
-  def _build_graph_for_generation(self):
-    events_rnn_graph.get_build_graph_fn('generate', self._config)()
+    def _build_graph_for_generation(self):
+        events_rnn_graph.get_build_graph_fn('generate', self._config)()
 
-  def _batch_size(self):
-    """Extracts the batch size from the graph."""
-    return self._session.graph.get_collection('inputs')[0].shape[0].value
+    def _batch_size(self):
+        """Extracts the batch size from the graph."""
+        return self._session.graph.get_collection('inputs')[0].shape[0].value
 
-  def _generate_step_for_batch(self, event_sequences, inputs, initial_state,
-                               temperature):
-    """Extends a batch of event sequences by a single step each.
+    def _generate_step_for_batch(self, event_sequences, inputs, initial_state,
+                                 temperature):
+        """Extends a batch of event sequences by a single step each.
 
     This method modifies the event sequences in place.
 
@@ -109,61 +109,61 @@ class EventSequenceRnnModel(mm.BaseModel):
           log-likelihood of each entire sequence up to and including the
           generated step will be computed and returned.
     """
-    assert len(event_sequences) == self._batch_size()
+        assert len(event_sequences) == self._batch_size()
 
-    graph_inputs = self._session.graph.get_collection('inputs')[0]
-    graph_initial_state = self._session.graph.get_collection('initial_state')
-    graph_final_state = self._session.graph.get_collection('final_state')
-    graph_softmax = self._session.graph.get_collection('softmax')[0]
-    graph_temperature = self._session.graph.get_collection('temperature')
+        graph_inputs = self._session.graph.get_collection('inputs')[0]
+        graph_initial_state = self._session.graph.get_collection('initial_state')
+        graph_final_state = self._session.graph.get_collection('final_state')
+        graph_softmax = self._session.graph.get_collection('softmax')[0]
+        graph_temperature = self._session.graph.get_collection('temperature')
 
-    feed_dict = {graph_inputs: inputs,
-                 tuple(graph_initial_state): initial_state}
-    # For backwards compatibility, we only try to pass temperature if the
-    # placeholder exists in the graph.
-    if graph_temperature:
-      feed_dict[graph_temperature[0]] = temperature
-    final_state, softmax = self._session.run(
-        [graph_final_state, graph_softmax], feed_dict)
+        feed_dict = {graph_inputs: inputs,
+                     tuple(graph_initial_state): initial_state}
+        # For backwards compatibility, we only try to pass temperature if the
+        # placeholder exists in the graph.
+        if graph_temperature:
+            feed_dict[graph_temperature[0]] = temperature
+        final_state, softmax = self._session.run(
+            [graph_final_state, graph_softmax], feed_dict)
 
-    if isinstance(softmax, list):
-      if softmax[0].shape[1] > 1:
-        softmaxes = []
-        for beam in range(softmax[0].shape[0]):
-          beam_softmaxes = []
-          for event in range(softmax[0].shape[1] - 1):
-            beam_softmaxes.append(
-                [softmax[s][beam, event] for s in range(len(softmax))])
-          softmaxes.append(beam_softmaxes)
-        loglik = self._config.encoder_decoder.evaluate_log_likelihood(
-            event_sequences, softmaxes)
-      else:
-        loglik = np.zeros(len(event_sequences))
-    else:
-      if softmax.shape[1] > 1:
-        # The inputs batch is longer than a single step, so we also want to
-        # compute the log-likelihood of the event sequences up until the step
-        # we're generating.
-        loglik = self._config.encoder_decoder.evaluate_log_likelihood(
-            event_sequences, softmax[:, :-1, :])
-      else:
-        loglik = np.zeros(len(event_sequences))
+        if isinstance(softmax, list):
+            if softmax[0].shape[1] > 1:
+                softmaxes = []
+                for beam in range(softmax[0].shape[0]):
+                    beam_softmaxes = []
+                    for event in range(softmax[0].shape[1] - 1):
+                        beam_softmaxes.append(
+                            [softmax[s][beam, event] for s in range(len(softmax))])
+                    softmaxes.append(beam_softmaxes)
+                loglik = self._config.encoder_decoder.evaluate_log_likelihood(
+                    event_sequences, softmaxes)
+            else:
+                loglik = np.zeros(len(event_sequences))
+        else:
+            if softmax.shape[1] > 1:
+                # The inputs batch is longer than a single step, so we also want to
+                # compute the log-likelihood of the event sequences up until the step
+                # we're generating.
+                loglik = self._config.encoder_decoder.evaluate_log_likelihood(
+                    event_sequences, softmax[:, :-1, :])
+            else:
+                loglik = np.zeros(len(event_sequences))
 
-    indices = np.array(self._config.encoder_decoder.extend_event_sequences(
-        event_sequences, softmax))
-    if isinstance(softmax, list):
-      p = 1.0
-      for i in range(len(softmax)):
-        p *= softmax[i][range(len(event_sequences)), -1, indices[:, i]]
-    else:
-      p = softmax[range(len(event_sequences)), -1, indices]
+        indices = np.array(self._config.encoder_decoder.extend_event_sequences(
+            event_sequences, softmax))
+        if isinstance(softmax, list):
+            p = 1.0
+            for i in range(len(softmax)):
+                p *= softmax[i][range(len(event_sequences)), -1, indices[:, i]]
+        else:
+            p = softmax[range(len(event_sequences)), -1, indices]
 
-    return final_state, loglik + np.log(p)
+        return final_state, loglik + np.log(p)
 
-  def _generate_step(self, event_sequences, model_states, logliks, temperature,
-                     extend_control_events_callback=None,
-                     modify_events_callback=None):
-    """Extends a list of event sequences by a single step each.
+    def _generate_step(self, event_sequences, model_states, logliks, temperature,
+                       extend_control_events_callback=None,
+                       modify_events_callback=None):
+        """Extends a list of event sequences by a single step each.
 
     This method modifies the event sequences in place. It also returns the
     modified event sequences and updated model states and log-likelihoods.
@@ -196,79 +196,79 @@ class EventSequenceRnnModel(mm.BaseModel):
       logliks: A list containing the updated log-likelihood for each event
           sequence.
     """
-    # Split the sequences to extend into batches matching the model batch size.
-    batch_size = self._batch_size()
-    num_seqs = len(event_sequences)
-    num_batches = int(np.ceil(num_seqs / float(batch_size)))
+        # Split the sequences to extend into batches matching the model batch size.
+        batch_size = self._batch_size()
+        num_seqs = len(event_sequences)
+        num_batches = int(np.ceil(num_seqs / float(batch_size)))
 
-    # Extract inputs and RNN states from the model states.
-    inputs = [model_state.inputs for model_state in model_states]
-    initial_states = [model_state.rnn_state for model_state in model_states]
+        # Extract inputs and RNN states from the model states.
+        inputs = [model_state.inputs for model_state in model_states]
+        initial_states = [model_state.rnn_state for model_state in model_states]
 
-    # Also extract control sequences and states.
-    control_sequences = [
-        model_state.control_events for model_state in model_states]
-    control_states = [
-        model_state.control_state for model_state in model_states]
+        # Also extract control sequences and states.
+        control_sequences = [
+            model_state.control_events for model_state in model_states]
+        control_states = [
+            model_state.control_state for model_state in model_states]
 
-    final_states = []
-    logliks = np.array(logliks, dtype=np.float32)
+        final_states = []
+        logliks = np.array(logliks, dtype=np.float32)
 
-    # Add padding to fill the final batch.
-    pad_amt = -len(event_sequences) % batch_size
-    padded_event_sequences = event_sequences + [
-        copy.deepcopy(event_sequences[-1]) for _ in range(pad_amt)]
-    padded_inputs = inputs + [inputs[-1]] * pad_amt
-    padded_initial_states = initial_states + [initial_states[-1]] * pad_amt
+        # Add padding to fill the final batch.
+        pad_amt = -len(event_sequences) % batch_size
+        padded_event_sequences = event_sequences + [
+            copy.deepcopy(event_sequences[-1]) for _ in range(pad_amt)]
+        padded_inputs = inputs + [inputs[-1]] * pad_amt
+        padded_initial_states = initial_states + [initial_states[-1]] * pad_amt
 
-    for b in range(num_batches):
-      i, j = b * batch_size, (b + 1) * batch_size
-      pad_amt = max(0, j - num_seqs)
-      # Generate a single step for one batch of event sequences.
-      batch_final_state, batch_loglik = self._generate_step_for_batch(
-          padded_event_sequences[i:j],
-          padded_inputs[i:j],
-          state_util.batch(padded_initial_states[i:j], batch_size),
-          temperature)
-      final_states += state_util.unbatch(
-          batch_final_state, batch_size)[:j - i - pad_amt]
-      logliks[i:j - pad_amt] += batch_loglik[:j - i - pad_amt]
+        for b in range(num_batches):
+            i, j = b * batch_size, (b + 1) * batch_size
+            pad_amt = max(0, j - num_seqs)
+            # Generate a single step for one batch of event sequences.
+            batch_final_state, batch_loglik = self._generate_step_for_batch(
+                padded_event_sequences[i:j],
+                padded_inputs[i:j],
+                state_util.batch(padded_initial_states[i:j], batch_size),
+                temperature)
+            final_states += state_util.unbatch(
+                batch_final_state, batch_size)[:j - i - pad_amt]
+            logliks[i:j - pad_amt] += batch_loglik[:j - i - pad_amt]
 
-    # Construct inputs for next step.
-    if extend_control_events_callback is not None:
-      # We are conditioning on control sequences.
-      for idx in range(len(control_sequences)):
-        # Extend each control sequence to ensure that it is longer than the
-        # corresponding event sequence.
-        control_states[idx] = extend_control_events_callback(
-            control_sequences[idx], event_sequences[idx], control_states[idx])
-      next_inputs = self._config.encoder_decoder.get_inputs_batch(
-          control_sequences, event_sequences)
-    else:
-      next_inputs = self._config.encoder_decoder.get_inputs_batch(
-          event_sequences)
+        # Construct inputs for next step.
+        if extend_control_events_callback is not None:
+            # We are conditioning on control sequences.
+            for idx in range(len(control_sequences)):
+                # Extend each control sequence to ensure that it is longer than the
+                # corresponding event sequence.
+                control_states[idx] = extend_control_events_callback(
+                    control_sequences[idx], event_sequences[idx], control_states[idx])
+            next_inputs = self._config.encoder_decoder.get_inputs_batch(
+                control_sequences, event_sequences)
+        else:
+            next_inputs = self._config.encoder_decoder.get_inputs_batch(
+                event_sequences)
 
-    if modify_events_callback:
-      # Modify event sequences and inputs for next step.
-      modify_events_callback(
-          self._config.encoder_decoder, event_sequences, next_inputs)
+        if modify_events_callback:
+            # Modify event sequences and inputs for next step.
+            modify_events_callback(
+                self._config.encoder_decoder, event_sequences, next_inputs)
 
-    model_states = [ModelState(inputs=inputs, rnn_state=final_state,
-                               control_events=control_events,
-                               control_state=control_state)
-                    for inputs, final_state, control_events, control_state
-                    in zip(next_inputs, final_states,
-                           control_sequences, control_states)]
+        model_states = [ModelState(inputs=inputs, rnn_state=final_state,
+                                   control_events=control_events,
+                                   control_state=control_state)
+                        for inputs, final_state, control_events, control_state
+                        in zip(next_inputs, final_states,
+                               control_sequences, control_states)]
 
-    return event_sequences, model_states, logliks
+        return event_sequences, model_states, logliks
 
-  def _generate_events(self, num_steps, primer_events, temperature=1.0,
-                       beam_size=1, branch_factor=1, steps_per_iteration=1,
-                       control_events=None, control_state=None,
-                       extend_control_events_callback=(
-                           _extend_control_events_default),
-                       modify_events_callback=None):
-    """Generate an event sequence from a primer sequence.
+    def _generate_events(self, num_steps, primer_events, temperature=1.0,
+                         beam_size=1, branch_factor=1, steps_per_iteration=1,
+                         control_events=None, control_state=None,
+                         extend_control_events_callback=(
+                                 _extend_control_events_default),
+                         modify_events_callback=None):
+        """Generate an event sequence from a primer sequence.
 
     Args:
       num_steps: The integer length in steps of the final event sequence, after
@@ -310,81 +310,81 @@ class EventSequenceRnnModel(mm.BaseModel):
       EventSequenceRnnModelError: If the primer sequence has zero length or
           is not shorter than num_steps.
     """
-    if (control_events is not None and
-        not isinstance(self._config.encoder_decoder,
-                       mm.ConditionalEventSequenceEncoderDecoder)):
-      raise EventSequenceRnnModelError(
-          'control sequence provided but encoder/decoder is not a '
-          'ConditionalEventSequenceEncoderDecoder')
-    if control_events is not None and extend_control_events_callback is None:
-      raise EventSequenceRnnModelError(
-          'must provide callback for extending control sequence (or use'
-          'default)')
+        if (control_events is not None and
+                not isinstance(self._config.encoder_decoder,
+                               mm.ConditionalEventSequenceEncoderDecoder)):
+            raise EventSequenceRnnModelError(
+                'control sequence provided but encoder/decoder is not a '
+                'ConditionalEventSequenceEncoderDecoder')
+        if control_events is not None and extend_control_events_callback is None:
+            raise EventSequenceRnnModelError(
+                'must provide callback for extending control sequence (or use'
+                'default)')
 
-    if not primer_events:
-      raise EventSequenceRnnModelError(
-          'primer sequence must have non-zero length')
-    if len(primer_events) >= num_steps:
-      raise EventSequenceRnnModelError(
-          'primer sequence must be shorter than `num_steps`')
+        if not primer_events:
+            raise EventSequenceRnnModelError(
+                'primer sequence must have non-zero length')
+        if len(primer_events) >= num_steps:
+            raise EventSequenceRnnModelError(
+                'primer sequence must be shorter than `num_steps`')
 
-    if len(primer_events) >= num_steps:
-      # Sequence is already long enough, no need to generate.
-      return primer_events
+        if len(primer_events) >= num_steps:
+            # Sequence is already long enough, no need to generate.
+            return primer_events
 
-    event_sequences = [copy.deepcopy(primer_events)]
+        event_sequences = [copy.deepcopy(primer_events)]
 
-    # Construct inputs for first step after primer.
-    if control_events is not None:
-      # We are conditioning on a control sequence. Make sure it is longer than
-      # the primer sequence.
-      control_state = extend_control_events_callback(
-          control_events, primer_events, control_state)
-      inputs = self._config.encoder_decoder.get_inputs_batch(
-          [control_events], event_sequences, full_length=True)
-    else:
-      inputs = self._config.encoder_decoder.get_inputs_batch(
-          event_sequences, full_length=True)
+        # Construct inputs for first step after primer.
+        if control_events is not None:
+            # We are conditioning on a control sequence. Make sure it is longer than
+            # the primer sequence.
+            control_state = extend_control_events_callback(
+                control_events, primer_events, control_state)
+            inputs = self._config.encoder_decoder.get_inputs_batch(
+                [control_events], event_sequences, full_length=True)
+        else:
+            inputs = self._config.encoder_decoder.get_inputs_batch(
+                event_sequences, full_length=True)
 
-    if modify_events_callback:
-      # Modify event sequences and inputs for first step after primer.
-      modify_events_callback(
-          self._config.encoder_decoder, event_sequences, inputs)
+        if modify_events_callback:
+            # Modify event sequences and inputs for first step after primer.
+            modify_events_callback(
+                self._config.encoder_decoder, event_sequences, inputs)
 
-    graph_initial_state = self._session.graph.get_collection('initial_state')
-    initial_states = state_util.unbatch(self._session.run(graph_initial_state))
+        graph_initial_state = self._session.graph.get_collection('initial_state')
+        initial_states = state_util.unbatch(self._session.run(graph_initial_state))
 
-    # Beam search will maintain a state for each sequence consisting of the next
-    # inputs to feed the model, and the current RNN state. We start out with the
-    # initial full inputs batch and the zero state.
-    initial_state = ModelState(
-        inputs=inputs[0], rnn_state=initial_states[0],
-        control_events=control_events, control_state=control_state)
+        # Beam search will maintain a state for each sequence consisting of the next
+        # inputs to feed the model, and the current RNN state. We start out with the
+        # initial full inputs batch and the zero state.
+        initial_state = ModelState(
+            inputs=inputs[0], rnn_state=initial_states[0],
+            control_events=control_events, control_state=control_state)
 
-    generate_step_fn = functools.partial(
-        self._generate_step,
-        temperature=temperature,
-        extend_control_events_callback=
-        extend_control_events_callback if control_events is not None else None,
-        modify_events_callback=modify_events_callback)
+        generate_step_fn = functools.partial(
+            self._generate_step,
+            temperature=temperature,
+            extend_control_events_callback=
+            extend_control_events_callback if control_events is not None else None,
+            modify_events_callback=modify_events_callback)
 
-    events, _, loglik = beam_search(
-        initial_sequence=event_sequences[0],
-        initial_state=initial_state,
-        generate_step_fn=generate_step_fn,
-        num_steps=num_steps - len(primer_events),
-        beam_size=beam_size,
-        branch_factor=branch_factor,
-        steps_per_iteration=steps_per_iteration)
+        events, _, loglik = beam_search(
+            initial_sequence=event_sequences[0],
+            initial_state=initial_state,
+            generate_step_fn=generate_step_fn,
+            num_steps=num_steps - len(primer_events),
+            beam_size=beam_size,
+            branch_factor=branch_factor,
+            steps_per_iteration=steps_per_iteration)
 
-    tf.logging.info('Beam search yields sequence with log-likelihood: %f ',
-                    loglik)
+        tf.logging.info('Beam search yields sequence with log-likelihood: %f ',
+                        loglik)
 
-    return events
+        return events
 
-  def _evaluate_batch_log_likelihood(self, event_sequences, inputs,
-                                     initial_state):
-    """Evaluates the log likelihood of a batch of event sequences.
+    def _evaluate_batch_log_likelihood(self, event_sequences, inputs,
+                                       initial_state):
+        """Evaluates the log likelihood of a batch of event sequences.
 
     Args:
       event_sequences: A list of event sequences, each of which is a Python
@@ -399,24 +399,24 @@ class EventSequenceRnnModel(mm.BaseModel):
       A Python list containing the log likelihood of each sequence in
       `event_sequences`.
     """
-    graph_inputs = self._session.graph.get_collection('inputs')[0]
-    graph_initial_state = self._session.graph.get_collection('initial_state')
-    graph_softmax = self._session.graph.get_collection('softmax')[0]
-    graph_temperature = self._session.graph.get_collection('temperature')
+        graph_inputs = self._session.graph.get_collection('inputs')[0]
+        graph_initial_state = self._session.graph.get_collection('initial_state')
+        graph_softmax = self._session.graph.get_collection('softmax')[0]
+        graph_temperature = self._session.graph.get_collection('temperature')
 
-    feed_dict = {graph_inputs: inputs,
-                 tuple(graph_initial_state): initial_state}
-    # For backwards compatibility, we only try to pass temperature if the
-    # placeholder exists in the graph.
-    if graph_temperature:
-      feed_dict[graph_temperature[0]] = 1.0
-    softmax = self._session.run(graph_softmax, feed_dict)
+        feed_dict = {graph_inputs: inputs,
+                     tuple(graph_initial_state): initial_state}
+        # For backwards compatibility, we only try to pass temperature if the
+        # placeholder exists in the graph.
+        if graph_temperature:
+            feed_dict[graph_temperature[0]] = 1.0
+        softmax = self._session.run(graph_softmax, feed_dict)
 
-    return self._config.encoder_decoder.evaluate_log_likelihood(
-        event_sequences, softmax)
+        return self._config.encoder_decoder.evaluate_log_likelihood(
+            event_sequences, softmax)
 
-  def _evaluate_log_likelihood(self, event_sequences, control_events=None):
-    """Evaluate log likelihood for a list of event sequences of the same length.
+    def _evaluate_log_likelihood(self, event_sequences, control_events=None):
+        """Evaluate log likelihood for a list of event sequences of the same length.
 
     Args:
       event_sequences: A list of event sequences for which to evaluate the log
@@ -434,67 +434,67 @@ class EventSequenceRnnModel(mm.BaseModel):
           same length, or if the control sequence is shorter than the event
           sequences.
     """
-    num_steps = len(event_sequences[0])
-    for events in event_sequences[1:]:
-      if len(events) != num_steps:
-        raise EventSequenceRnnModelError(
-            'log likelihood evaluation requires all event sequences to have '
-            'the same length')
-    if control_events is not None and len(control_events) < num_steps:
-      raise EventSequenceRnnModelError(
-          'control sequence must be at least as long as the event sequences')
+        num_steps = len(event_sequences[0])
+        for events in event_sequences[1:]:
+            if len(events) != num_steps:
+                raise EventSequenceRnnModelError(
+                    'log likelihood evaluation requires all event sequences to have '
+                    'the same length')
+        if control_events is not None and len(control_events) < num_steps:
+            raise EventSequenceRnnModelError(
+                'control sequence must be at least as long as the event sequences')
 
-    batch_size = self._batch_size()
-    num_full_batches = len(event_sequences) / batch_size
+        batch_size = self._batch_size()
+        num_full_batches = len(event_sequences) / batch_size
 
-    loglik = np.empty(len(event_sequences))
+        loglik = np.empty(len(event_sequences))
 
-    # Since we're computing log-likelihood and not generating, the inputs batch
-    # doesn't need to include the final event in each sequence.
-    if control_events is not None:
-      # We are conditioning on a control sequence.
-      inputs = self._config.encoder_decoder.get_inputs_batch(
-          [control_events] * len(event_sequences),
-          [events[:-1] for events in event_sequences],
-          full_length=True)
-    else:
-      inputs = self._config.encoder_decoder.get_inputs_batch(
-          [events[:-1] for events in event_sequences], full_length=True)
+        # Since we're computing log-likelihood and not generating, the inputs batch
+        # doesn't need to include the final event in each sequence.
+        if control_events is not None:
+            # We are conditioning on a control sequence.
+            inputs = self._config.encoder_decoder.get_inputs_batch(
+                [control_events] * len(event_sequences),
+                [events[:-1] for events in event_sequences],
+                full_length=True)
+        else:
+            inputs = self._config.encoder_decoder.get_inputs_batch(
+                [events[:-1] for events in event_sequences], full_length=True)
 
-    graph_initial_state = self._session.graph.get_collection('initial_state')
-    initial_state = [
-        self._session.run(graph_initial_state)] * len(event_sequences)
-    offset = 0
-    for _ in range(num_full_batches):
-      # Evaluate a single step for one batch of event sequences.
-      batch_indices = range(offset, offset + batch_size)
-      batch_loglik = self._evaluate_batch_log_likelihood(
-          [event_sequences[i] for i in batch_indices],
-          [inputs[i] for i in batch_indices],
-          initial_state[batch_indices])
-      loglik[batch_indices] = batch_loglik
-      offset += batch_size
+        graph_initial_state = self._session.graph.get_collection('initial_state')
+        initial_state = [
+                            self._session.run(graph_initial_state)] * len(event_sequences)
+        offset = 0
+        for _ in range(num_full_batches):
+            # Evaluate a single step for one batch of event sequences.
+            batch_indices = range(offset, offset + batch_size)
+            batch_loglik = self._evaluate_batch_log_likelihood(
+                [event_sequences[i] for i in batch_indices],
+                [inputs[i] for i in batch_indices],
+                initial_state[batch_indices])
+            loglik[batch_indices] = batch_loglik
+            offset += batch_size
 
-    if offset < len(event_sequences):
-      # There's an extra non-full batch. Pad it with a bunch of copies of the
-      # final sequence.
-      num_extra = len(event_sequences) - offset
-      pad_size = batch_size - num_extra
-      batch_indices = range(offset, len(event_sequences))
-      batch_loglik = self._evaluate_batch_log_likelihood(
-          [event_sequences[i] for i in batch_indices] + [
-              copy.deepcopy(event_sequences[-1]) for _ in range(pad_size)],
-          [inputs[i] for i in batch_indices] + inputs[-1] * pad_size,
-          np.append(initial_state[batch_indices],
-                    np.tile(inputs[-1, :], (pad_size, 1)),
-                    axis=0))
-      loglik[batch_indices] = batch_loglik[0:num_extra]
+        if offset < len(event_sequences):
+            # There's an extra non-full batch. Pad it with a bunch of copies of the
+            # final sequence.
+            num_extra = len(event_sequences) - offset
+            pad_size = batch_size - num_extra
+            batch_indices = range(offset, len(event_sequences))
+            batch_loglik = self._evaluate_batch_log_likelihood(
+                [event_sequences[i] for i in batch_indices] + [
+                    copy.deepcopy(event_sequences[-1]) for _ in range(pad_size)],
+                [inputs[i] for i in batch_indices] + inputs[-1] * pad_size,
+                np.append(initial_state[batch_indices],
+                          np.tile(inputs[-1, :], (pad_size, 1)),
+                          axis=0))
+            loglik[batch_indices] = batch_loglik[0:num_extra]
 
-    return loglik
+        return loglik
 
 
 class EventSequenceRnnConfig(object):
-  """Stores a configuration for an event sequence RNN.
+    """Stores a configuration for an event sequence RNN.
 
   Only one of `steps_per_quarter` or `steps_per_second` will be applicable for
   any particular model.
@@ -511,22 +511,22 @@ class EventSequenceRnnConfig(object):
         use.
   """
 
-  def __init__(self, details, encoder_decoder, hparams,
-               steps_per_quarter=4, steps_per_second=100):
-    hparams_dict = {
-        'batch_size': 64,
-        'rnn_layer_sizes': [128, 128],
-        'dropout_keep_prob': 1.0,
-        'attn_length': 0,
-        'clip_norm': 3,
-        'learning_rate': 0.001,
-        'residual_connections': False,
-        'use_cudnn': False
-    }
-    hparams_dict.update(hparams.values())
+    def __init__(self, details, encoder_decoder, hparams,
+                 steps_per_quarter=4, steps_per_second=100):
+        hparams_dict = {
+            'batch_size': 64,
+            'rnn_layer_sizes': [128, 128],
+            'dropout_keep_prob': 1.0,
+            'attn_length': 0,
+            'clip_norm': 3,
+            'learning_rate': 0.001,
+            'residual_connections': False,
+            'use_cudnn': False
+        }
+        hparams_dict.update(hparams.values())
 
-    self.details = details
-    self.encoder_decoder = encoder_decoder
-    self.hparams = contrib_training.HParams(**hparams_dict)
-    self.steps_per_quarter = steps_per_quarter
-    self.steps_per_second = steps_per_second
+        self.details = details
+        self.encoder_decoder = encoder_decoder
+        self.hparams = contrib_training.HParams(**hparams_dict)
+        self.steps_per_quarter = steps_per_quarter
+        self.steps_per_second = steps_per_second

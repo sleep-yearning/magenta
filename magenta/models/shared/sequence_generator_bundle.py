@@ -20,16 +20,16 @@ from google.protobuf import message
 
 
 class GeneratorBundleParseError(Exception):
-  """Exception thrown when a bundle file cannot be parsed."""
-  pass
+    """Exception thrown when a bundle file cannot be parsed."""
+    pass
 
 
 def read_bundle_file(bundle_file):
-  # Read in bundle file.
-  bundle = generator_pb2.GeneratorBundle()
-  with tf.gfile.Open(bundle_file, 'rb') as f:
-    try:
-      bundle.ParseFromString(f.read())
-    except message.DecodeError as e:
-      raise GeneratorBundleParseError(e)
-  return bundle
+    # Read in bundle file.
+    bundle = generator_pb2.GeneratorBundle()
+    with tf.gfile.Open(bundle_file, 'rb') as f:
+        try:
+            bundle.ParseFromString(f.read())
+        except message.DecodeError as e:
+            raise GeneratorBundleParseError(e)
+    return bundle

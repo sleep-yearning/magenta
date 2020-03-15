@@ -42,100 +42,100 @@ FLAGS = flags.FLAGS
 
 
 def _load_checkpoint(sess, checkpoint):
-  """Loads a checkpoint file into the session."""
-  model_saver = tf.train.Saver(tf.global_variables())
-  checkpoint = os.path.expanduser(checkpoint)
-  if tf.gfile.IsDirectory(checkpoint):
-    checkpoint = tf.train.latest_checkpoint(checkpoint)
-    tf.logging.info('loading latest checkpoint file: {}'.format(checkpoint))
-  model_saver.restore(sess, checkpoint)
+    """Loads a checkpoint file into the session."""
+    model_saver = tf.train.Saver(tf.global_variables())
+    checkpoint = os.path.expanduser(checkpoint)
+    if tf.gfile.IsDirectory(checkpoint):
+        checkpoint = tf.train.latest_checkpoint(checkpoint)
+        tf.logging.info('loading latest checkpoint file: {}'.format(checkpoint))
+    model_saver.restore(sess, checkpoint)
 
 
 def _export_to_saved_model(checkpoint, alpha, num_styles):
-  """Export a image stylization checkpoint to SavedModel format."""
-  saved_model_dir = tempfile.mkdtemp()
+    """Export a image stylization checkpoint to SavedModel format."""
+    saved_model_dir = tempfile.mkdtemp()
 
-  with tf.Graph().as_default(), tf.Session() as sess:
-    # Define input tensor as placeholder to allow export
-    input_image_tensor = tf.placeholder(
-        tf.float32, shape=(1, None, None, 3), name='input_image')
-    weights_tensor = tf.placeholder(
-        tf.float32, shape=num_styles, name='style_weights')
+    with tf.Graph().as_default(), tf.Session() as sess:
+        # Define input tensor as placeholder to allow export
+        input_image_tensor = tf.placeholder(
+            tf.float32, shape=(1, None, None, 3), name='input_image')
+        weights_tensor = tf.placeholder(
+            tf.float32, shape=num_styles, name='style_weights')
 
-    # Load the graph definition from Magenta
-    stylized_image_tensor = model.transform(
-        input_image_tensor,
-        alpha=alpha,
-        normalizer_fn=ops.weighted_instance_norm,
-        normalizer_params={
-            'weights': weights_tensor,
-            'num_categories': FLAGS.num_styles,
-            'center': True,
-            'scale': True
-        })
+        # Load the graph definition from Magenta
+        stylized_image_tensor = model.transform(
+            input_image_tensor,
+            alpha=alpha,
+            normalizer_fn=ops.weighted_instance_norm,
+            normalizer_params={
+                'weights': weights_tensor,
+                'num_categories': FLAGS.num_styles,
+                'center': True,
+                'scale': True
+            })
 
-    # Load model weights from downloaded checkpoint file
-    _load_checkpoint(sess, checkpoint)
+        # Load model weights from downloaded checkpoint file
+        _load_checkpoint(sess, checkpoint)
 
-    # Write SavedModel for serving or conversion to TF Lite
-    tf.saved_model.simple_save(
-        sess,
-        saved_model_dir,
-        inputs={
-            input_image_tensor.name: input_image_tensor,
-            weights_tensor.name: weights_tensor
-        },
-        outputs={'stylized_image': stylized_image_tensor})
+        # Write SavedModel for serving or conversion to TF Lite
+        tf.saved_model.simple_save(
+            sess,
+            saved_model_dir,
+            inputs={
+                input_image_tensor.name: input_image_tensor,
+                weights_tensor.name: weights_tensor
+            },
+            outputs={'stylized_image': stylized_image_tensor})
 
-  return saved_model_dir
+    return saved_model_dir
 
 
 def _convert_to_tflite(saved_model_dir, num_styles, image_size, quantize,
                        output_model):
-  """Convert a image stylization saved model to TensorFlow Lite format."""
-  # Append filename if output_model is a directory name
-  if tf.io.gfile.isdir(output_model):
+    """Convert a image stylization saved model to TensorFlow Lite format."""
+    # Append filename if output_model is a directory name
+    if tf.io.gfile.isdir(output_model):
+        if quantize:
+            filename = 'stylize_quantized.tflite'
+        else:
+            filename = 'stylize.tflite'
+        output_model = os.path.join(output_model, filename)
+
+    # Initialize TF Lite Converter
+    converter = tf.lite.TFLiteConverter.from_saved_model(
+        saved_model_dir=saved_model_dir,
+        input_shapes={
+            'input_image': [None, image_size, image_size, 3],
+            'style_weights': num_styles
+        })
+
+    # Specify quantization option
     if quantize:
-      filename = 'stylize_quantized.tflite'
-    else:
-      filename = 'stylize.tflite'
-    output_model = os.path.join(output_model, filename)
+        converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
 
-  # Initialize TF Lite Converter
-  converter = tf.lite.TFLiteConverter.from_saved_model(
-      saved_model_dir=saved_model_dir,
-      input_shapes={
-          'input_image': [None, image_size, image_size, 3],
-          'style_weights': num_styles
-      })
-
-  # Specify quantization option
-  if quantize:
-    converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
-
-  # Convert and save the TF Lite model
-  tflite_model = converter.convert()
-  with tf.io.gfile.GFile(output_model, 'wb') as f:
-    f.write(tflite_model)
-  tf.logging.info('Converted to TF Lite model: %s; Size: %d KB.' %
-                  (output_model, len(tflite_model) / 1024))
+    # Convert and save the TF Lite model
+    tflite_model = converter.convert()
+    with tf.io.gfile.GFile(output_model, 'wb') as f:
+        f.write(tflite_model)
+    tf.logging.info('Converted to TF Lite model: %s; Size: %d KB.' %
+                    (output_model, len(tflite_model) / 1024))
 
 
 def main(unused_argv=None):
-  tf.logging.set_verbosity(tf.logging.INFO)
+    tf.logging.set_verbosity(tf.logging.INFO)
 
-  # Load model weights from trained checkpoint and export to SavedModel format
-  saved_model_dir = _export_to_saved_model(
-      os.path.expanduser(FLAGS.checkpoint), FLAGS.alpha, FLAGS.num_styles)
+    # Load model weights from trained checkpoint and export to SavedModel format
+    saved_model_dir = _export_to_saved_model(
+        os.path.expanduser(FLAGS.checkpoint), FLAGS.alpha, FLAGS.num_styles)
 
-  # Convert from SavedModel to TensorFlow Lite format
-  _convert_to_tflite(saved_model_dir, FLAGS.num_styles, FLAGS.image_size,
-                     FLAGS.quantize, os.path.expanduser(FLAGS.output_model))
+    # Convert from SavedModel to TensorFlow Lite format
+    _convert_to_tflite(saved_model_dir, FLAGS.num_styles, FLAGS.image_size,
+                       FLAGS.quantize, os.path.expanduser(FLAGS.output_model))
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

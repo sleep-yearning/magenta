@@ -30,13 +30,13 @@ PerformanceControlState = collections.namedtuple(
 
 
 class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
-  """Class for RNN performance generation models."""
+    """Class for RNN performance generation models."""
 
-  def generate_performance(
-      self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
-      branch_factor=1, steps_per_iteration=1, control_signal_fns=None,
-      disable_conditioning_fn=None):
-    """Generate a performance track from a primer performance track.
+    def generate_performance(
+            self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
+            branch_factor=1, steps_per_iteration=1, control_signal_fns=None,
+            disable_conditioning_fn=None):
+        """Generate a performance track from a primer performance track.
 
     Args:
       num_steps: The integer length in steps of the final track, after
@@ -60,29 +60,29 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
       The generated Performance object (which begins with the provided primer
       track).
     """
-    if control_signal_fns:
-      control_event = tuple(f(0) for f in control_signal_fns)
-      if disable_conditioning_fn is not None:
-        control_event = (disable_conditioning_fn(0), control_event)
-      control_events = [control_event]
-      control_state = PerformanceControlState(
-          current_perf_index=0, current_perf_step=0)
-      extend_control_events_callback = functools.partial(
-          _extend_control_events, control_signal_fns, disable_conditioning_fn)
-    else:
-      control_events = None
-      control_state = None
-      extend_control_events_callback = None
+        if control_signal_fns:
+            control_event = tuple(f(0) for f in control_signal_fns)
+            if disable_conditioning_fn is not None:
+                control_event = (disable_conditioning_fn(0), control_event)
+            control_events = [control_event]
+            control_state = PerformanceControlState(
+                current_perf_index=0, current_perf_step=0)
+            extend_control_events_callback = functools.partial(
+                _extend_control_events, control_signal_fns, disable_conditioning_fn)
+        else:
+            control_events = None
+            control_state = None
+            extend_control_events_callback = None
 
-    return self._generate_events(
-        num_steps, primer_sequence, temperature, beam_size, branch_factor,
-        steps_per_iteration, control_events=control_events,
-        control_state=control_state,
-        extend_control_events_callback=extend_control_events_callback)
+        return self._generate_events(
+            num_steps, primer_sequence, temperature, beam_size, branch_factor,
+            steps_per_iteration, control_events=control_events,
+            control_state=control_state,
+            extend_control_events_callback=extend_control_events_callback)
 
-  def performance_log_likelihood(self, sequence, control_values,
-                                 disable_conditioning):
-    """Evaluate the log likelihood of a performance.
+    def performance_log_likelihood(self, sequence, control_values,
+                                   disable_conditioning):
+        """Evaluate the log likelihood of a performance.
 
     Args:
       sequence: The Performance object for which to evaluate the log likelihood.
@@ -95,21 +95,21 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
     Returns:
       The log likelihood of `sequence` under this model.
     """
-    if control_values:
-      control_event = tuple(control_values)
-      if disable_conditioning is not None:
-        control_event = (disable_conditioning, control_event)
-      control_events = [control_event] * len(sequence)
-    else:
-      control_events = None
+        if control_values:
+            control_event = tuple(control_values)
+            if disable_conditioning is not None:
+                control_event = (disable_conditioning, control_event)
+            control_events = [control_event] * len(sequence)
+        else:
+            control_events = None
 
-    return self._evaluate_log_likelihood(
-        [sequence], control_events=control_events)[0]
+        return self._evaluate_log_likelihood(
+            [sequence], control_events=control_events)[0]
 
 
 def _extend_control_events(control_signal_fns, disable_conditioning_fn,
                            control_events, performance, control_state):
-  """Extend a performance control sequence.
+    """Extend a performance control sequence.
 
   Extends `control_events` -- a sequence of control signal value tuples -- to be
   one event longer than `performance`, so the next event of `performance` can be
@@ -135,25 +135,25 @@ def _extend_control_events(control_signal_fns, disable_conditioning_fn,
     The PerformanceControlState after extending the control sequence one step
     past the end of the generated performance.
   """
-  idx = control_state.current_perf_index
-  step = control_state.current_perf_step
+    idx = control_state.current_perf_index
+    step = control_state.current_perf_step
 
-  while idx < len(performance):
-    if performance[idx].event_type == PerformanceEvent.TIME_SHIFT:
-      step += performance[idx].event_value
-    idx += 1
+    while idx < len(performance):
+        if performance[idx].event_type == PerformanceEvent.TIME_SHIFT:
+            step += performance[idx].event_value
+        idx += 1
 
-    control_event = tuple(f(step) for f in control_signal_fns)
-    if disable_conditioning_fn is not None:
-      control_event = (disable_conditioning_fn(step), control_event)
-    control_events.append(control_event)
+        control_event = tuple(f(step) for f in control_signal_fns)
+        if disable_conditioning_fn is not None:
+            control_event = (disable_conditioning_fn(step), control_event)
+        control_events.append(control_event)
 
-  return PerformanceControlState(
-      current_perf_index=idx, current_perf_step=step)
+    return PerformanceControlState(
+        current_perf_index=idx, current_perf_step=step)
 
 
 class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
-  """Stores a configuration for a Performance RNN.
+    """Stores a configuration for a Performance RNN.
 
   Attributes:
     num_velocity_bins: Number of velocity bins to use. If 0, don't use velocity
@@ -164,24 +164,24 @@ class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
         flag as part of the conditioning input.
   """
 
-  def __init__(self, details, encoder_decoder, hparams, num_velocity_bins=0,
-               control_signals=None, optional_conditioning=False,
-               note_performance=False):
-    if control_signals is not None:
-      control_encoder = magenta.music.MultipleEventSequenceEncoder(
-          [control.encoder for control in control_signals])
-      if optional_conditioning:
-        control_encoder = magenta.music.OptionalEventSequenceEncoder(
-            control_encoder)
-      encoder_decoder = magenta.music.ConditionalEventSequenceEncoderDecoder(
-          control_encoder, encoder_decoder)
+    def __init__(self, details, encoder_decoder, hparams, num_velocity_bins=0,
+                 control_signals=None, optional_conditioning=False,
+                 note_performance=False):
+        if control_signals is not None:
+            control_encoder = magenta.music.MultipleEventSequenceEncoder(
+                [control.encoder for control in control_signals])
+            if optional_conditioning:
+                control_encoder = magenta.music.OptionalEventSequenceEncoder(
+                    control_encoder)
+            encoder_decoder = magenta.music.ConditionalEventSequenceEncoderDecoder(
+                control_encoder, encoder_decoder)
 
-    super(PerformanceRnnConfig, self).__init__(
-        details, encoder_decoder, hparams)
-    self.num_velocity_bins = num_velocity_bins
-    self.control_signals = control_signals
-    self.optional_conditioning = optional_conditioning
-    self.note_performance = note_performance
+        super(PerformanceRnnConfig, self).__init__(
+            details, encoder_decoder, hparams)
+        self.num_velocity_bins = num_velocity_bins
+        self.control_signals = control_signals
+        self.optional_conditioning = optional_conditioning
+        self.note_performance = note_performance
 
 
 default_configs = {

@@ -26,51 +26,51 @@ import tensorflow.compat.v1 as tf
 
 
 class EncoderPipeline(pipeline.Pipeline):
-  """A Module that converts lead sheets to a model specific encoding."""
+    """A Module that converts lead sheets to a model specific encoding."""
 
-  def __init__(self, config, name):
-    """Constructs an EncoderPipeline.
+    def __init__(self, config, name):
+        """Constructs an EncoderPipeline.
 
     Args:
       config: An ImprovRnnConfig that specifies the encoder/decoder,
           pitch range, and transposition behavior.
       name: A unique pipeline name.
     """
-    super(EncoderPipeline, self).__init__(
-        input_type=magenta.music.LeadSheet,
-        output_type=tf.train.SequenceExample,
-        name=name)
-    self._conditional_encoder_decoder = config.encoder_decoder
-    self._min_note = config.min_note
-    self._max_note = config.max_note
-    self._transpose_to_key = config.transpose_to_key
+        super(EncoderPipeline, self).__init__(
+            input_type=magenta.music.LeadSheet,
+            output_type=tf.train.SequenceExample,
+            name=name)
+        self._conditional_encoder_decoder = config.encoder_decoder
+        self._min_note = config.min_note
+        self._max_note = config.max_note
+        self._transpose_to_key = config.transpose_to_key
 
-  def transform(self, lead_sheet):
-    lead_sheet.squash(
-        self._min_note,
-        self._max_note,
-        self._transpose_to_key)
-    try:
-      encoded = [self._conditional_encoder_decoder.encode(
-          lead_sheet.chords, lead_sheet.melody)]
-      stats = []
-    except magenta.music.ChordEncodingError as e:
-      tf.logging.warning('Skipped lead sheet: %s', e)
-      encoded = []
-      stats = [statistics.Counter('chord_encoding_exception', 1)]
-    except magenta.music.ChordSymbolError as e:
-      tf.logging.warning('Skipped lead sheet: %s', e)
-      encoded = []
-      stats = [statistics.Counter('chord_symbol_exception', 1)]
-    self._set_stats(stats)
-    return encoded
+    def transform(self, lead_sheet):
+        lead_sheet.squash(
+            self._min_note,
+            self._max_note,
+            self._transpose_to_key)
+        try:
+            encoded = [self._conditional_encoder_decoder.encode(
+                lead_sheet.chords, lead_sheet.melody)]
+            stats = []
+        except magenta.music.ChordEncodingError as e:
+            tf.logging.warning('Skipped lead sheet: %s', e)
+            encoded = []
+            stats = [statistics.Counter('chord_encoding_exception', 1)]
+        except magenta.music.ChordSymbolError as e:
+            tf.logging.warning('Skipped lead sheet: %s', e)
+            encoded = []
+            stats = [statistics.Counter('chord_symbol_exception', 1)]
+        self._set_stats(stats)
+        return encoded
 
-  def get_stats(self):
-    return {}
+    def get_stats(self):
+        return {}
 
 
 def get_pipeline(config, eval_ratio):
-  """Returns the Pipeline instance which creates the RNN dataset.
+    """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
     config: An ImprovRnnConfig object.
@@ -79,28 +79,28 @@ def get_pipeline(config, eval_ratio):
   Returns:
     A pipeline.Pipeline instance.
   """
-  all_transpositions = config.transpose_to_key is None
-  partitioner = pipelines_common.RandomPartition(
-      music_pb2.NoteSequence,
-      ['eval_lead_sheets', 'training_lead_sheets'],
-      [eval_ratio])
-  dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
+    all_transpositions = config.transpose_to_key is None
+    partitioner = pipelines_common.RandomPartition(
+        music_pb2.NoteSequence,
+        ['eval_lead_sheets', 'training_lead_sheets'],
+        [eval_ratio])
+    dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
-  for mode in ['eval', 'training']:
-    time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(
-        name='TimeChangeSplitter_' + mode)
-    quantizer = note_sequence_pipelines.Quantizer(
-        steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
-    lead_sheet_extractor = lead_sheet_pipelines.LeadSheetExtractor(
-        min_bars=7, max_steps=512, min_unique_pitches=3, gap_bars=1.0,
-        ignore_polyphonic_notes=False, all_transpositions=all_transpositions,
-        name='LeadSheetExtractor_' + mode)
-    encoder_pipeline = EncoderPipeline(config, name='EncoderPipeline_' + mode)
+    for mode in ['eval', 'training']:
+        time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(
+            name='TimeChangeSplitter_' + mode)
+        quantizer = note_sequence_pipelines.Quantizer(
+            steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
+        lead_sheet_extractor = lead_sheet_pipelines.LeadSheetExtractor(
+            min_bars=7, max_steps=512, min_unique_pitches=3, gap_bars=1.0,
+            ignore_polyphonic_notes=False, all_transpositions=all_transpositions,
+            name='LeadSheetExtractor_' + mode)
+        encoder_pipeline = EncoderPipeline(config, name='EncoderPipeline_' + mode)
 
-    dag[time_change_splitter] = partitioner[mode + '_lead_sheets']
-    dag[quantizer] = time_change_splitter
-    dag[lead_sheet_extractor] = quantizer
-    dag[encoder_pipeline] = lead_sheet_extractor
-    dag[dag_pipeline.DagOutput(mode + '_lead_sheets')] = encoder_pipeline
+        dag[time_change_splitter] = partitioner[mode + '_lead_sheets']
+        dag[quantizer] = time_change_splitter
+        dag[lead_sheet_extractor] = quantizer
+        dag[encoder_pipeline] = lead_sheet_extractor
+        dag[dag_pipeline.DagOutput(mode + '_lead_sheets')] = encoder_pipeline
 
-  return dag_pipeline.DAGPipeline(dag)
+    return dag_pipeline.DAGPipeline(dag)

@@ -60,43 +60,43 @@ tf.app.flags.DEFINE_string("log", "INFO",
 
 
 def main(unused_argv):
-  tf.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
-  if not tf.gfile.Exists(FLAGS.logdir):
-    tf.gfile.MakeDirs(FLAGS.logdir)
+    if not tf.gfile.Exists(FLAGS.logdir):
+        tf.gfile.MakeDirs(FLAGS.logdir)
 
-  with tf.Graph().as_default():
+    with tf.Graph().as_default():
 
-    # If ps_tasks is 0, the local device is used. When using multiple
-    # (non-local) replicas, the ReplicaDeviceSetter distributes the variables
-    # across the different devices.
-    model = utils.get_module("baseline.models.%s" % FLAGS.model)
-    hparams = model.get_hparams(FLAGS.config)
+        # If ps_tasks is 0, the local device is used. When using multiple
+        # (non-local) replicas, the ReplicaDeviceSetter distributes the variables
+        # across the different devices.
+        model = utils.get_module("baseline.models.%s" % FLAGS.model)
+        hparams = model.get_hparams(FLAGS.config)
 
-    # Run the Reader on the CPU
-    if FLAGS.ps_tasks:
-      cpu_device = "/job:worker/cpu:0"
-    else:
-      cpu_device = "/job:localhost/replica:0/task:0/cpu:0"
+        # Run the Reader on the CPU
+        if FLAGS.ps_tasks:
+            cpu_device = "/job:worker/cpu:0"
+        else:
+            cpu_device = "/job:localhost/replica:0/task:0/cpu:0"
 
-    with tf.device(cpu_device):
-      with tf.name_scope("Reader"):
-        batch = reader.NSynthDataset(
-            FLAGS.train_path, is_training=True).get_baseline_batch(hparams)
+        with tf.device(cpu_device):
+            with tf.name_scope("Reader"):
+                batch = reader.NSynthDataset(
+                    FLAGS.train_path, is_training=True).get_baseline_batch(hparams)
 
-    with tf.device(tf.train.replica_device_setter(ps_tasks=FLAGS.ps_tasks)):
-      train_op = model.train_op(batch, hparams, FLAGS.config)
+        with tf.device(tf.train.replica_device_setter(ps_tasks=FLAGS.ps_tasks)):
+            train_op = model.train_op(batch, hparams, FLAGS.config)
 
-      # Run training
-      slim.learning.train(
-          train_op=train_op,
-          logdir=FLAGS.logdir,
-          master=FLAGS.master,
-          is_chief=FLAGS.task == 0,
-          number_of_steps=hparams.max_steps,
-          save_summaries_secs=FLAGS.save_summaries_secs,
-          save_interval_secs=FLAGS.save_interval_secs)
+            # Run training
+            slim.learning.train(
+                train_op=train_op,
+                logdir=FLAGS.logdir,
+                master=FLAGS.master,
+                is_chief=FLAGS.task == 0,
+                number_of_steps=hparams.max_steps,
+                save_summaries_secs=FLAGS.save_summaries_secs,
+                save_interval_secs=FLAGS.save_interval_secs)
 
 
 if __name__ == "__main__":
-  tf.app.run()
+    tf.app.run()

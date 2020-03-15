@@ -27,11 +27,11 @@ DEFAULT_TRANSPOSE_TO_KEY = None
 
 
 class ImprovRnnModel(events_rnn_model.EventSequenceRnnModel):
-  """Class for RNN melody-given-chords generation models."""
+    """Class for RNN melody-given-chords generation models."""
 
-  def generate_melody(self, primer_melody, backing_chords, temperature=1.0,
-                      beam_size=1, branch_factor=1, steps_per_iteration=1):
-    """Generate a melody from a primer melody and backing chords.
+    def generate_melody(self, primer_melody, backing_chords, temperature=1.0,
+                        beam_size=1, branch_factor=1, steps_per_iteration=1):
+        """Generate a melody from a primer melody and backing chords.
 
     Args:
       primer_melody: The primer melody, a Melody object. Should be the same
@@ -52,26 +52,26 @@ class ImprovRnnModel(events_rnn_model.EventSequenceRnnModel):
       The generated Melody object (which begins with the provided primer
           melody).
     """
-    melody = copy.deepcopy(primer_melody)
-    chords = copy.deepcopy(backing_chords)
+        melody = copy.deepcopy(primer_melody)
+        chords = copy.deepcopy(backing_chords)
 
-    transpose_amount = melody.squash(
-        self._config.min_note,
-        self._config.max_note,
-        self._config.transpose_to_key)
-    chords.transpose(transpose_amount)
+        transpose_amount = melody.squash(
+            self._config.min_note,
+            self._config.max_note,
+            self._config.transpose_to_key)
+        chords.transpose(transpose_amount)
 
-    num_steps = len(chords)
-    melody = self._generate_events(num_steps, melody, temperature, beam_size,
-                                   branch_factor, steps_per_iteration,
-                                   control_events=chords)
+        num_steps = len(chords)
+        melody = self._generate_events(num_steps, melody, temperature, beam_size,
+                                       branch_factor, steps_per_iteration,
+                                       control_events=chords)
 
-    melody.transpose(-transpose_amount)
+        melody.transpose(-transpose_amount)
 
-    return melody
+        return melody
 
-  def melody_log_likelihood(self, melody, backing_chords):
-    """Evaluate the log likelihood of a melody conditioned on backing chords.
+    def melody_log_likelihood(self, melody, backing_chords):
+        """Evaluate the log likelihood of a melody conditioned on backing chords.
 
     Args:
       melody: The Melody object for which to evaluate the log likelihood.
@@ -81,21 +81,21 @@ class ImprovRnnModel(events_rnn_model.EventSequenceRnnModel):
       The log likelihood of `melody` conditioned on `backing_chords` under this
       model.
     """
-    melody_copy = copy.deepcopy(melody)
-    chords_copy = copy.deepcopy(backing_chords)
+        melody_copy = copy.deepcopy(melody)
+        chords_copy = copy.deepcopy(backing_chords)
 
-    transpose_amount = melody_copy.squash(
-        self._config.min_note,
-        self._config.max_note,
-        self._config.transpose_to_key)
-    chords_copy.transpose(transpose_amount)
+        transpose_amount = melody_copy.squash(
+            self._config.min_note,
+            self._config.max_note,
+            self._config.transpose_to_key)
+        chords_copy.transpose(transpose_amount)
 
-    return self._evaluate_log_likelihood([melody_copy],
-                                         control_events=chords_copy)[0]
+        return self._evaluate_log_likelihood([melody_copy],
+                                             control_events=chords_copy)[0]
 
 
 class ImprovRnnConfig(events_rnn_model.EventSequenceRnnConfig):
-  """Stores a configuration for an ImprovRnn.
+    """Stores a configuration for an ImprovRnn.
 
   You can change `min_note` and `max_note` to increase/decrease the melody
   range. Since melodies are transposed into this range to be run through
@@ -120,27 +120,27 @@ class ImprovRnnConfig(events_rnn_model.EventSequenceRnnConfig):
         of the training data will be transposed into all 12 keys.
   """
 
-  def __init__(self, details, encoder_decoder, hparams,
-               min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE,
-               transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
-    super(ImprovRnnConfig, self).__init__(details, encoder_decoder, hparams)
+    def __init__(self, details, encoder_decoder, hparams,
+                 min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE,
+                 transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
+        super(ImprovRnnConfig, self).__init__(details, encoder_decoder, hparams)
 
-    if min_note < mm.MIN_MIDI_PITCH:
-      raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
-    if max_note > mm.MAX_MIDI_PITCH + 1:
-      raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
-    if max_note - min_note < mm.NOTES_PER_OCTAVE:
-      raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
-                       'max_note is %d. max_note - min_note is %d.' %
-                       (min_note, max_note, max_note - min_note))
-    if (transpose_to_key is not None and
-        (transpose_to_key < 0 or transpose_to_key > mm.NOTES_PER_OCTAVE - 1)):
-      raise ValueError('transpose_to_key must be >= 0 and <= 11. '
-                       'transpose_to_key is %d.' % transpose_to_key)
+        if min_note < mm.MIN_MIDI_PITCH:
+            raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
+        if max_note > mm.MAX_MIDI_PITCH + 1:
+            raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
+        if max_note - min_note < mm.NOTES_PER_OCTAVE:
+            raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
+                             'max_note is %d. max_note - min_note is %d.' %
+                             (min_note, max_note, max_note - min_note))
+        if (transpose_to_key is not None and
+                (transpose_to_key < 0 or transpose_to_key > mm.NOTES_PER_OCTAVE - 1)):
+            raise ValueError('transpose_to_key must be >= 0 and <= 11. '
+                             'transpose_to_key is %d.' % transpose_to_key)
 
-    self.min_note = min_note
-    self.max_note = max_note
-    self.transpose_to_key = transpose_to_key
+        self.min_note = min_note
+        self.max_note = max_note
+        self.transpose_to_key = transpose_to_key
 
 
 # Default configurations.
@@ -150,7 +150,7 @@ default_configs = {
             magenta.music.protobuf.generator_pb2.GeneratorDetails(
                 id='basic_improv',
                 description='Basic melody-given-chords RNN with one-hot triad '
-                'encoding for chords.'),
+                            'encoding for chords.'),
             magenta.music.ConditionalEventSequenceEncoderDecoder(
                 magenta.music.OneHotEventSequenceEncoderDecoder(
                     magenta.music.TriadChordOneHotEncoding()),
@@ -168,7 +168,7 @@ default_configs = {
             magenta.music.protobuf.generator_pb2.GeneratorDetails(
                 id='attention_improv',
                 description='Melody-given-chords RNN with one-hot triad encoding '
-                'for chords, attention, and binary counters.'),
+                            'for chords, attention, and binary counters.'),
             magenta.music.ConditionalEventSequenceEncoderDecoder(
                 magenta.music.OneHotEventSequenceEncoderDecoder(
                     magenta.music.TriadChordOneHotEncoding()),

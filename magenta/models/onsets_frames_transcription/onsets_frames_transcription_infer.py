@@ -25,15 +25,16 @@ import tensorflow.compat.v1 as tf
 
 
 def main(argv):
-  del argv
+    del argv
 
-  infer.run(config_map=configs.CONFIG_MAP, data_fn=data.provide_batch)
+    infer.run(config_map=configs.CONFIG_MAP, data_fn=data.provide_batch)
 
 
 def console_entry_point():
-  tf.app.flags.mark_flags_as_required(['model_dir', 'examples_path'])
+    tf.app.flags.mark_flags_as_required(['model_dir', 'examples_path'])
 
-  tf.app.run(main)
+    tf.app.run(main)
+
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

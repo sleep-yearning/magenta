@@ -32,11 +32,11 @@ CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 class MidiPerformanceEncoder(object):
-  """Convert between performance event indices and (filenames of) MIDI files."""
+    """Convert between performance event indices and (filenames of) MIDI files."""
 
-  def __init__(self, steps_per_second, num_velocity_bins, min_pitch, max_pitch,
-               add_eos=False, ngrams=None):
-    """Initialize a MidiPerformanceEncoder object.
+    def __init__(self, steps_per_second, num_velocity_bins, min_pitch, max_pitch,
+                 add_eos=False, ngrams=None):
+        """Initialize a MidiPerformanceEncoder object.
 
     Encodes MIDI using a performance event encoding. Index 0 is unused as it is
     reserved for padding. Index 1 is unused unless `add_eos` is True, in which
@@ -66,38 +66,38 @@ class MidiPerformanceEncoder(object):
       ValueError: If any n-gram has length less than 2, or contains one of the
           reserved IDs.
     """
-    self._steps_per_second = steps_per_second
-    self._num_velocity_bins = num_velocity_bins
-    self._add_eos = add_eos
-    self._ngrams = ngrams or []
+        self._steps_per_second = steps_per_second
+        self._num_velocity_bins = num_velocity_bins
+        self._add_eos = add_eos
+        self._ngrams = ngrams or []
 
-    for ngram in self._ngrams:
-      if len(ngram) < 2:
-        raise ValueError('All n-grams must have length at least 2.')
-      if any(i < self.num_reserved_ids for i in ngram):
-        raise ValueError('N-grams cannot contain reserved IDs.')
+        for ngram in self._ngrams:
+            if len(ngram) < 2:
+                raise ValueError('All n-grams must have length at least 2.')
+            if any(i < self.num_reserved_ids for i in ngram):
+                raise ValueError('N-grams cannot contain reserved IDs.')
 
-    self._encoding = magenta.music.PerformanceOneHotEncoding(
-        num_velocity_bins=num_velocity_bins,
-        max_shift_steps=steps_per_second,
-        min_pitch=min_pitch,
-        max_pitch=max_pitch)
+        self._encoding = magenta.music.PerformanceOneHotEncoding(
+            num_velocity_bins=num_velocity_bins,
+            max_shift_steps=steps_per_second,
+            min_pitch=min_pitch,
+            max_pitch=max_pitch)
 
-    # Create a trie mapping n-grams to new indices.
-    ngram_ids = range(self.unigram_vocab_size,
-                      self.unigram_vocab_size + len(self._ngrams))
-    self._ngrams_trie = pygtrie.Trie(zip(self._ngrams, ngram_ids))
+        # Create a trie mapping n-grams to new indices.
+        ngram_ids = range(self.unigram_vocab_size,
+                          self.unigram_vocab_size + len(self._ngrams))
+        self._ngrams_trie = pygtrie.Trie(zip(self._ngrams, ngram_ids))
 
-    # Also add all unigrams to the trie.
-    self._ngrams_trie.update(zip([(i,) for i in range(self.unigram_vocab_size)],
-                                 range(self.unigram_vocab_size)))
+        # Also add all unigrams to the trie.
+        self._ngrams_trie.update(zip([(i,) for i in range(self.unigram_vocab_size)],
+                                     range(self.unigram_vocab_size)))
 
-  @property
-  def num_reserved_ids(self):
-    return text_encoder.NUM_RESERVED_TOKENS
+    @property
+    def num_reserved_ids(self):
+        return text_encoder.NUM_RESERVED_TOKENS
 
-  def encode_note_sequence(self, ns):
-    """Transform a NoteSequence into a list of performance event indices.
+    def encode_note_sequence(self, ns):
+        """Transform a NoteSequence into a list of performance event indices.
 
     Args:
       ns: NoteSequence proto containing the performance to encode.
@@ -105,35 +105,35 @@ class MidiPerformanceEncoder(object):
     Returns:
       ids: List of performance event indices.
     """
-    performance = magenta.music.Performance(
-        magenta.music.quantize_note_sequence_absolute(
-            ns, self._steps_per_second),
-        num_velocity_bins=self._num_velocity_bins)
+        performance = magenta.music.Performance(
+            magenta.music.quantize_note_sequence_absolute(
+                ns, self._steps_per_second),
+            num_velocity_bins=self._num_velocity_bins)
 
-    event_ids = [self._encoding.encode_event(event) + self.num_reserved_ids
-                 for event in performance]
+        event_ids = [self._encoding.encode_event(event) + self.num_reserved_ids
+                     for event in performance]
 
-    # Greedily encode performance event n-grams as new indices.
-    ids = []
-    j = 0
-    while j < len(event_ids):
-      ngram = ()
-      for i in event_ids[j:]:
-        ngram += (i,)
-        if self._ngrams_trie.has_key(ngram):
-          best_ngram = ngram
-        if not self._ngrams_trie.has_subtrie(ngram):
-          break
-      ids.append(self._ngrams_trie[best_ngram])
-      j += len(best_ngram)
+        # Greedily encode performance event n-grams as new indices.
+        ids = []
+        j = 0
+        while j < len(event_ids):
+            ngram = ()
+            for i in event_ids[j:]:
+                ngram += (i,)
+                if self._ngrams_trie.has_key(ngram):
+                    best_ngram = ngram
+                if not self._ngrams_trie.has_subtrie(ngram):
+                    break
+            ids.append(self._ngrams_trie[best_ngram])
+            j += len(best_ngram)
 
-    if self._add_eos:
-      ids.append(text_encoder.EOS_ID)
+        if self._add_eos:
+            ids.append(text_encoder.EOS_ID)
 
-    return ids
+        return ids
 
-  def encode(self, s):
-    """Transform a MIDI filename into a list of performance event indices.
+    def encode(self, s):
+        """Transform a MIDI filename into a list of performance event indices.
 
     Args:
       s: Path to the MIDI file.
@@ -141,14 +141,14 @@ class MidiPerformanceEncoder(object):
     Returns:
       ids: List of performance event indices.
     """
-    if s:
-      ns = magenta.music.midi_file_to_sequence_proto(s)
-    else:
-      ns = music_pb2.NoteSequence()
-    return self.encode_note_sequence(ns)
+        if s:
+            ns = magenta.music.midi_file_to_sequence_proto(s)
+        else:
+            ns = music_pb2.NoteSequence()
+        return self.encode_note_sequence(ns)
 
-  def decode(self, ids, strip_extraneous=False):
-    """Transform a sequence of event indices into a performance MIDI file.
+    def decode(self, ids, strip_extraneous=False):
+        """Transform a sequence of event indices into a performance MIDI file.
 
     Args:
       ids: List of performance event indices.
@@ -157,33 +157,33 @@ class MidiPerformanceEncoder(object):
     Returns:
       Path to the temporary file where the MIDI was saved.
     """
-    if strip_extraneous:
-      ids = text_encoder.strip_ids(ids, list(range(self.num_reserved_ids)))
+        if strip_extraneous:
+            ids = text_encoder.strip_ids(ids, list(range(self.num_reserved_ids)))
 
-    # Decode indices corresponding to event n-grams back into the n-grams.
-    event_ids = []
-    for i in ids:
-      if i >= self.unigram_vocab_size:
-        event_ids += self._ngrams[i - self.unigram_vocab_size]
-      else:
-        event_ids.append(i)
+        # Decode indices corresponding to event n-grams back into the n-grams.
+        event_ids = []
+        for i in ids:
+            if i >= self.unigram_vocab_size:
+                event_ids += self._ngrams[i - self.unigram_vocab_size]
+            else:
+                event_ids.append(i)
 
-    performance = magenta.music.Performance(
-        quantized_sequence=None,
-        steps_per_second=self._steps_per_second,
-        num_velocity_bins=self._num_velocity_bins)
-    for i in event_ids:
-      performance.append(self._encoding.decode_event(i - self.num_reserved_ids))
+        performance = magenta.music.Performance(
+            quantized_sequence=None,
+            steps_per_second=self._steps_per_second,
+            num_velocity_bins=self._num_velocity_bins)
+        for i in event_ids:
+            performance.append(self._encoding.decode_event(i - self.num_reserved_ids))
 
-    ns = performance.to_sequence()
+        ns = performance.to_sequence()
 
-    _, tmp_file_path = tempfile.mkstemp('_decode.mid')
-    magenta.music.sequence_proto_to_midi_file(ns, tmp_file_path)
+        _, tmp_file_path = tempfile.mkstemp('_decode.mid')
+        magenta.music.sequence_proto_to_midi_file(ns, tmp_file_path)
 
-    return tmp_file_path
+        return tmp_file_path
 
-  def decode_list(self, ids):
-    """Transform a sequence of event indices into a performance MIDI file.
+    def decode_list(self, ids):
+        """Transform a sequence of event indices into a performance MIDI file.
 
     Args:
       ids: List of performance event indices.
@@ -192,22 +192,22 @@ class MidiPerformanceEncoder(object):
       Single-element list containing path to the temporary file where the MIDI
       was saved.
     """
-    return [self.decode(ids)]
+        return [self.decode(ids)]
 
-  @property
-  def unigram_vocab_size(self):
-    return self._encoding.num_classes + self.num_reserved_ids
+    @property
+    def unigram_vocab_size(self):
+        return self._encoding.num_classes + self.num_reserved_ids
 
-  @property
-  def vocab_size(self):
-    return self.unigram_vocab_size + len(self._ngrams)
+    @property
+    def vocab_size(self):
+        return self.unigram_vocab_size + len(self._ngrams)
 
 
 class TextChordsEncoder(object):
-  """Convert chord symbol sequences to integer indices."""
+    """Convert chord symbol sequences to integer indices."""
 
-  def __init__(self, steps_per_quarter):
-    """Initialize a TextChordsEncoder object.
+    def __init__(self, steps_per_quarter):
+        """Initialize a TextChordsEncoder object.
 
     Encodes chord symbols using a vocabulary of triads. Indices 0 and 1 are
     reserved and unused, and the remaining 48 + 1 indices represent each of 4
@@ -216,19 +216,19 @@ class TextChordsEncoder(object):
     Args:
       steps_per_quarter: Number of steps per quarter at which to quantize.
     """
-    self._steps_per_quarter = steps_per_quarter
-    self._encoding = magenta.music.TriadChordOneHotEncoding()
+        self._steps_per_quarter = steps_per_quarter
+        self._encoding = magenta.music.TriadChordOneHotEncoding()
 
-  @property
-  def num_reserved_ids(self):
-    return text_encoder.NUM_RESERVED_TOKENS
+    @property
+    def num_reserved_ids(self):
+        return text_encoder.NUM_RESERVED_TOKENS
 
-  def _encode_chord_symbols(self, chords):
-    return [self._encoding.encode_event(chord) + self.num_reserved_ids
-            for chord in chords]
+    def _encode_chord_symbols(self, chords):
+        return [self._encoding.encode_event(chord) + self.num_reserved_ids
+                for chord in chords]
 
-  def encode_note_sequence(self, ns):
-    """Transform a NoteSequence into a list of chord event indices.
+    def encode_note_sequence(self, ns):
+        """Transform a NoteSequence into a list of chord event indices.
 
     Args:
       ns: NoteSequence proto containing the chords to encode (as text
@@ -237,23 +237,23 @@ class TextChordsEncoder(object):
     Returns:
       ids: List of chord event indices.
     """
-    qns = magenta.music.quantize_note_sequence(ns, self._steps_per_quarter)
+        qns = magenta.music.quantize_note_sequence(ns, self._steps_per_quarter)
 
-    chords = []
-    current_chord = magenta.music.NO_CHORD
-    current_step = 0
-    for ta in sorted(qns.text_annotations, key=lambda ta: ta.time):
-      if ta.annotation_type != CHORD_SYMBOL:
-        continue
-      chords += [current_chord] * (ta.quantized_step - current_step)
-      current_chord = ta.text
-      current_step = ta.quantized_step
-    chords += [current_chord] * (qns.total_quantized_steps - current_step)
+        chords = []
+        current_chord = magenta.music.NO_CHORD
+        current_step = 0
+        for ta in sorted(qns.text_annotations, key=lambda ta: ta.time):
+            if ta.annotation_type != CHORD_SYMBOL:
+                continue
+            chords += [current_chord] * (ta.quantized_step - current_step)
+            current_chord = ta.text
+            current_step = ta.quantized_step
+        chords += [current_chord] * (qns.total_quantized_steps - current_step)
 
-    return self._encode_chord_symbols(chords)
+        return self._encode_chord_symbols(chords)
 
-  def encode(self, s):
-    """Transform a space-delimited chord symbols string into indices.
+    def encode(self, s):
+        """Transform a space-delimited chord symbols string into indices.
 
     Args:
       s: Space delimited string containing a chord symbol sequence, e.g.
@@ -262,33 +262,33 @@ class TextChordsEncoder(object):
     Returns:
       ids: List of encoded chord indices.
     """
-    return self._encode_chord_symbols(s.split())
+        return self._encode_chord_symbols(s.split())
 
-  @property
-  def vocab_size(self):
-    return self._encoding.num_classes + self.num_reserved_ids
+    @property
+    def vocab_size(self):
+        return self._encoding.num_classes + self.num_reserved_ids
 
 
 class TextMelodyEncoderBase(object):
-  """Convert melody sequences to integer indices, abstract base class."""
+    """Convert melody sequences to integer indices, abstract base class."""
 
-  def __init__(self, min_pitch, max_pitch):
-    self._encoding = magenta.music.MelodyOneHotEncoding(
-        min_note=min_pitch, max_note=max_pitch + 1)
+    def __init__(self, min_pitch, max_pitch):
+        self._encoding = magenta.music.MelodyOneHotEncoding(
+            min_note=min_pitch, max_note=max_pitch + 1)
 
-  @property
-  def num_reserved_ids(self):
-    return text_encoder.NUM_RESERVED_TOKENS
+    @property
+    def num_reserved_ids(self):
+        return text_encoder.NUM_RESERVED_TOKENS
 
-  def _encode_melody_events(self, melody):
-    return [self._encoding.encode_event(event) + self.num_reserved_ids
-            for event in melody]
+    def _encode_melody_events(self, melody):
+        return [self._encoding.encode_event(event) + self.num_reserved_ids
+                for event in melody]
 
-  def _quantize_note_sequence(self, ns):
-    raise NotImplementedError
+    def _quantize_note_sequence(self, ns):
+        raise NotImplementedError
 
-  def encode_note_sequence(self, ns):
-    """Transform a NoteSequence into a list of melody event indices.
+    def encode_note_sequence(self, ns):
+        """Transform a NoteSequence into a list of melody event indices.
 
     Args:
       ns: NoteSequence proto containing the melody to encode.
@@ -296,18 +296,18 @@ class TextMelodyEncoderBase(object):
     Returns:
       ids: List of melody event indices.
     """
-    qns = self._quantize_note_sequence(ns)
+        qns = self._quantize_note_sequence(ns)
 
-    melody = [magenta.music.MELODY_NO_EVENT] * qns.total_quantized_steps
-    for note in sorted(qns.notes, key=lambda note: note.start_time):
-      melody[note.quantized_start_step] = note.pitch
-      if note.quantized_end_step < qns.total_quantized_steps:
-        melody[note.quantized_end_step] = magenta.music.MELODY_NOTE_OFF
+        melody = [magenta.music.MELODY_NO_EVENT] * qns.total_quantized_steps
+        for note in sorted(qns.notes, key=lambda note: note.start_time):
+            melody[note.quantized_start_step] = note.pitch
+            if note.quantized_end_step < qns.total_quantized_steps:
+                melody[note.quantized_end_step] = magenta.music.MELODY_NOTE_OFF
 
-    return self._encode_melody_events(melody)
+        return self._encode_melody_events(melody)
 
-  def encode(self, s):
-    """Transform a space-delimited melody string into indices.
+    def encode(self, s):
+        """Transform a space-delimited melody string into indices.
 
     Args:
       s: Space delimited string containing a melody sequence, e.g.
@@ -317,52 +317,52 @@ class TextMelodyEncoderBase(object):
     Returns:
       ids: List of encoded melody event indices.
     """
-    return self._encode_melody_events([int(a) for a in s.split()])
+        return self._encode_melody_events([int(a) for a in s.split()])
 
-  @property
-  def vocab_size(self):
-    return self._encoding.num_classes + self.num_reserved_ids
+    @property
+    def vocab_size(self):
+        return self._encoding.num_classes + self.num_reserved_ids
 
 
 class TextMelodyEncoder(TextMelodyEncoderBase):
-  """Convert melody sequences (with metric timing) to integer indices."""
+    """Convert melody sequences (with metric timing) to integer indices."""
 
-  def __init__(self, steps_per_quarter, min_pitch, max_pitch):
-    super(TextMelodyEncoder, self).__init__(min_pitch, max_pitch)
-    self._steps_per_quarter = steps_per_quarter
+    def __init__(self, steps_per_quarter, min_pitch, max_pitch):
+        super(TextMelodyEncoder, self).__init__(min_pitch, max_pitch)
+        self._steps_per_quarter = steps_per_quarter
 
-  def _quantize_note_sequence(self, ns):
-    return magenta.music.quantize_note_sequence(ns, self._steps_per_quarter)
+    def _quantize_note_sequence(self, ns):
+        return magenta.music.quantize_note_sequence(ns, self._steps_per_quarter)
 
 
 class TextMelodyEncoderAbsolute(TextMelodyEncoderBase):
-  """Convert melody sequences (with absolute timing) to integer indices."""
+    """Convert melody sequences (with absolute timing) to integer indices."""
 
-  def __init__(self, steps_per_second, min_pitch, max_pitch):
-    super(TextMelodyEncoderAbsolute, self).__init__(min_pitch, max_pitch)
-    self._steps_per_second = steps_per_second
+    def __init__(self, steps_per_second, min_pitch, max_pitch):
+        super(TextMelodyEncoderAbsolute, self).__init__(min_pitch, max_pitch)
+        self._steps_per_second = steps_per_second
 
-  def _quantize_note_sequence(self, ns):
-    return magenta.music.quantize_note_sequence_absolute(
-        ns, self._steps_per_second)
+    def _quantize_note_sequence(self, ns):
+        return magenta.music.quantize_note_sequence_absolute(
+            ns, self._steps_per_second)
 
 
 class CompositeScoreEncoder(object):
-  """Convert multi-component score sequences to tuples of integer indices."""
+    """Convert multi-component score sequences to tuples of integer indices."""
 
-  def __init__(self, encoders):
-    self._encoders = encoders
+    def __init__(self, encoders):
+        self._encoders = encoders
 
-  @property
-  def num_reserved_ids(self):
-    return text_encoder.NUM_RESERVED_TOKENS
+    @property
+    def num_reserved_ids(self):
+        return text_encoder.NUM_RESERVED_TOKENS
 
-  def encode_note_sequence(self, ns):
-    return zip(*[encoder.encode_note_sequence(ns)
-                 for encoder in self._encoders])
+    def encode_note_sequence(self, ns):
+        return zip(*[encoder.encode_note_sequence(ns)
+                     for encoder in self._encoders])
 
-  def encode(self, s):
-    """Transform a MusicXML filename into a list of score event index tuples.
+    def encode(self, s):
+        """Transform a MusicXML filename into a list of score event index tuples.
 
     Args:
       s: Path to the MusicXML file.
@@ -370,19 +370,19 @@ class CompositeScoreEncoder(object):
     Returns:
       ids: List of score event index tuples.
     """
-    if s:
-      ns = magenta.music.musicxml_file_to_sequence_proto(s)
-    else:
-      ns = music_pb2.NoteSequence()
-    return self.encode_note_sequence(ns)
+        if s:
+            ns = magenta.music.musicxml_file_to_sequence_proto(s)
+        else:
+            ns = music_pb2.NoteSequence()
+        return self.encode_note_sequence(ns)
 
-  @property
-  def vocab_size(self):
-    return [encoder.vocab_size for encoder in self._encoders]
+    @property
+    def vocab_size(self):
+        return [encoder.vocab_size for encoder in self._encoders]
 
 
 class FlattenedTextMelodyEncoderAbsolute(TextMelodyEncoderAbsolute):
-  """Encodes a melody that is flattened into only rhythm (with velocity).
+    """Encodes a melody that is flattened into only rhythm (with velocity).
 
   TextMelodyEncoderAbsolute encodes the melody as a sequence of MELODY_NO_EVENT,
   MELODY_NOTE_OFF, and pitch ids. This representation contains no
@@ -391,16 +391,16 @@ class FlattenedTextMelodyEncoderAbsolute(TextMelodyEncoderAbsolute):
   range to the parent __init__ in lieu of min_pitch and max_pitch.
   """
 
-  def __init__(self, steps_per_second, num_velocity_bins):
-    self._num_velocity_bins = num_velocity_bins
+    def __init__(self, steps_per_second, num_velocity_bins):
+        self._num_velocity_bins = num_velocity_bins
 
-    super(FlattenedTextMelodyEncoderAbsolute, self).__init__(
-        steps_per_second,
-        min_pitch=1,
-        max_pitch=num_velocity_bins)
+        super(FlattenedTextMelodyEncoderAbsolute, self).__init__(
+            steps_per_second,
+            min_pitch=1,
+            max_pitch=num_velocity_bins)
 
-  def encode_note_sequence(self, ns):
-    """Transform a NoteSequence into a list of melody event indices.
+    def encode_note_sequence(self, ns):
+        """Transform a NoteSequence into a list of melody event indices.
 
     Args:
       ns: NoteSequence proto containing the melody to encode.
@@ -408,19 +408,19 @@ class FlattenedTextMelodyEncoderAbsolute(TextMelodyEncoderAbsolute):
     Returns:
       ids: List of melody event indices.
     """
-    qns = self._quantize_note_sequence(ns)
+        qns = self._quantize_note_sequence(ns)
 
-    melody = [magenta.music.MELODY_NO_EVENT] * qns.total_quantized_steps
-    for note in sorted(qns.notes, key=lambda note: note.start_time):
-      quantized_velocity = performance_lib.velocity_to_bin(
-          note.velocity, self._num_velocity_bins)
+        melody = [magenta.music.MELODY_NO_EVENT] * qns.total_quantized_steps
+        for note in sorted(qns.notes, key=lambda note: note.start_time):
+            quantized_velocity = performance_lib.velocity_to_bin(
+                note.velocity, self._num_velocity_bins)
 
-      melody[note.quantized_start_step] = quantized_velocity
+            melody[note.quantized_start_step] = quantized_velocity
 
-    return self._encode_melody_events(melody)
+        return self._encode_melody_events(melody)
 
-  def encode(self, s):
-    """Transforms melody from a midi_file into a list of melody event indices.
+    def encode(self, s):
+        """Transforms melody from a midi_file into a list of melody event indices.
 
     Args:
       s: Path to a MIDI file.
@@ -428,5 +428,5 @@ class FlattenedTextMelodyEncoderAbsolute(TextMelodyEncoderAbsolute):
     Returns:
       ids: List of encoded melody event indices.
     """
-    ns = magenta.music.midi_file_to_sequence_proto(s)
-    return self.encode_note_sequence(ns)
+        ns = magenta.music.midi_file_to_sequence_proto(s)
+        return self.encode_note_sequence(ns)

@@ -28,18 +28,18 @@ import tensorflow.compat.v1 as tf
 
 
 class InvalidTypeSignatureError(Exception):
-  """Thrown when `Pipeline.input_type` or `Pipeline.output_type` is not valid.
+    """Thrown when `Pipeline.input_type` or `Pipeline.output_type` is not valid.
   """
-  pass
+    pass
 
 
 class InvalidStatisticsError(Exception):
-  """Thrown when stats produced by a `Pipeline` are not valid."""
-  pass
+    """Thrown when stats produced by a `Pipeline` are not valid."""
+    pass
 
 
 class PipelineKey(object):
-  """Represents a get operation on a Pipeline type signature.
+    """Represents a get operation on a Pipeline type signature.
 
   If a pipeline instance `my_pipeline` has `output_type`
   {'key_1': Type1, 'key_2': Type2}, then PipelineKey(my_pipeline, 'key_1'),
@@ -53,32 +53,32 @@ class PipelineKey(object):
   Pipeline instances. See dag_pipeline.py.
   """
 
-  def __init__(self, unit, key):
-    if not isinstance(unit, Pipeline):
-      raise ValueError('Cannot take key of non Pipeline %s' % unit)
-    if not isinstance(unit.output_type, dict):
-      raise KeyError(
-          'Cannot take key %s of %s because output type %s is not a dictionary'
-          % (key, unit, unit.output_type))
-    if key not in unit.output_type:
-      raise KeyError('PipelineKey %s is not valid for %s with output type %s'
-                     % (key, unit, unit.output_type))
-    self.key = key
-    self.unit = unit
-    self.output_type = unit.output_type[key]
+    def __init__(self, unit, key):
+        if not isinstance(unit, Pipeline):
+            raise ValueError('Cannot take key of non Pipeline %s' % unit)
+        if not isinstance(unit.output_type, dict):
+            raise KeyError(
+                'Cannot take key %s of %s because output type %s is not a dictionary'
+                % (key, unit, unit.output_type))
+        if key not in unit.output_type:
+            raise KeyError('PipelineKey %s is not valid for %s with output type %s'
+                           % (key, unit, unit.output_type))
+        self.key = key
+        self.unit = unit
+        self.output_type = unit.output_type[key]
 
-  def __repr__(self):
-    return 'PipelineKey(%s, %s)' % (self.unit, self.key)
+    def __repr__(self):
+        return 'PipelineKey(%s, %s)' % (self.unit, self.key)
 
 
 def _guarantee_dict(given, default_name):
-  if not isinstance(given, dict):
-    return {default_name: list}
-  return given
+    if not isinstance(given, dict):
+        return {default_name: list}
+    return given
 
 
 def _assert_valid_type_signature(type_sig, type_sig_name):
-  """Checks that the given type signature is valid.
+    """Checks that the given type signature is valid.
 
   Valid type signatures are either a single Python class, or a dictionary
   mapping string names to Python classes.
@@ -93,22 +93,22 @@ def _assert_valid_type_signature(type_sig, type_sig_name):
   Raises:
     InvalidTypeSignatureError: If `type_sig` is not valid.
   """
-  if isinstance(type_sig, dict):
-    for k, val in type_sig.items():
-      if not isinstance(k, six.string_types):
-        raise InvalidTypeSignatureError(
-            '%s key %s must be a string.' % (type_sig_name, k))
-      if not inspect.isclass(val):
-        raise InvalidTypeSignatureError(
-            '%s %s at key %s must be a Python class.' % (type_sig_name, val, k))
-  else:
-    if not inspect.isclass(type_sig):
-      raise InvalidTypeSignatureError(
-          '%s %s must be a Python class.' % (type_sig_name, type_sig))
+    if isinstance(type_sig, dict):
+        for k, val in type_sig.items():
+            if not isinstance(k, six.string_types):
+                raise InvalidTypeSignatureError(
+                    '%s key %s must be a string.' % (type_sig_name, k))
+            if not inspect.isclass(val):
+                raise InvalidTypeSignatureError(
+                    '%s %s at key %s must be a Python class.' % (type_sig_name, val, k))
+    else:
+        if not inspect.isclass(type_sig):
+            raise InvalidTypeSignatureError(
+                '%s %s must be a Python class.' % (type_sig_name, type_sig))
 
 
 class Pipeline(object):
-  """An abstract class for data processing pipelines that transform datasets.
+    """An abstract class for data processing pipelines that transform datasets.
 
   A Pipeline can transform one or many inputs to one or many outputs. When there
   are many inputs or outputs, each input/output is assigned a string name.
@@ -125,10 +125,10 @@ class Pipeline(object):
   set the Statistics that will be returned by the next call to `get_stats`.
   """
 
-  __metaclass__ = abc.ABCMeta
+    __metaclass__ = abc.ABCMeta
 
-  def __init__(self, input_type, output_type, name=None):
-    """Constructs a `Pipeline` object.
+    def __init__(self, input_type, output_type, name=None):
+        """Constructs a `Pipeline` object.
 
     Subclass constructors are expected to call this constructor.
 
@@ -154,43 +154,43 @@ class Pipeline(object):
           instances. If None (default), the string name of the implementing
           subclass is used.
     """
-    # Make sure `input_type` and `output_type` are valid.
-    if name is None:
-      # This will get the name of the subclass, not "Pipeline".
-      self._name = type(self).__name__
-    else:
-      assert isinstance(name, six.string_types)
-      self._name = name
-    _assert_valid_type_signature(input_type, 'input_type')
-    _assert_valid_type_signature(output_type, 'output_type')
-    self._input_type = input_type
-    self._output_type = output_type
-    self._stats = []
+        # Make sure `input_type` and `output_type` are valid.
+        if name is None:
+            # This will get the name of the subclass, not "Pipeline".
+            self._name = type(self).__name__
+        else:
+            assert isinstance(name, six.string_types)
+            self._name = name
+        _assert_valid_type_signature(input_type, 'input_type')
+        _assert_valid_type_signature(output_type, 'output_type')
+        self._input_type = input_type
+        self._output_type = output_type
+        self._stats = []
 
-  def __getitem__(self, key):
-    return PipelineKey(self, key)
+    def __getitem__(self, key):
+        return PipelineKey(self, key)
 
-  @property
-  def input_type(self):
-    """What type or types does this pipeline take as input.
-
-    Returns:
-      A class, or a dictionary mapping names to classes.
-    """
-    return self._input_type
-
-  @property
-  def output_type(self):
-    """What type or types does this pipeline output.
+    @property
+    def input_type(self):
+        """What type or types does this pipeline take as input.
 
     Returns:
       A class, or a dictionary mapping names to classes.
     """
-    return self._output_type
+        return self._input_type
 
-  @property
-  def output_type_as_dict(self):
-    """Returns a dictionary mapping names to classes.
+    @property
+    def output_type(self):
+        """What type or types does this pipeline output.
+
+    Returns:
+      A class, or a dictionary mapping names to classes.
+    """
+        return self._output_type
+
+    @property
+    def output_type_as_dict(self):
+        """Returns a dictionary mapping names to classes.
 
     If `output_type` is a single class, then a default name will be created
     for the output and a dictionary containing `output_type` will be returned.
@@ -198,16 +198,16 @@ class Pipeline(object):
     Returns:
       Dictionary mapping names to output types.
     """
-    return _guarantee_dict(self._output_type, 'dataset')
+        return _guarantee_dict(self._output_type, 'dataset')
 
-  @property
-  def name(self):
-    """The string name of this pipeline."""
-    return self._name
+    @property
+    def name(self):
+        """The string name of this pipeline."""
+        return self._name
 
-  @abc.abstractmethod
-  def transform(self, input_object):
-    """Runs the pipeline on the given input.
+    @abc.abstractmethod
+    def transform(self, input_object):
+        """Runs the pipeline on the given input.
 
     Args:
       input_object: An object or dictionary mapping names to objects.
@@ -219,10 +219,10 @@ class Pipeline(object):
       names to classes, `transform` returns a dictionary mapping those
       same names to lists of objects that are the type mapped to each name.
     """
-    pass
+        pass
 
-  def _set_stats(self, stats):
-    """Overwrites the current Statistics returned by `get_stats`.
+    def _set_stats(self, stats):
+        """Overwrites the current Statistics returned by `get_stats`.
 
     Implementers of Pipeline should call `_set_stats` from within `transform`.
 
@@ -233,22 +233,22 @@ class Pipeline(object):
       InvalidStatisticsError: If `stats` is not iterable, or if any
           object in the list is not a `Statistic` instance.
     """
-    if not hasattr(stats, '__iter__'):
-      raise InvalidStatisticsError(
-          'Expecting iterable, got type %s' % type(stats))
-    self._stats = [self._prepend_name(stat) for stat in stats]
+        if not hasattr(stats, '__iter__'):
+            raise InvalidStatisticsError(
+                'Expecting iterable, got type %s' % type(stats))
+        self._stats = [self._prepend_name(stat) for stat in stats]
 
-  def _prepend_name(self, stat):
-    """Returns a copy of `stat` with `self.name` prepended to `stat.name`."""
-    if not isinstance(stat, statistics.Statistic):
-      raise InvalidStatisticsError(
-          'Expecting Statistic object, got %s' % stat)
-    stat_copy = stat.copy()
-    stat_copy.name = self._name + '_' + stat_copy.name
-    return stat_copy
+    def _prepend_name(self, stat):
+        """Returns a copy of `stat` with `self.name` prepended to `stat.name`."""
+        if not isinstance(stat, statistics.Statistic):
+            raise InvalidStatisticsError(
+                'Expecting Statistic object, got %s' % stat)
+        stat_copy = stat.copy()
+        stat_copy.name = self._name + '_' + stat_copy.name
+        return stat_copy
 
-  def get_stats(self):
-    """Returns Statistics about pipeline runs.
+    def get_stats(self):
+        """Returns Statistics about pipeline runs.
 
     Call `get_stats` after each call to `transform`.
     `transform` computes Statistics which will be returned here.
@@ -256,11 +256,11 @@ class Pipeline(object):
     Returns:
       A list of `Statistic` objects.
     """
-    return list(self._stats)
+        return list(self._stats)
 
 
 def file_iterator(root_dir, extension=None, recurse=True):
-  """Generator that iterates over all files in the given directory.
+    """Generator that iterates over all files in the given directory.
 
   Will recurse into sub-directories if `recurse` is True.
 
@@ -276,28 +276,28 @@ def file_iterator(root_dir, extension=None, recurse=True):
   Raises:
     ValueError: When extension is an empty string. Leave as None to omit.
   """
-  if extension is not None:
-    if not extension:
-      raise ValueError('File extension cannot be an empty string.')
-    extension = extension.lower()
-    if extension[0] != '.':
-      extension = '.' + extension
-  dirs = [os.path.join(root_dir, child)
-          for child in tf.gfile.ListDirectory(root_dir)]
-  while dirs:
-    sub = dirs.pop()
-    if tf.gfile.IsDirectory(sub):
-      if recurse:
-        dirs.extend(
-            [os.path.join(sub, child) for child in tf.gfile.ListDirectory(sub)])
-    else:
-      if extension is None or sub.lower().endswith(extension):
-        with open(sub, 'rb') as f:
-          yield f.read()
+    if extension is not None:
+        if not extension:
+            raise ValueError('File extension cannot be an empty string.')
+        extension = extension.lower()
+        if extension[0] != '.':
+            extension = '.' + extension
+    dirs = [os.path.join(root_dir, child)
+            for child in tf.gfile.ListDirectory(root_dir)]
+    while dirs:
+        sub = dirs.pop()
+        if tf.gfile.IsDirectory(sub):
+            if recurse:
+                dirs.extend(
+                    [os.path.join(sub, child) for child in tf.gfile.ListDirectory(sub)])
+        else:
+            if extension is None or sub.lower().endswith(extension):
+                with open(sub, 'rb') as f:
+                    yield f.read()
 
 
 def tf_record_iterator(tfrecord_file, proto):
-  """Generator that iterates over protocol buffers in a TFRecord file.
+    """Generator that iterates over protocol buffers in a TFRecord file.
 
   Args:
     tfrecord_file: Path to a TFRecord file containing protocol buffers.
@@ -307,15 +307,15 @@ def tf_record_iterator(tfrecord_file, proto):
   Yields:
     Instances of the given `proto` class from the TFRecord file.
   """
-  for raw_bytes in tf.python_io.tf_record_iterator(tfrecord_file):
-    yield proto.FromString(raw_bytes)
+    for raw_bytes in tf.python_io.tf_record_iterator(tfrecord_file):
+        yield proto.FromString(raw_bytes)
 
 
 def run_pipeline_serial(pipeline,
                         input_iterator,
                         output_dir,
                         output_file_base=None):
-  """Runs the a pipeline on a data source and writes to a directory.
+    """Runs the a pipeline on a data source and writes to a directory.
 
   Run the pipeline on each input from the iterator one at a time.
   A file will be written to `output_dir` for each dataset name specified
@@ -340,57 +340,57 @@ def run_pipeline_serial(pipeline,
     ValueError: If any of `pipeline`'s output types do not have a
         SerializeToString method.
   """
-  if isinstance(pipeline.output_type, dict):
-    for name, type_ in pipeline.output_type.items():
-      if not hasattr(type_, 'SerializeToString'):
-        raise ValueError(
-            'Pipeline output "%s" does not have method SerializeToString. '
-            'Output type = %s' % (name, pipeline.output_type))
-  else:
-    if not hasattr(pipeline.output_type, 'SerializeToString'):
-      raise ValueError(
-          'Pipeline output type %s does not have method SerializeToString.'
-          % pipeline.output_type)
+    if isinstance(pipeline.output_type, dict):
+        for name, type_ in pipeline.output_type.items():
+            if not hasattr(type_, 'SerializeToString'):
+                raise ValueError(
+                    'Pipeline output "%s" does not have method SerializeToString. '
+                    'Output type = %s' % (name, pipeline.output_type))
+    else:
+        if not hasattr(pipeline.output_type, 'SerializeToString'):
+            raise ValueError(
+                'Pipeline output type %s does not have method SerializeToString.'
+                % pipeline.output_type)
 
-  if not tf.gfile.Exists(output_dir):
-    tf.gfile.MakeDirs(output_dir)
+    if not tf.gfile.Exists(output_dir):
+        tf.gfile.MakeDirs(output_dir)
 
-  output_names = pipeline.output_type_as_dict.keys()
+    output_names = pipeline.output_type_as_dict.keys()
 
-  if output_file_base is None:
-    output_paths = [os.path.join(output_dir, name + '.tfrecord')
-                    for name in output_names]
-  else:
-    output_paths = [os.path.join(output_dir,
-                                 '%s_%s.tfrecord' % (output_file_base, name))
-                    for name in output_names]
+    if output_file_base is None:
+        output_paths = [os.path.join(output_dir, name + '.tfrecord')
+                        for name in output_names]
+    else:
+        output_paths = [os.path.join(output_dir,
+                                     '%s_%s.tfrecord' % (output_file_base, name))
+                        for name in output_names]
 
-  writers = dict((name, tf.python_io.TFRecordWriter(path))
-                 for name, path in zip(output_names, output_paths))
+    writers = dict((name, tf.python_io.TFRecordWriter(path))
+                   for name, path in zip(output_names, output_paths))
 
-  total_inputs = 0
-  total_outputs = 0
-  stats = []
-  for input_ in input_iterator:
-    total_inputs += 1
-    for name, outputs in _guarantee_dict(pipeline.transform(input_),
-                                         list(output_names)[0]).items():
-      for output in outputs:  # pylint:disable=not-an-iterable
-        writers[name].write(output.SerializeToString())
-      total_outputs += len(outputs)
-    stats = statistics.merge_statistics(stats + pipeline.get_stats())
-    if total_inputs % 500 == 0:
-      tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
-                      total_inputs, total_outputs)
-      statistics.log_statistics_list(stats, tf.logging.info)
-  tf.logging.info('\n\nCompleted.\n')
-  tf.logging.info('Processed %d inputs total. Produced %d outputs.',
-                  total_inputs, total_outputs)
-  statistics.log_statistics_list(stats, tf.logging.info)
+    total_inputs = 0
+    total_outputs = 0
+    stats = []
+    for input_ in input_iterator:
+        total_inputs += 1
+        for name, outputs in _guarantee_dict(pipeline.transform(input_),
+                                             list(output_names)[0]).items():
+            for output in outputs:  # pylint:disable=not-an-iterable
+                writers[name].write(output.SerializeToString())
+            total_outputs += len(outputs)
+        stats = statistics.merge_statistics(stats + pipeline.get_stats())
+        if total_inputs % 500 == 0:
+            tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
+                            total_inputs, total_outputs)
+            statistics.log_statistics_list(stats, tf.logging.info)
+    tf.logging.info('\n\nCompleted.\n')
+    tf.logging.info('Processed %d inputs total. Produced %d outputs.',
+                    total_inputs, total_outputs)
+    statistics.log_statistics_list(stats, tf.logging.info)
 
 
 def load_pipeline(pipeline, input_iterator):
-  """Runs a pipeline saving the output into memory.
+    """Runs a pipeline saving the output into memory.
 
   Use this instead of `run_pipeline_serial` to build a dataset on the fly
   without saving it to disk.
@@ -405,24 +405,24 @@ def load_pipeline(pipeline, input_iterator):
     dictionary mapping dataset names to lists of objects. Each name acts
     as a bucket where outputs are aggregated.
   """
-  aggregated_outputs = dict((name, []) for name in pipeline.output_type_as_dict)
-  total_inputs = 0
-  total_outputs = 0
-  stats = []
-  for input_object in input_iterator:
-    total_inputs += 1
-    outputs = _guarantee_dict(pipeline.transform(input_object),
-                              list(aggregated_outputs.keys())[0])
-    for name, output_list in outputs.items():
-      aggregated_outputs[name].extend(output_list)
-      total_outputs += len(output_list)
-    stats = statistics.merge_statistics(stats + pipeline.get_stats())
-    if total_inputs % 500 == 0:
-      tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
-                      total_inputs, total_outputs)
-      statistics.log_statistics_list(stats, tf.logging.info)
-  tf.logging.info('\n\nCompleted.\n')
-  tf.logging.info('Processed %d inputs total. Produced %d outputs.',
-                  total_inputs, total_outputs)
-  statistics.log_statistics_list(stats, tf.logging.info)
-  return aggregated_outputs
+    aggregated_outputs = dict((name, []) for name in pipeline.output_type_as_dict)
+    total_inputs = 0
+    total_outputs = 0
+    stats = []
+    for input_object in input_iterator:
+        total_inputs += 1
+        outputs = _guarantee_dict(pipeline.transform(input_object),
+                                  list(aggregated_outputs.keys())[0])
+        for name, output_list in outputs.items():
+            aggregated_outputs[name].extend(output_list)
+            total_outputs += len(output_list)
+        stats = statistics.merge_statistics(stats + pipeline.get_stats())
+        if total_inputs % 500 == 0:
+            tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
+                            total_inputs, total_outputs)
+            statistics.log_statistics_list(stats, tf.logging.info)
+    tf.logging.info('\n\nCompleted.\n')
+    tf.logging.info('Processed %d inputs total. Produced %d outputs.',
+                    total_inputs, total_outputs)
+    statistics.log_statistics_list(stats, tf.logging.info)
+    return aggregated_outputs

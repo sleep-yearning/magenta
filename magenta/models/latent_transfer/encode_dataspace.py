@@ -40,45 +40,45 @@ tf.flags.DEFINE_string('exp_uid', '_exp_0',
 
 
 def main(unused_argv):
-  del unused_argv
+    del unused_argv
 
-  # Load Config
-  config_name = FLAGS.config
-  config_module = importlib.import_module('configs.%s' % config_name)
-  config = config_module.config
-  model_uid = common.get_model_uid(config_name, FLAGS.exp_uid)
-  batch_size = config['batch_size']
+    # Load Config
+    config_name = FLAGS.config
+    config_module = importlib.import_module('configs.%s' % config_name)
+    config = config_module.config
+    model_uid = common.get_model_uid(config_name, FLAGS.exp_uid)
+    batch_size = config['batch_size']
 
-  # Load dataset
-  dataset = common.load_dataset(config)
-  basepath = dataset.basepath
-  save_path = dataset.save_path
-  train_data = dataset.train_data
-  eval_data = dataset.eval_data
+    # Load dataset
+    dataset = common.load_dataset(config)
+    basepath = dataset.basepath
+    save_path = dataset.save_path
+    train_data = dataset.train_data
+    eval_data = dataset.eval_data
 
-  # Make the directory
-  save_dir = os.path.join(save_path, model_uid)
-  best_dir = os.path.join(save_dir, 'best')
-  tf.gfile.MakeDirs(save_dir)
-  tf.gfile.MakeDirs(best_dir)
-  tf.logging.info('Save Dir: %s', save_dir)
+    # Make the directory
+    save_dir = os.path.join(save_path, model_uid)
+    best_dir = os.path.join(save_dir, 'best')
+    tf.gfile.MakeDirs(save_dir)
+    tf.gfile.MakeDirs(best_dir)
+    tf.logging.info('Save Dir: %s', save_dir)
 
-  # Load Model
-  tf.reset_default_graph()
-  sess = tf.Session()
-  m = model_dataspace.Model(config, name=model_uid)
-  _ = m()  # noqa
+    # Load Model
+    tf.reset_default_graph()
+    sess = tf.Session()
+    m = model_dataspace.Model(config, name=model_uid)
+    _ = m()  # noqa
 
-  # Initialize
-  sess.run(tf.global_variables_initializer())
+    # Initialize
+    sess.run(tf.global_variables_initializer())
 
-  # Load
-  m.vae_saver.restore(sess,
-                      os.path.join(best_dir, 'vae_best_%s.ckpt' % model_uid))
+    # Load
+    m.vae_saver.restore(sess,
+                        os.path.join(best_dir, 'vae_best_%s.ckpt' % model_uid))
 
-  # Encode
-  def encode(data):
-    """Encode the data in dataspace to latent spaceself.
+    # Encode
+    def encode(data):
+        """Encode the data in dataspace to latent spaceself.
 
     This script runs the encoding in batched mode to limit GPU memory usage.
 
@@ -89,53 +89,53 @@ def main(unused_argv):
       A object with instances `mu` and `sigma`, the parameters of encoded
       distributions in the latent space.
     """
-    mu_list, sigma_list = [], []
+        mu_list, sigma_list = [], []
 
-    for i in range(0, len(data), batch_size):
-      start, end = i, min(i + batch_size, len(data))
-      batch = data[start:end]
+        for i in range(0, len(data), batch_size):
+            start, end = i, min(i + batch_size, len(data))
+            batch = data[start:end]
 
-      mu, sigma = sess.run([m.mu, m.sigma], {m.x: batch})
-      mu_list.append(mu)
-      sigma_list.append(sigma)
+            mu, sigma = sess.run([m.mu, m.sigma], {m.x: batch})
+            mu_list.append(mu)
+            sigma_list.append(sigma)
 
-    mu = np.concatenate(mu_list)
-    sigma = np.concatenate(sigma_list)
+        mu = np.concatenate(mu_list)
+        sigma = np.concatenate(sigma_list)
 
-    return common.ObjectBlob(mu=mu, sigma=sigma)
+        return common.ObjectBlob(mu=mu, sigma=sigma)
 
-  encoded_train_data = encode(train_data)
-  tf.logging.info(
-      'encode train_data: mu.shape = %s sigma.shape = %s',
-      encoded_train_data.mu.shape,
-      encoded_train_data.sigma.shape,
-  )
+    encoded_train_data = encode(train_data)
+    tf.logging.info(
+        'encode train_data: mu.shape = %s sigma.shape = %s',
+        encoded_train_data.mu.shape,
+        encoded_train_data.sigma.shape,
+    )
 
-  encoded_eval_data = encode(eval_data)
-  tf.logging.info(
-      'encode eval_data: mu.shape = %s sigma.shape = %s',
-      encoded_eval_data.mu.shape,
-      encoded_eval_data.sigma.shape,
-  )
+    encoded_eval_data = encode(eval_data)
+    tf.logging.info(
+        'encode eval_data: mu.shape = %s sigma.shape = %s',
+        encoded_eval_data.mu.shape,
+        encoded_eval_data.sigma.shape,
+    )
 
-  # Save encoded as npz file
-  encoded_save_path = os.path.join(basepath, 'encoded', model_uid)
-  tf.gfile.MakeDirs(encoded_save_path)
-  tf.logging.info('encoded train_data saved to %s',
-                  os.path.join(encoded_save_path, 'encoded_train_data.npz'))
-  np.savez(
-      os.path.join(encoded_save_path, 'encoded_train_data.npz'),
-      mu=encoded_train_data.mu,
-      sigma=encoded_train_data.sigma,
-  )
-  tf.logging.info('encoded eval_data saved to %s',
-                  os.path.join(encoded_save_path, 'encoded_eval_data.npz'))
-  np.savez(
-      os.path.join(encoded_save_path, 'encoded_eval_data.npz'),
-      mu=encoded_eval_data.mu,
-      sigma=encoded_eval_data.sigma,
-  )
+    # Save encoded as npz file
+    encoded_save_path = os.path.join(basepath, 'encoded', model_uid)
+    tf.gfile.MakeDirs(encoded_save_path)
+    tf.logging.info('encoded train_data saved to %s',
+                    os.path.join(encoded_save_path, 'encoded_train_data.npz'))
+    np.savez(
+        os.path.join(encoded_save_path, 'encoded_train_data.npz'),
+        mu=encoded_train_data.mu,
+        sigma=encoded_train_data.sigma,
+    )
+    tf.logging.info('encoded eval_data saved to %s',
+                    os.path.join(encoded_save_path, 'encoded_eval_data.npz'))
+    np.savez(
+        os.path.join(encoded_save_path, 'encoded_eval_data.npz'),
+        mu=encoded_eval_data.mu,
+        sigma=encoded_eval_data.sigma,
+    )
 
 
 if __name__ == '__main__':
-  tf.app.run(main)
+    tf.app.run(main)

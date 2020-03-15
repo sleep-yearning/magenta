@@ -27,13 +27,13 @@ import tensorflow.compat.v1 as tf
 
 
 def main(argv):
-  t2t_decoder.main(argv)
+    t2t_decoder.main(argv)
 
 
 def console_entry_point():
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run(main)
+    tf.logging.set_verbosity(tf.logging.INFO)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

@@ -46,25 +46,25 @@ flags.DEFINE_string(
 
 
 def main(unused_argv):
-  tf.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
-  pipeline_instance = polyphony_rnn_pipeline.get_pipeline(
-      min_steps=80,  # 5 measures
-      max_steps=512,
-      eval_ratio=FLAGS.eval_ratio,
-      config=polyphony_model.default_configs['polyphony'])
+    pipeline_instance = polyphony_rnn_pipeline.get_pipeline(
+        min_steps=80,  # 5 measures
+        max_steps=512,
+        eval_ratio=FLAGS.eval_ratio,
+        config=polyphony_model.default_configs['polyphony'])
 
-  input_dir = os.path.expanduser(FLAGS.input)
-  output_dir = os.path.expanduser(FLAGS.output_dir)
-  pipeline.run_pipeline_serial(
-      pipeline_instance,
-      pipeline.tf_record_iterator(input_dir, pipeline_instance.input_type),
-      output_dir)
+    input_dir = os.path.expanduser(FLAGS.input)
+    output_dir = os.path.expanduser(FLAGS.output_dir)
+    pipeline.run_pipeline_serial(
+        pipeline_instance,
+        pipeline.tf_record_iterator(input_dir, pipeline_instance.input_type),
+        output_dir)
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

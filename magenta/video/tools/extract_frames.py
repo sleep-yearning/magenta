@@ -104,7 +104,7 @@ ARGS = PARSER.parse_args()
 
 
 def crop(img, size):
-  """resize the images.
+    """resize the images.
 
   Args:
     img: a pillow image
@@ -113,63 +113,63 @@ def crop(img, size):
   Returns:
     nothing
   """
-  small_side = min(img.size)
-  center = img.size[0] / 2
-  margin_left = center - small_side / 2
-  margin_right = margin_left + small_side
-  img = img.crop((margin_left, 0, margin_right, small_side))
-  img = img.resize((size, size), Image.ANTIALIAS)
-  return img
+    small_side = min(img.size)
+    center = img.size[0] / 2
+    margin_left = center - small_side / 2
+    margin_right = margin_left + small_side
+    img = img.crop((margin_left, 0, margin_right, small_side))
+    img = img.resize((size, size), Image.ANTIALIAS)
+    return img
 
 
 def main(_):
-  """The main fonction use skvideo to extract frames as jpg.
+    """The main fonction use skvideo to extract frames as jpg.
 
   It can do it from a part or the totality of the video.
 
   Args:
     Nothing
   """
-  print('argument to expand', ARGS.video_in)
-  print('argument expanded', glob.glob(ARGS.video_in))
-  video_count = 0
-  for video_filename in glob.glob(ARGS.video_in):
-    print('start parsing', video_filename)
-    data = skvideo.io.ffprobe(video_filename)['video']
-    rate_str = data['@r_frame_rate'].split('/')
-    rate = float(rate_str[0]) / float(rate_str[1])
-    print('detected frame rate:', rate)
+    print('argument to expand', ARGS.video_in)
+    print('argument expanded', glob.glob(ARGS.video_in))
+    video_count = 0
+    for video_filename in glob.glob(ARGS.video_in):
+        print('start parsing', video_filename)
+        data = skvideo.io.ffprobe(video_filename)['video']
+        rate_str = data['@r_frame_rate'].split('/')
+        rate = float(rate_str[0]) / float(rate_str[1])
+        print('detected frame rate:', rate)
 
-    print('load frames:')
-    video = skvideo.io.vreader(video_filename)
-    frame_count = 0
-    file_count = 0
-    for frame in video:
-      if (frame_count > ARGS.offset) and \
-         ((frame_count-ARGS.offset)%ARGS.skip == 0) and \
-         (frame_count/rate >= ARGS.from_s) and \
-         (frame_count/rate <= ARGS.to_s or ARGS.to_s == -1):
-        print(frame_count,)
-        img = Image.fromarray(frame)
-        if ARGS.crop:
-          img = crop(img, ARGS.size)
-        # save file
-        file_number = file_count + video_count * ARGS.multiple + ARGS.start
-        if ARGS.format_ext.lower() == 'jpg':
-          file_out = os.path.join(ARGS.path_out,
-                                  'f{:07d}.jpg'.format(file_number))
-          img.save(file_out, 'JPEG')
-        elif ARGS.format_ext.lower() == 'png':
-          file_out = os.path.join(ARGS.path_out,
-                                  'f{:07d}.png'.format(file_number))
-          img.save(file_out, 'PNG')
-        else:
-          print('unrecognize format', ARGS.format_ext)
-          quit()
-        file_count += 1
-      frame_count += 1
-    video_count += 1
+        print('load frames:')
+        video = skvideo.io.vreader(video_filename)
+        frame_count = 0
+        file_count = 0
+        for frame in video:
+            if (frame_count > ARGS.offset) and \
+                    ((frame_count - ARGS.offset) % ARGS.skip == 0) and \
+                    (frame_count / rate >= ARGS.from_s) and \
+                    (frame_count / rate <= ARGS.to_s or ARGS.to_s == -1):
+                print(frame_count, )
+                img = Image.fromarray(frame)
+                if ARGS.crop:
+                    img = crop(img, ARGS.size)
+                # save file
+                file_number = file_count + video_count * ARGS.multiple + ARGS.start
+                if ARGS.format_ext.lower() == 'jpg':
+                    file_out = os.path.join(ARGS.path_out,
+                                            'f{:07d}.jpg'.format(file_number))
+                    img.save(file_out, 'JPEG')
+                elif ARGS.format_ext.lower() == 'png':
+                    file_out = os.path.join(ARGS.path_out,
+                                            'f{:07d}.png'.format(file_number))
+                    img.save(file_out, 'PNG')
+                else:
+                    print('unrecognize format', ARGS.format_ext)
+                    quit()
+                file_count += 1
+            frame_count += 1
+        video_count += 1
 
 
 if __name__ == '__main__':
-  main(0)
+    main(0)

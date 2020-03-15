@@ -46,101 +46,101 @@ tf.app.flags.DEFINE_string("log", "INFO",
 
 
 def save_arrays(savedir, hparams, z_val):
-  """Save arrays as npy files.
+    """Save arrays as npy files.
 
   Args:
     savedir: Directory where arrays are saved.
     hparams: Hyperparameters.
     z_val: Array to save.
   """
-  z_save_val = np.array(z_val).reshape(-1, hparams.num_latent)
+    z_save_val = np.array(z_val).reshape(-1, hparams.num_latent)
 
-  name = FLAGS.tfrecord_path.split("/")[-1].split(".tfrecord")[0]
-  save_name = os.path.join(savedir, "{}_%s.npy".format(name))
-  with tf.gfile.Open(save_name % "z", "w") as f:
-    np.save(f, z_save_val)
+    name = FLAGS.tfrecord_path.split("/")[-1].split(".tfrecord")[0]
+    save_name = os.path.join(savedir, "{}_%s.npy".format(name))
+    with tf.gfile.Open(save_name % "z", "w") as f:
+        np.save(f, z_save_val)
 
-  tf.logging.info("Z_Save:{}".format(z_save_val.shape))
-  tf.logging.info("Successfully saved to {}".format(save_name % ""))
+    tf.logging.info("Z_Save:{}".format(z_save_val.shape))
+    tf.logging.info("Successfully saved to {}".format(save_name % ""))
 
 
 def main(unused_argv):
-  tf.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
-  if FLAGS.checkpoint_path:
-    checkpoint_path = FLAGS.checkpoint_path
-  else:
-    expdir = FLAGS.expdir
-    tf.logging.info("Will load latest checkpoint from %s.", expdir)
-    while not tf.gfile.Exists(expdir):
-      tf.logging.fatal("\tExperiment save dir '%s' does not exist!", expdir)
-      sys.exit(1)
+    if FLAGS.checkpoint_path:
+        checkpoint_path = FLAGS.checkpoint_path
+    else:
+        expdir = FLAGS.expdir
+        tf.logging.info("Will load latest checkpoint from %s.", expdir)
+        while not tf.gfile.Exists(expdir):
+            tf.logging.fatal("\tExperiment save dir '%s' does not exist!", expdir)
+            sys.exit(1)
 
-    try:
-      checkpoint_path = tf.train.latest_checkpoint(expdir)
-    except tf.errors.NotFoundError:
-      tf.logging.fatal("There was a problem determining the latest checkpoint.")
-      sys.exit(1)
+        try:
+            checkpoint_path = tf.train.latest_checkpoint(expdir)
+        except tf.errors.NotFoundError:
+            tf.logging.fatal("There was a problem determining the latest checkpoint.")
+            sys.exit(1)
 
-  if not tf.train.checkpoint_exists(checkpoint_path):
-    tf.logging.fatal("Invalid checkpoint path: %s", checkpoint_path)
-    sys.exit(1)
+    if not tf.train.checkpoint_exists(checkpoint_path):
+        tf.logging.fatal("Invalid checkpoint path: %s", checkpoint_path)
+        sys.exit(1)
 
-  savedir = FLAGS.savedir
-  if not tf.gfile.Exists(savedir):
-    tf.gfile.MakeDirs(savedir)
+    savedir = FLAGS.savedir
+    if not tf.gfile.Exists(savedir):
+        tf.gfile.MakeDirs(savedir)
 
-  # Make the graph
-  with tf.Graph().as_default():
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-      model = utils.get_module("baseline.models.%s" % FLAGS.model)
-      hparams = model.get_hparams(FLAGS.config)
+    # Make the graph
+    with tf.Graph().as_default():
+        with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+            model = utils.get_module("baseline.models.%s" % FLAGS.model)
+            hparams = model.get_hparams(FLAGS.config)
 
-      # Load the trained model with is_training=False
-      with tf.name_scope("Reader"):
-        batch = reader.NSynthDataset(
-            FLAGS.tfrecord_path,
-            is_training=False).get_baseline_batch(hparams)
+            # Load the trained model with is_training=False
+            with tf.name_scope("Reader"):
+                batch = reader.NSynthDataset(
+                    FLAGS.tfrecord_path,
+                    is_training=False).get_baseline_batch(hparams)
 
-      _ = model.train_op(batch, hparams, FLAGS.config)
-      z = tf.get_collection("z")[0]
+            _ = model.train_op(batch, hparams, FLAGS.config)
+            z = tf.get_collection("z")[0]
 
-      init_op = tf.group(tf.global_variables_initializer(),
-                         tf.local_variables_initializer())
-      sess.run(init_op)
+            init_op = tf.group(tf.global_variables_initializer(),
+                               tf.local_variables_initializer())
+            sess.run(init_op)
 
-      # Add ops to save and restore all the variables.
-      # Restore variables from disk.
-      saver = tf.train.Saver()
-      saver.restore(sess, checkpoint_path)
-      tf.logging.info("Model restored.")
+            # Add ops to save and restore all the variables.
+            # Restore variables from disk.
+            saver = tf.train.Saver()
+            saver.restore(sess, checkpoint_path)
+            tf.logging.info("Model restored.")
 
-      # Start up some threads
-      coord = tf.train.Coordinator()
-      threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-      i = 0
-      z_val = []
-      try:
-        while True:
-          if coord.should_stop():
-            break
-          res_val = sess.run([z])
-          z_val.append(res_val[0])
-          tf.logging.info("Iter: %d" % i)
-          tf.logging.info("Z:{}".format(res_val[0].shape))
-          i += 1
-          if i + 1 % 1 == 0:
-            save_arrays(savedir, hparams, z_val)
-      # Report all exceptions to the coordinator, pylint: disable=broad-except
-      except Exception as e:
-        coord.request_stop(e)
-      # pylint: enable=broad-except
-      finally:
-        save_arrays(savedir, hparams, z_val)
-        # Terminate as usual.  It is innocuous to request stop twice.
-        coord.request_stop()
-        coord.join(threads)
+            # Start up some threads
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+            i = 0
+            z_val = []
+            try:
+                while True:
+                    if coord.should_stop():
+                        break
+                    res_val = sess.run([z])
+                    z_val.append(res_val[0])
+                    tf.logging.info("Iter: %d" % i)
+                    tf.logging.info("Z:{}".format(res_val[0].shape))
+                    i += 1
+                    if i + 1 % 1 == 0:
+                        save_arrays(savedir, hparams, z_val)
+            # Report all exceptions to the coordinator, pylint: disable=broad-except
+            except Exception as e:
+                coord.request_stop(e)
+            # pylint: enable=broad-except
+            finally:
+                save_arrays(savedir, hparams, z_val)
+                # Terminate as usual.  It is innocuous to request stop twice.
+                coord.request_stop()
+                coord.join(threads)
 
 
 if __name__ == "__main__":
-  tf.app.run()
+    tf.app.run()

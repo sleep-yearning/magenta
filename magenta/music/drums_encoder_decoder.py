@@ -51,11 +51,11 @@ DEFAULT_DRUM_TYPE_PITCHES = [
 
 
 class DrumsEncodingError(Exception):
-  pass
+    pass
 
 
 class MultiDrumOneHotEncoding(encoder_decoder.OneHotEncoding):
-  """Encodes drum events as binary where each bit is a different drum type.
+    """Encodes drum events as binary where each bit is a different drum type.
 
   Each event consists of multiple simultaneous drum "pitches". This encoding
   converts each pitch to a drum type, e.g. bass drum, hi-hat, etc. Each drum
@@ -67,8 +67,8 @@ class MultiDrumOneHotEncoding(encoder_decoder.OneHotEncoding):
   were present.
   """
 
-  def __init__(self, drum_type_pitches=None, ignore_unknown_drums=True):
-    """Initializes the MultiDrumOneHotEncoding.
+    def __init__(self, drum_type_pitches=None, ignore_unknown_drums=True):
+        """Initializes the MultiDrumOneHotEncoding.
 
     Args:
       drum_type_pitches: A Python list of the MIDI pitch values for each drum
@@ -77,34 +77,34 @@ class MultiDrumOneHotEncoding(encoder_decoder.OneHotEncoding):
           If False, a DrumsEncodingError will be raised when unknown drum
           pitches are encountered.
     """
-    if drum_type_pitches is None:
-      drum_type_pitches = DEFAULT_DRUM_TYPE_PITCHES
-    self._drum_map = dict(enumerate(drum_type_pitches))
-    self._inverse_drum_map = dict((pitch, index)
-                                  for index, pitches in self._drum_map.items()
-                                  for pitch in pitches)
-    self._ignore_unknown_drums = ignore_unknown_drums
+        if drum_type_pitches is None:
+            drum_type_pitches = DEFAULT_DRUM_TYPE_PITCHES
+        self._drum_map = dict(enumerate(drum_type_pitches))
+        self._inverse_drum_map = dict((pitch, index)
+                                      for index, pitches in self._drum_map.items()
+                                      for pitch in pitches)
+        self._ignore_unknown_drums = ignore_unknown_drums
 
-  @property
-  def num_classes(self):
-    return 2 ** len(self._drum_map)
+    @property
+    def num_classes(self):
+        return 2 ** len(self._drum_map)
 
-  @property
-  def default_event(self):
-    return frozenset()
+    @property
+    def default_event(self):
+        return frozenset()
 
-  def encode_event(self, event):
-    drum_type_indices = set()
-    for pitch in event:
-      if pitch in self._inverse_drum_map:
-        drum_type_indices.add(self._inverse_drum_map[pitch])
-      elif not self._ignore_unknown_drums:
-        raise DrumsEncodingError('unknown drum pitch: %d' % pitch)
-    return sum(2 ** i for i in drum_type_indices)
+    def encode_event(self, event):
+        drum_type_indices = set()
+        for pitch in event:
+            if pitch in self._inverse_drum_map:
+                drum_type_indices.add(self._inverse_drum_map[pitch])
+            elif not self._ignore_unknown_drums:
+                raise DrumsEncodingError('unknown drum pitch: %d' % pitch)
+        return sum(2 ** i for i in drum_type_indices)
 
-  def decode_event(self, index):
-    bits = reversed(str(bin(index)))
-    # Use the first "pitch" for each drum type.
-    return frozenset(self._drum_map[i][0]
-                     for i, b in enumerate(bits)
-                     if b == '1')
+    def decode_event(self, index):
+        bits = reversed(str(bin(index)))
+        # Use the first "pitch" for each drum type.
+        return frozenset(self._drum_map[i][0]
+                         for i, b in enumerate(bits)
+                         if b == '1')

@@ -20,7 +20,7 @@ from google.protobuf import text_format
 
 
 def assert_set_equality(test_case, expected, actual):
-  """Asserts that two lists are equal without order.
+    """Asserts that two lists are equal without order.
 
   Given two lists, treat them as sets and test equality. This function only
   requires an __eq__ method to be defined on the objects, and not __hash__
@@ -38,50 +38,50 @@ def assert_set_equality(test_case, expected, actual):
     expected: A list of objects.
     actual: A list of objects.
   """
-  actual_found = np.zeros(len(actual), dtype=bool)
-  for expected_obj in expected:
-    found = False
-    for i, actual_obj in enumerate(actual):
-      if expected_obj == actual_obj:
-        actual_found[i] = True
-        found = True
-        break
-    if not found:
-      test_case.fail('Expected %s not found in actual collection' %
-                     expected_obj)
-  if not np.all(actual_found):
-    test_case.fail('Actual objects %s not found in expected collection' %
-                   np.array(actual)[np.invert(actual_found)])
+    actual_found = np.zeros(len(actual), dtype=bool)
+    for expected_obj in expected:
+        found = False
+        for i, actual_obj in enumerate(actual):
+            if expected_obj == actual_obj:
+                actual_found[i] = True
+                found = True
+                break
+        if not found:
+            test_case.fail('Expected %s not found in actual collection' %
+                           expected_obj)
+    if not np.all(actual_found):
+        test_case.fail('Actual objects %s not found in expected collection' %
+                       np.array(actual)[np.invert(actual_found)])
 
 
 def parse_test_proto(proto_type, proto_string):
-  instance = proto_type()
-  text_format.Merge(proto_string, instance)
-  return instance
+    instance = proto_type()
+    text_format.Merge(proto_string, instance)
+    return instance
 
 
 class MockStringProto(object):
-  """Provides common methods for a protocol buffer object.
+    """Provides common methods for a protocol buffer object.
 
   Wraps a single string value. This makes testing equality easy.
   """
 
-  def __init__(self, string=''):
-    self.string = string
+    def __init__(self, string=''):
+        self.string = string
 
-  @staticmethod
-  def FromString(string):  # pylint: disable=invalid-name
-    return MockStringProto(string)
+    @staticmethod
+    def FromString(string):  # pylint: disable=invalid-name
+        return MockStringProto(string)
 
-  def SerializeToString(self):  # pylint: disable=invalid-name
-    # protobuf's SerializeToString returns binary string
-    if six.PY3:
-      return ('serialized:' + self.string).encode('utf-8')
-    else:
-      return 'serialized:' + self.string
+    def SerializeToString(self):  # pylint: disable=invalid-name
+        # protobuf's SerializeToString returns binary string
+        if six.PY3:
+            return ('serialized:' + self.string).encode('utf-8')
+        else:
+            return 'serialized:' + self.string
 
-  def __eq__(self, other):
-    return isinstance(other, MockStringProto) and self.string == other.string
+    def __eq__(self, other):
+        return isinstance(other, MockStringProto) and self.string == other.string
 
-  def __hash__(self):
-    return hash(self.string)
+    def __hash__(self):
+        return hash(self.string)

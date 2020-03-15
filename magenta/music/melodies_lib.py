@@ -43,15 +43,15 @@ NOTE_KEYS = constants.NOTE_KEYS
 
 
 class PolyphonicMelodyError(Exception):
-  pass
+    pass
 
 
 class BadNoteError(Exception):
-  pass
+    pass
 
 
 class Melody(events_lib.SimpleEventSequence):
-  """Stores a quantized stream of monophonic melody events.
+    """Stores a quantized stream of monophonic melody events.
 
   Melody is an intermediate representation that all melody models can use.
   Quantized sequence to Melody code will do work to align notes and extract
@@ -91,17 +91,17 @@ class Melody(events_lib.SimpleEventSequence):
     steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
-  def __init__(self, events=None, **kwargs):
-    """Construct a Melody."""
-    if 'pad_event' in kwargs:
-      del kwargs['pad_event']
-    super(Melody, self).__init__(pad_event=MELODY_NO_EVENT,
-                                 events=events, **kwargs)
+    def __init__(self, events=None, **kwargs):
+        """Construct a Melody."""
+        if 'pad_event' in kwargs:
+            del kwargs['pad_event']
+        super(Melody, self).__init__(pad_event=MELODY_NO_EVENT,
+                                     events=events, **kwargs)
 
-  def _from_event_list(self, events, start_step=0,
-                       steps_per_bar=DEFAULT_STEPS_PER_BAR,
-                       steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
-    """Initializes with a list of event values and sets attributes.
+    def _from_event_list(self, events, start_step=0,
+                         steps_per_bar=DEFAULT_STEPS_PER_BAR,
+                         steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
+        """Initializes with a list of event values and sets attributes.
 
     Args:
       events: List of Melody events to set melody to.
@@ -112,22 +112,22 @@ class Melody(events_lib.SimpleEventSequence):
     Raises:
       ValueError: If `events` contains an event that is not in the proper range.
     """
-    for event in events:
-      if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
-        raise ValueError('Melody event out of range: %d' % event)
-    # Replace MELODY_NOTE_OFF events with MELODY_NO_EVENT before first note.
-    cleaned_events = list(events)
-    for i, e in enumerate(events):
-      if e not in (MELODY_NO_EVENT, MELODY_NOTE_OFF):
-        break
-      cleaned_events[i] = MELODY_NO_EVENT
+        for event in events:
+            if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
+                raise ValueError('Melody event out of range: %d' % event)
+        # Replace MELODY_NOTE_OFF events with MELODY_NO_EVENT before first note.
+        cleaned_events = list(events)
+        for i, e in enumerate(events):
+            if e not in (MELODY_NO_EVENT, MELODY_NOTE_OFF):
+                break
+            cleaned_events[i] = MELODY_NO_EVENT
 
-    super(Melody, self)._from_event_list(
-        cleaned_events, start_step=start_step, steps_per_bar=steps_per_bar,
-        steps_per_quarter=steps_per_quarter)
+        super(Melody, self)._from_event_list(
+            cleaned_events, start_step=start_step, steps_per_bar=steps_per_bar,
+            steps_per_quarter=steps_per_quarter)
 
-  def _add_note(self, pitch, start_step, end_step):
-    """Adds the given note to the `events` list.
+    def _add_note(self, pitch, start_step, end_step):
+        """Adds the given note to the `events` list.
 
     `start_step` is set to the given pitch. `end_step` is set to NOTE_OFF.
     Everything after `start_step` in `events` is deleted before the note is
@@ -144,20 +144,20 @@ class Melody(events_lib.SimpleEventSequence):
     Raises:
       BadNoteError: If `start_step` does not precede `end_step`.
     """
-    if start_step >= end_step:
-      raise BadNoteError(
-          'Start step does not precede end step: start=%d, end=%d' %
-          (start_step, end_step))
+        if start_step >= end_step:
+            raise BadNoteError(
+                'Start step does not precede end step: start=%d, end=%d' %
+                (start_step, end_step))
 
-    self.set_length(end_step + 1)
+        self.set_length(end_step + 1)
 
-    self._events[start_step] = pitch
-    self._events[end_step] = MELODY_NOTE_OFF
-    for i in range(start_step + 1, end_step):
-      self._events[i] = MELODY_NO_EVENT
+        self._events[start_step] = pitch
+        self._events[end_step] = MELODY_NOTE_OFF
+        for i in range(start_step + 1, end_step):
+            self._events[i] = MELODY_NO_EVENT
 
-  def _get_last_on_off_events(self):
-    """Returns indexes of the most recent pitch and NOTE_OFF events.
+    def _get_last_on_off_events(self):
+        """Returns indexes of the most recent pitch and NOTE_OFF events.
 
     Returns:
       A tuple (start_step, end_step) of the last note's on and off event
@@ -166,43 +166,43 @@ class Melody(events_lib.SimpleEventSequence):
     Raises:
       ValueError: If `events` contains no NOTE_OFF or pitch events.
     """
-    last_off = len(self)
-    for i in range(len(self) - 1, -1, -1):
-      if self._events[i] == MELODY_NOTE_OFF:
-        last_off = i
-      if self._events[i] >= MIN_MIDI_PITCH:
-        return (i, last_off)
-    raise ValueError('No events in the stream')
+        last_off = len(self)
+        for i in range(len(self) - 1, -1, -1):
+            if self._events[i] == MELODY_NOTE_OFF:
+                last_off = i
+            if self._events[i] >= MIN_MIDI_PITCH:
+                return (i, last_off)
+        raise ValueError('No events in the stream')
 
-  def get_note_histogram(self):
-    """Gets a histogram of the note occurrences in a melody.
+    def get_note_histogram(self):
+        """Gets a histogram of the note occurrences in a melody.
 
     Returns:
       A list of 12 ints, one for each note value (C at index 0 through B at
       index 11). Each int is the total number of times that note occurred in
       the melody.
     """
-    np_melody = np.array(self._events, dtype=int)
-    return np.bincount(np_melody[np_melody >= MIN_MIDI_PITCH] %
-                       NOTES_PER_OCTAVE,
-                       minlength=NOTES_PER_OCTAVE)
+        np_melody = np.array(self._events, dtype=int)
+        return np.bincount(np_melody[np_melody >= MIN_MIDI_PITCH] %
+                           NOTES_PER_OCTAVE,
+                           minlength=NOTES_PER_OCTAVE)
 
-  def get_major_key_histogram(self):
-    """Gets a histogram of the how many notes fit into each key.
+    def get_major_key_histogram(self):
+        """Gets a histogram of the how many notes fit into each key.
 
     Returns:
       A list of 12 ints, one for each Major key (C Major at index 0 through
       B Major at index 11). Each int is the total number of notes that could
       fit into that key.
     """
-    note_histogram = self.get_note_histogram()
-    key_histogram = np.zeros(NOTES_PER_OCTAVE)
-    for note, count in enumerate(note_histogram):
-      key_histogram[NOTE_KEYS[note]] += count
-    return key_histogram
+        note_histogram = self.get_note_histogram()
+        key_histogram = np.zeros(NOTES_PER_OCTAVE)
+        for note, count in enumerate(note_histogram):
+            key_histogram[NOTE_KEYS[note]] += count
+        return key_histogram
 
-  def get_major_key(self):
-    """Finds the major key that this melody most likely belongs to.
+    def get_major_key(self):
+        """Finds the major key that this melody most likely belongs to.
 
     If multiple keys match equally, the key with the lowest index is returned,
     where the indexes of the keys are C Major = 0 through B Major = 11.
@@ -210,11 +210,11 @@ class Melody(events_lib.SimpleEventSequence):
     Returns:
       An int for the most likely key (C Major = 0 through B Major = 11)
     """
-    key_histogram = self.get_major_key_histogram()
-    return key_histogram.argmax()
+        key_histogram = self.get_major_key_histogram()
+        return key_histogram.argmax()
 
-  def append(self, event):
-    """Appends the event to the end of the melody and increments the end step.
+    def append(self, event):
+        """Appends the event to the end of the melody and increments the end step.
 
     An implicit NOTE_OFF at the end of the melody will not be respected by this
     modification.
@@ -224,19 +224,19 @@ class Melody(events_lib.SimpleEventSequence):
     Raises:
       ValueError: If `event` is not in the proper range.
     """
-    if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
-      raise ValueError('Event out of range: %d' % event)
-    super(Melody, self).append(event)
+        if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
+            raise ValueError('Event out of range: %d' % event)
+        super(Melody, self).append(event)
 
-  def from_quantized_sequence(self,
-                              quantized_sequence,
-                              search_start_step=0,
-                              instrument=0,
-                              gap_bars=1,
-                              ignore_polyphonic_notes=False,
-                              pad_end=False,
-                              filter_drums=True):
-    """Populate self with a melody from the given quantized NoteSequence.
+    def from_quantized_sequence(self,
+                                quantized_sequence,
+                                search_start_step=0,
+                                instrument=0,
+                                gap_bars=1,
+                                ignore_polyphonic_notes=False,
+                                pad_end=False,
+                                filter_drums=True):
+        """Populate self with a melody from the given quantized NoteSequence.
 
     A monophonic melody is extracted from the given `instrument` starting at
     `search_start_step`. `instrument` and `search_start_step` can be used to
@@ -277,98 +277,98 @@ class Melody(events_lib.SimpleEventSequence):
       PolyphonicMelodyError: If any of the notes start on the same step
           and `ignore_polyphonic_notes` is False.
     """
-    sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
-    self._reset()
+        sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
+        self._reset()
 
-    steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
-        quantized_sequence)
-    if steps_per_bar_float % 1 != 0:
-      raise events_lib.NonIntegerStepsPerBarError(
-          'There are %f timesteps per bar. Time signature: %d/%d' %
-          (steps_per_bar_float, quantized_sequence.time_signatures[0].numerator,
-           quantized_sequence.time_signatures[0].denominator))
-    self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
-    self._steps_per_quarter = (
-        quantized_sequence.quantization_info.steps_per_quarter)
+        steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
+            quantized_sequence)
+        if steps_per_bar_float % 1 != 0:
+            raise events_lib.NonIntegerStepsPerBarError(
+                'There are %f timesteps per bar. Time signature: %d/%d' %
+                (steps_per_bar_float, quantized_sequence.time_signatures[0].numerator,
+                 quantized_sequence.time_signatures[0].denominator))
+        self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
+        self._steps_per_quarter = (
+            quantized_sequence.quantization_info.steps_per_quarter)
 
-    # Sort track by note start times, and secondarily by pitch descending.
-    notes = sorted([n for n in quantized_sequence.notes
-                    if n.instrument == instrument and
-                    n.quantized_start_step >= search_start_step],
-                   key=lambda note: (note.quantized_start_step, -note.pitch))
+        # Sort track by note start times, and secondarily by pitch descending.
+        notes = sorted([n for n in quantized_sequence.notes
+                        if n.instrument == instrument and
+                        n.quantized_start_step >= search_start_step],
+                       key=lambda note: (note.quantized_start_step, -note.pitch))
 
-    if not notes:
-      return
+        if not notes:
+            return
 
-    # The first step in the melody, beginning at the first step of a bar.
-    melody_start_step = (
-        notes[0].quantized_start_step -
-        (notes[0].quantized_start_step - search_start_step) % steps_per_bar)
-    for note in notes:
-      if filter_drums and note.is_drum:
-        continue
+        # The first step in the melody, beginning at the first step of a bar.
+        melody_start_step = (
+                notes[0].quantized_start_step -
+                (notes[0].quantized_start_step - search_start_step) % steps_per_bar)
+        for note in notes:
+            if filter_drums and note.is_drum:
+                continue
 
-      # Ignore 0 velocity notes.
-      if not note.velocity:
-        continue
+            # Ignore 0 velocity notes.
+            if not note.velocity:
+                continue
 
-      start_index = note.quantized_start_step - melody_start_step
-      end_index = note.quantized_end_step - melody_start_step
+            start_index = note.quantized_start_step - melody_start_step
+            end_index = note.quantized_end_step - melody_start_step
 
-      if not self._events:
-        # If there are no events, we don't need to check for polyphony.
-        self._add_note(note.pitch, start_index, end_index)
-        continue
+            if not self._events:
+                # If there are no events, we don't need to check for polyphony.
+                self._add_note(note.pitch, start_index, end_index)
+                continue
 
-      # If `start_index` comes before or lands on an already added note's start
-      # step, we cannot add it. In that case either discard the melody or keep
-      # the highest pitch.
-      last_on, last_off = self._get_last_on_off_events()
-      on_distance = start_index - last_on
-      off_distance = start_index - last_off
-      if on_distance == 0:
-        if ignore_polyphonic_notes:
-          # Keep highest note.
-          # Notes are sorted by pitch descending, so if a note is already at
-          # this position its the highest pitch.
-          continue
-        else:
-          self._reset()
-          raise PolyphonicMelodyError()
-      elif on_distance < 0:
-        raise PolyphonicMelodyError(
-            'Unexpected note. Not in ascending order.')
+            # If `start_index` comes before or lands on an already added note's start
+            # step, we cannot add it. In that case either discard the melody or keep
+            # the highest pitch.
+            last_on, last_off = self._get_last_on_off_events()
+            on_distance = start_index - last_on
+            off_distance = start_index - last_off
+            if on_distance == 0:
+                if ignore_polyphonic_notes:
+                    # Keep highest note.
+                    # Notes are sorted by pitch descending, so if a note is already at
+                    # this position its the highest pitch.
+                    continue
+                else:
+                    self._reset()
+                    raise PolyphonicMelodyError()
+            elif on_distance < 0:
+                raise PolyphonicMelodyError(
+                    'Unexpected note. Not in ascending order.')
 
-      # If a gap of `gap` or more steps is found, end the melody.
-      if len(self) and off_distance >= gap_bars * steps_per_bar:  # pylint:disable=len-as-condition
-        break
+            # If a gap of `gap` or more steps is found, end the melody.
+            if len(self) and off_distance >= gap_bars * steps_per_bar:  # pylint:disable=len-as-condition
+                break
 
-      # Add the note-on and off events to the melody.
-      self._add_note(note.pitch, start_index, end_index)
+            # Add the note-on and off events to the melody.
+            self._add_note(note.pitch, start_index, end_index)
 
-    if not self._events:
-      # If no notes were added, don't set `_start_step` and `_end_step`.
-      return
+        if not self._events:
+            # If no notes were added, don't set `_start_step` and `_end_step`.
+            return
 
-    self._start_step = melody_start_step
+        self._start_step = melody_start_step
 
-    # Strip final MELODY_NOTE_OFF event.
-    if self._events[-1] == MELODY_NOTE_OFF:
-      del self._events[-1]
+        # Strip final MELODY_NOTE_OFF event.
+        if self._events[-1] == MELODY_NOTE_OFF:
+            del self._events[-1]
 
-    length = len(self)
-    # Optionally round up `_end_step` to a multiple of `steps_per_bar`.
-    if pad_end:
-      length += -len(self) % steps_per_bar
-    self.set_length(length)
+        length = len(self)
+        # Optionally round up `_end_step` to a multiple of `steps_per_bar`.
+        if pad_end:
+            length += -len(self) % steps_per_bar
+        self.set_length(length)
 
-  def to_sequence(self,
-                  velocity=100,
-                  instrument=0,
-                  program=0,
-                  sequence_start_time=0.0,
-                  qpm=120.0):
-    """Converts the Melody to NoteSequence proto.
+    def to_sequence(self,
+                    velocity=100,
+                    instrument=0,
+                    program=0,
+                    sequence_start_time=0.0,
+                    qpm=120.0):
+        """Converts the Melody to NoteSequence proto.
 
     The end of the melody is treated as a NOTE_OFF event for any sustained
     notes.
@@ -384,49 +384,49 @@ class Melody(events_lib.SimpleEventSequence):
     Returns:
       A NoteSequence proto encoding the given melody.
     """
-    seconds_per_step = 60.0 / qpm / self.steps_per_quarter
+        seconds_per_step = 60.0 / qpm / self.steps_per_quarter
 
-    sequence = music_pb2.NoteSequence()
-    sequence.tempos.add().qpm = qpm
-    sequence.ticks_per_quarter = STANDARD_PPQ
+        sequence = music_pb2.NoteSequence()
+        sequence.tempos.add().qpm = qpm
+        sequence.ticks_per_quarter = STANDARD_PPQ
 
-    sequence_start_time += self.start_step * seconds_per_step
-    current_sequence_note = None
-    for step, note in enumerate(self):
-      if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH:
+        sequence_start_time += self.start_step * seconds_per_step
+        current_sequence_note = None
+        for step, note in enumerate(self):
+            if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH:
+                # End any sustained notes.
+                if current_sequence_note is not None:
+                    current_sequence_note.end_time = (
+                            step * seconds_per_step + sequence_start_time)
+
+                # Add a note.
+                current_sequence_note = sequence.notes.add()
+                current_sequence_note.start_time = (
+                        step * seconds_per_step + sequence_start_time)
+                current_sequence_note.pitch = note
+                current_sequence_note.velocity = velocity
+                current_sequence_note.instrument = instrument
+                current_sequence_note.program = program
+
+            elif note == MELODY_NOTE_OFF:
+                # End any sustained notes.
+                if current_sequence_note is not None:
+                    current_sequence_note.end_time = (
+                            step * seconds_per_step + sequence_start_time)
+                    current_sequence_note = None
+
         # End any sustained notes.
         if current_sequence_note is not None:
-          current_sequence_note.end_time = (
-              step * seconds_per_step + sequence_start_time)
+            current_sequence_note.end_time = (
+                    len(self) * seconds_per_step + sequence_start_time)
 
-        # Add a note.
-        current_sequence_note = sequence.notes.add()
-        current_sequence_note.start_time = (
-            step * seconds_per_step + sequence_start_time)
-        current_sequence_note.pitch = note
-        current_sequence_note.velocity = velocity
-        current_sequence_note.instrument = instrument
-        current_sequence_note.program = program
+        if sequence.notes:
+            sequence.total_time = sequence.notes[-1].end_time
 
-      elif note == MELODY_NOTE_OFF:
-        # End any sustained notes.
-        if current_sequence_note is not None:
-          current_sequence_note.end_time = (
-              step * seconds_per_step + sequence_start_time)
-          current_sequence_note = None
+        return sequence
 
-    # End any sustained notes.
-    if current_sequence_note is not None:
-      current_sequence_note.end_time = (
-          len(self) * seconds_per_step + sequence_start_time)
-
-    if sequence.notes:
-      sequence.total_time = sequence.notes[-1].end_time
-
-    return sequence
-
-  def transpose(self, transpose_amount, min_note=0, max_note=128):
-    """Transpose notes in this Melody.
+    def transpose(self, transpose_amount, min_note=0, max_note=128):
+        """Transpose notes in this Melody.
 
     All notes are transposed the specified amount. Additionally, all notes
     are octave shifted to lie within the [min_note, max_note) range.
@@ -437,20 +437,20 @@ class Melody(events_lib.SimpleEventSequence):
       min_note: Minimum pitch (inclusive) that the resulting notes will take on.
       max_note: Maximum pitch (exclusive) that the resulting notes will take on.
     """
-    for i in range(len(self)):
-      # Transpose MIDI pitches. Special events below MIN_MIDI_PITCH are not
-      # changed.
-      if self._events[i] >= MIN_MIDI_PITCH:
-        self._events[i] += transpose_amount
-        if self._events[i] < min_note:
-          self._events[i] = (
-              min_note + (self._events[i] - min_note) % NOTES_PER_OCTAVE)
-        elif self._events[i] >= max_note:
-          self._events[i] = (max_note - NOTES_PER_OCTAVE +
-                             (self._events[i] - max_note) % NOTES_PER_OCTAVE)
+        for i in range(len(self)):
+            # Transpose MIDI pitches. Special events below MIN_MIDI_PITCH are not
+            # changed.
+            if self._events[i] >= MIN_MIDI_PITCH:
+                self._events[i] += transpose_amount
+                if self._events[i] < min_note:
+                    self._events[i] = (
+                            min_note + (self._events[i] - min_note) % NOTES_PER_OCTAVE)
+                elif self._events[i] >= max_note:
+                    self._events[i] = (max_note - NOTES_PER_OCTAVE +
+                                       (self._events[i] - max_note) % NOTES_PER_OCTAVE)
 
-  def squash(self, min_note, max_note, transpose_to_key=None):
-    """Transpose and octave shift the notes in this Melody.
+    def squash(self, min_note, max_note, transpose_to_key=None):
+        """Transpose and octave shift the notes in this Melody.
 
     The key center of this melody is computed with a heuristic, and the notes
     are transposed to be in the given key. The melody is also octave shifted
@@ -466,29 +466,29 @@ class Melody(events_lib.SimpleEventSequence):
     Returns:
       How much notes are transposed by.
     """
-    if transpose_to_key is None:
-      transpose_amount = 0
-    else:
-      melody_key = self.get_major_key()
-      key_diff = transpose_to_key - melody_key
-      midi_notes = [note for note in self._events
-                    if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
-      if not midi_notes:
-        return 0
-      melody_min_note = min(midi_notes)
-      melody_max_note = max(midi_notes)
-      melody_center = (melody_min_note + melody_max_note) / 2
-      target_center = (min_note + max_note - 1) / 2
-      center_diff = target_center - (melody_center + key_diff)
-      transpose_amount = (
-          key_diff +
-          NOTES_PER_OCTAVE * int(round(center_diff / float(NOTES_PER_OCTAVE))))
-    self.transpose(transpose_amount, min_note, max_note)
+        if transpose_to_key is None:
+            transpose_amount = 0
+        else:
+            melody_key = self.get_major_key()
+            key_diff = transpose_to_key - melody_key
+            midi_notes = [note for note in self._events
+                          if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
+            if not midi_notes:
+                return 0
+            melody_min_note = min(midi_notes)
+            melody_max_note = max(midi_notes)
+            melody_center = (melody_min_note + melody_max_note) / 2
+            target_center = (min_note + max_note - 1) / 2
+            center_diff = target_center - (melody_center + key_diff)
+            transpose_amount = (
+                    key_diff +
+                    NOTES_PER_OCTAVE * int(round(center_diff / float(NOTES_PER_OCTAVE))))
+        self.transpose(transpose_amount, min_note, max_note)
 
-    return transpose_amount
+        return transpose_amount
 
-  def set_length(self, steps, from_left=False):
-    """Sets the length of the melody to the specified number of steps.
+    def set_length(self, steps, from_left=False):
+        """Sets the length of the melody to the specified number of steps.
 
     If the melody is not long enough, ends any sustained notes and adds NO_EVENT
     steps for padding. If it is too long, it will be truncated to the requested
@@ -498,19 +498,19 @@ class Melody(events_lib.SimpleEventSequence):
       steps: How many steps long the melody should be.
       from_left: Whether to add/remove from the left instead of right.
     """
-    old_len = len(self)
-    super(Melody, self).set_length(steps, from_left=from_left)
-    if steps > old_len and not from_left:
-      # When extending the melody on the right, we end any sustained notes.
-      for i in reversed(range(old_len)):
-        if self._events[i] == MELODY_NOTE_OFF:
-          break
-        elif self._events[i] != MELODY_NO_EVENT:
-          self._events[old_len] = MELODY_NOTE_OFF
-          break
+        old_len = len(self)
+        super(Melody, self).set_length(steps, from_left=from_left)
+        if steps > old_len and not from_left:
+            # When extending the melody on the right, we end any sustained notes.
+            for i in reversed(range(old_len)):
+                if self._events[i] == MELODY_NOTE_OFF:
+                    break
+                elif self._events[i] != MELODY_NO_EVENT:
+                    self._events[old_len] = MELODY_NOTE_OFF
+                    break
 
-  def increase_resolution(self, k):
-    """Increase the resolution of a Melody.
+    def increase_resolution(self, k):
+        """Increase the resolution of a Melody.
 
     Increases the resolution of a Melody object by a factor of `k`. This uses
     MELODY_NO_EVENT to extend each event in the melody to be `k` steps long.
@@ -519,13 +519,13 @@ class Melody(events_lib.SimpleEventSequence):
       k: An integer, the factor by which to increase the resolution of the
           melody.
     """
-    super(Melody, self).increase_resolution(
-        k, fill_event=MELODY_NO_EVENT)
+        super(Melody, self).increase_resolution(
+            k, fill_event=MELODY_NO_EVENT)
 
 
 def midi_file_to_melody(midi_file, steps_per_quarter=4, qpm=None,
                         ignore_polyphonic_notes=True):
-  """Loads a melody from a MIDI file.
+    """Loads a melody from a MIDI file.
 
   Args:
     midi_file: Absolute path to MIDI file.
@@ -538,15 +538,15 @@ def midi_file_to_melody(midi_file, steps_per_quarter=4, qpm=None,
   Returns:
     A Melody object extracted from the MIDI file.
   """
-  sequence = midi_io.midi_file_to_sequence_proto(midi_file)
-  if qpm is None:
-    if sequence.tempos:
-      qpm = sequence.tempos[0].qpm
-    else:
-      qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
-  quantized_sequence = sequences_lib.quantize_note_sequence(
-      sequence, steps_per_quarter=steps_per_quarter)
-  melody = Melody()
-  melody.from_quantized_sequence(
-      quantized_sequence, ignore_polyphonic_notes=ignore_polyphonic_notes)
-  return melody
+    sequence = midi_io.midi_file_to_sequence_proto(midi_file)
+    if qpm is None:
+        if sequence.tempos:
+            qpm = sequence.tempos[0].qpm
+        else:
+            qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        sequence, steps_per_quarter=steps_per_quarter)
+    melody = Melody()
+    melody.from_quantized_sequence(
+        quantized_sequence, ignore_polyphonic_notes=ignore_polyphonic_notes)
+    return melody

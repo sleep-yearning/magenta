@@ -19,7 +19,7 @@ from tensorflow.contrib import training as contrib_training
 
 
 def merge_hparams(hparams_1, hparams_2):
-  """Merge hyperparameters from two tf.contrib.training.HParams objects.
+    """Merge hyperparameters from two tf.contrib.training.HParams objects.
 
   If the same key is present in both HParams objects, the value from `hparams_2`
   will be used.
@@ -32,13 +32,13 @@ def merge_hparams(hparams_1, hparams_2):
     A merged tf.contrib.training.HParams object with the hyperparameters from
     both `hparams_1` and `hparams_2`.
   """
-  hparams_map = hparams_1.values()
-  hparams_map.update(hparams_2.values())
-  return contrib_training.HParams(**hparams_map)
+    hparams_map = hparams_1.values()
+    hparams_map.update(hparams_2.values())
+    return contrib_training.HParams(**hparams_map)
 
 
 def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None):
-  """Calculate log losses.
+    """Calculate log losses.
 
   Same as tf.losses.log_loss except that this returns the individual losses
   instead of passing them into compute_weighted_loss and returning their
@@ -59,13 +59,13 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None):
   Raises:
     ValueError: If the shape of `predictions` doesn't match that of `labels`.
   """
-  with tf.name_scope(scope, "log_loss", (predictions, labels)):
-    predictions = tf.to_float(predictions)
-    labels = tf.to_float(labels)
-    predictions.get_shape().assert_is_compatible_with(labels.get_shape())
-    losses = -tf.multiply(labels, tf.log(predictions + epsilon)) - tf.multiply(
-        (1 - labels), tf.log(1 - predictions + epsilon))
-    if weights is not None:
-      losses = tf.multiply(losses, weights)
+    with tf.name_scope(scope, "log_loss", (predictions, labels)):
+        predictions = tf.to_float(predictions)
+        labels = tf.to_float(labels)
+        predictions.get_shape().assert_is_compatible_with(labels.get_shape())
+        losses = -tf.multiply(labels, tf.log(predictions + epsilon)) - tf.multiply(
+            (1 - labels), tf.log(1 - predictions + epsilon))
+        if weights is not None:
+            losses = tf.multiply(losses, weights)
 
-    return losses
+        return losses

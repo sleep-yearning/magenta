@@ -30,7 +30,7 @@ BeamEntry = collections.namedtuple('BeamEntry', ['sequence', 'state', 'score'])
 
 def _generate_branches(beam_entries, generate_step_fn, branch_factor,
                        num_steps):
-  """Performs a single iteration of branch generation for beam search.
+    """Performs a single iteration of branch generation for beam search.
 
   This method generates `branch_factor` branches for each sequence in the beam,
   where each branch extends the event sequence by `num_steps` steps (via calls
@@ -50,37 +50,37 @@ def _generate_branches(beam_entries, generate_step_fn, branch_factor,
   Returns:
     The updated beam, with `branch_factor` times as many BeamEntry tuples.
   """
-  if branch_factor > 1:
-    branched_entries = beam_entries * branch_factor
-    all_sequences = [copy.deepcopy(entry.sequence)
-                     for entry in branched_entries]
-    all_states = [copy.deepcopy(entry.state) for entry in branched_entries]
-    all_scores = [entry.score for entry in branched_entries]
-  else:
-    # No need to make copies if there's no branching.
-    all_sequences = [entry.sequence for entry in beam_entries]
-    all_states = [entry.state for entry in beam_entries]
-    all_scores = [entry.score for entry in beam_entries]
+    if branch_factor > 1:
+        branched_entries = beam_entries * branch_factor
+        all_sequences = [copy.deepcopy(entry.sequence)
+                         for entry in branched_entries]
+        all_states = [copy.deepcopy(entry.state) for entry in branched_entries]
+        all_scores = [entry.score for entry in branched_entries]
+    else:
+        # No need to make copies if there's no branching.
+        all_sequences = [entry.sequence for entry in beam_entries]
+        all_states = [entry.state for entry in beam_entries]
+        all_scores = [entry.score for entry in beam_entries]
 
-  for _ in range(num_steps):
-    all_sequences, all_states, all_scores = generate_step_fn(
-        all_sequences, all_states, all_scores)
+    for _ in range(num_steps):
+        all_sequences, all_states, all_scores = generate_step_fn(
+            all_sequences, all_states, all_scores)
 
-  return [BeamEntry(sequence, state, score)
-          for sequence, state, score
-          in zip(all_sequences, all_states, all_scores)]
+    return [BeamEntry(sequence, state, score)
+            for sequence, state, score
+            in zip(all_sequences, all_states, all_scores)]
 
 
 def _prune_branches(beam_entries, k):
-  """Prune all but the `k` sequences with highest score from the beam."""
-  indices = heapq.nlargest(k, range(len(beam_entries)),
-                           key=lambda i: beam_entries[i].score)
-  return [beam_entries[i] for i in indices]
+    """Prune all but the `k` sequences with highest score from the beam."""
+    indices = heapq.nlargest(k, range(len(beam_entries)),
+                             key=lambda i: beam_entries[i].score)
+    return [beam_entries[i] for i in indices]
 
 
 def beam_search(initial_sequence, initial_state, generate_step_fn, num_steps,
                 beam_size, branch_factor, steps_per_iteration):
-  """Generates a sequence using beam search.
+    """Generates a sequence using beam search.
 
   Initially, the beam is filled with `beam_size` copies of the initial sequence.
 
@@ -118,30 +118,30 @@ def beam_search(initial_sequence, initial_state, generate_step_fn, num_steps,
     search, b) the state corresponding to this sequence, and c) the score of
     this sequence.
   """
-  sequences = [copy.deepcopy(initial_sequence) for _ in range(beam_size)]
-  states = [copy.deepcopy(initial_state) for _ in range(beam_size)]
-  scores = [0] * beam_size
+    sequences = [copy.deepcopy(initial_sequence) for _ in range(beam_size)]
+    states = [copy.deepcopy(initial_state) for _ in range(beam_size)]
+    scores = [0] * beam_size
 
-  beam_entries = [BeamEntry(sequence, state, score)
-                  for sequence, state, score
-                  in zip(sequences, states, scores)]
+    beam_entries = [BeamEntry(sequence, state, score)
+                    for sequence, state, score
+                    in zip(sequences, states, scores)]
 
-  # Choose the number of steps for the first iteration such that subsequent
-  # iterations can all take the same number of steps.
-  first_iteration_num_steps = (num_steps - 1) % steps_per_iteration + 1
+    # Choose the number of steps for the first iteration such that subsequent
+    # iterations can all take the same number of steps.
+    first_iteration_num_steps = (num_steps - 1) % steps_per_iteration + 1
 
-  beam_entries = _generate_branches(
-      beam_entries, generate_step_fn, branch_factor, first_iteration_num_steps)
-
-  num_iterations = (num_steps -
-                    first_iteration_num_steps) // steps_per_iteration
-
-  for _ in range(num_iterations):
-    beam_entries = _prune_branches(beam_entries, k=beam_size)
     beam_entries = _generate_branches(
-        beam_entries, generate_step_fn, branch_factor, steps_per_iteration)
+        beam_entries, generate_step_fn, branch_factor, first_iteration_num_steps)
 
-  # Prune to the single best beam entry.
-  beam_entry = _prune_branches(beam_entries, k=1)[0]
+    num_iterations = (num_steps -
+                      first_iteration_num_steps) // steps_per_iteration
 
-  return beam_entry.sequence, beam_entry.state, beam_entry.score
+    for _ in range(num_iterations):
+        beam_entries = _prune_branches(beam_entries, k=beam_size)
+        beam_entries = _generate_branches(
+            beam_entries, generate_step_fn, branch_factor, steps_per_iteration)
+
+    # Prune to the single best beam entry.
+    beam_entry = _prune_branches(beam_entries, k=1)[0]
+
+    return beam_entry.sequence, beam_entry.state, beam_entry.score

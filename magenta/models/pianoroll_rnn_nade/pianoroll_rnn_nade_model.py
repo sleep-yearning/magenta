@@ -23,15 +23,15 @@ from tensorflow.contrib import training as contrib_training
 
 
 class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
-  """Class for RNN-NADE sequence generation models."""
+    """Class for RNN-NADE sequence generation models."""
 
-  def _build_graph_for_generation(self):
-    return pianoroll_rnn_nade_graph.get_build_graph_fn(
-        'generate', self._config)()
+    def _build_graph_for_generation(self):
+        return pianoroll_rnn_nade_graph.get_build_graph_fn(
+            'generate', self._config)()
 
-  def _generate_step_for_batch(self, pianoroll_sequences, inputs, initial_state,
-                               temperature):
-    """Extends a batch of event sequences by a single step each.
+    def _generate_step_for_batch(self, pianoroll_sequences, inputs, initial_state,
+                                 temperature):
+        """Extends a batch of event sequences by a single step each.
 
     This method modifies the event sequences in place.
 
@@ -52,32 +52,32 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
           log-likelihood of each entire sequence up to and including the
           generated step will be computed and returned.
     """
-    assert len(pianoroll_sequences) == self._batch_size()
+        assert len(pianoroll_sequences) == self._batch_size()
 
-    graph_inputs = self._session.graph.get_collection('inputs')[0]
-    graph_initial_state = tuple(
-        self._session.graph.get_collection('initial_state'))
-    graph_final_state = tuple(
-        self._session.graph.get_collection('final_state'))
-    graph_sample = self._session.graph.get_collection('sample')[0]
-    graph_log_prob = self._session.graph.get_collection('log_prob')[0]
+        graph_inputs = self._session.graph.get_collection('inputs')[0]
+        graph_initial_state = tuple(
+            self._session.graph.get_collection('initial_state'))
+        graph_final_state = tuple(
+            self._session.graph.get_collection('final_state'))
+        graph_sample = self._session.graph.get_collection('sample')[0]
+        graph_log_prob = self._session.graph.get_collection('log_prob')[0]
 
-    sample, loglik, final_state = self._session.run(
-        [graph_sample, graph_log_prob, graph_final_state],
-        {
-            graph_inputs: inputs,
-            graph_initial_state: initial_state,
-        })
+        sample, loglik, final_state = self._session.run(
+            [graph_sample, graph_log_prob, graph_final_state],
+            {
+                graph_inputs: inputs,
+                graph_initial_state: initial_state,
+            })
 
-    self._config.encoder_decoder.extend_event_sequences(
-        pianoroll_sequences, sample)
+        self._config.encoder_decoder.extend_event_sequences(
+            pianoroll_sequences, sample)
 
-    return final_state, loglik[:, 0]
+        return final_state, loglik[:, 0]
 
-  def generate_pianoroll_sequence(
-      self, num_steps, primer_sequence, beam_size=1, branch_factor=1,
-      steps_per_iteration=1):
-    """Generate a pianoroll track from a primer pianoroll track.
+    def generate_pianoroll_sequence(
+            self, num_steps, primer_sequence, beam_size=1, branch_factor=1,
+            steps_per_iteration=1):
+        """Generate a pianoroll track from a primer pianoroll track.
 
     Args:
       num_steps: The integer length in steps of the final track, after
@@ -92,10 +92,10 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
       The generated PianorollSequence object (which begins with the provided
       primer track).
     """
-    return self._generate_events(
-        num_steps=num_steps, primer_events=primer_sequence, temperature=None,
-        beam_size=beam_size, branch_factor=branch_factor,
-        steps_per_iteration=steps_per_iteration)
+        return self._generate_events(
+            num_steps=num_steps, primer_events=primer_sequence, temperature=None,
+            beam_size=beam_size, branch_factor=branch_factor,
+            steps_per_iteration=steps_per_iteration)
 
 
 default_configs = {

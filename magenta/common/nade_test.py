@@ -20,39 +20,39 @@ import tensorflow.compat.v1 as tf
 
 class NadeTest(tf.test.TestCase):
 
-  def testInternalBias(self):
-    batch_size = 4
-    num_hidden = 6
-    num_dims = 8
-    test_inputs = tf.random_normal(shape=(batch_size, num_dims))
-    nade = Nade(num_dims, num_hidden, internal_bias=True)
-    log_prob, cond_probs = nade.log_prob(test_inputs)
-    sample, sample_prob = nade.sample(n=batch_size)
-    with self.test_session() as sess:
-      sess.run([tf.global_variables_initializer()])
-      self.assertEqual(log_prob.eval().shape, (batch_size,))
-      self.assertEqual(cond_probs.eval().shape, (batch_size, num_dims))
-      self.assertEqual(sample.eval().shape, (batch_size, num_dims))
-      self.assertEqual(sample_prob.eval().shape, (batch_size,))
+    def testInternalBias(self):
+        batch_size = 4
+        num_hidden = 6
+        num_dims = 8
+        test_inputs = tf.random_normal(shape=(batch_size, num_dims))
+        nade = Nade(num_dims, num_hidden, internal_bias=True)
+        log_prob, cond_probs = nade.log_prob(test_inputs)
+        sample, sample_prob = nade.sample(n=batch_size)
+        with self.test_session() as sess:
+            sess.run([tf.global_variables_initializer()])
+            self.assertEqual(log_prob.eval().shape, (batch_size,))
+            self.assertEqual(cond_probs.eval().shape, (batch_size, num_dims))
+            self.assertEqual(sample.eval().shape, (batch_size, num_dims))
+            self.assertEqual(sample_prob.eval().shape, (batch_size,))
 
-  def testExternalBias(self):
-    batch_size = 4
-    num_hidden = 6
-    num_dims = 8
-    test_inputs = tf.random_normal(shape=(batch_size, num_dims))
-    test_b_enc = tf.random_normal(shape=(batch_size, num_hidden))
-    test_b_dec = tf.random_normal(shape=(batch_size, num_dims))
+    def testExternalBias(self):
+        batch_size = 4
+        num_hidden = 6
+        num_dims = 8
+        test_inputs = tf.random_normal(shape=(batch_size, num_dims))
+        test_b_enc = tf.random_normal(shape=(batch_size, num_hidden))
+        test_b_dec = tf.random_normal(shape=(batch_size, num_dims))
 
-    nade = Nade(num_dims, num_hidden)
-    log_prob, cond_probs = nade.log_prob(test_inputs, test_b_enc, test_b_dec)
-    sample, sample_prob = nade.sample(b_enc=test_b_enc, b_dec=test_b_dec)
-    with self.test_session() as sess:
-      sess.run([tf.global_variables_initializer()])
-      self.assertEqual(log_prob.eval().shape, (batch_size,))
-      self.assertEqual(cond_probs.eval().shape, (batch_size, num_dims))
-      self.assertEqual(sample.eval().shape, (batch_size, num_dims))
-      self.assertEqual(sample_prob.eval().shape, (batch_size,))
+        nade = Nade(num_dims, num_hidden)
+        log_prob, cond_probs = nade.log_prob(test_inputs, test_b_enc, test_b_dec)
+        sample, sample_prob = nade.sample(b_enc=test_b_enc, b_dec=test_b_dec)
+        with self.test_session() as sess:
+            sess.run([tf.global_variables_initializer()])
+            self.assertEqual(log_prob.eval().shape, (batch_size,))
+            self.assertEqual(cond_probs.eval().shape, (batch_size, num_dims))
+            self.assertEqual(sample.eval().shape, (batch_size, num_dims))
+            self.assertEqual(sample_prob.eval().shape, (batch_size,))
 
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

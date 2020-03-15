@@ -29,13 +29,13 @@ hparams = {}
 
 # Training
 hparams['data_type'] = data_type
-hparams['total_num_images'] = 11*1000*1000 if train_progressive else 4*1000*1000
+hparams['total_num_images'] = 11 * 1000 * 1000 if train_progressive else 4 * 1000 * 1000
 hparams['discriminator_learning_rate'] = lr
 hparams['generator_learning_rate'] = lr
 hparams['train_progressive'] = train_progressive
-hparams['stable_stage_num_images'] = 800*1000
-hparams['transition_stage_num_images'] = 800*1000
-hparams['save_summaries_num_images'] = 10*1000
+hparams['stable_stage_num_images'] = 800 * 1000
+hparams['transition_stage_num_images'] = 800 * 1000
+hparams['save_summaries_num_images'] = 10 * 1000
 hparams['batch_size_schedule'] = [8]
 
 # Network
@@ -63,8 +63,8 @@ hparams['scale_base'] = 2
 hparams['num_resolutions'] = 7
 
 if hifreqres:
-  hparams['start_height'] = 2
-  hparams['start_width'] = 16
+    hparams['start_height'] = 2
+    hparams['start_width'] = 16
 else:
-  hparams['start_height'] = 4
-  hparams['start_width'] = 8
+    hparams['start_height'] = 4
+    hparams['start_width'] = 8

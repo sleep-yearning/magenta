@@ -22,7 +22,7 @@ def run_training(build_graph_fn, train_dir, num_training_steps=None,
                  summary_frequency=10, save_checkpoint_secs=60,
                  checkpoints_to_keep=10, keep_checkpoint_every_n_hours=1,
                  master='', task=0, num_ps_tasks=0):
-  """Runs the training loop.
+    """Runs the training loop.
 
   Args:
     build_graph_fn: A function that builds the graph ops.
@@ -42,54 +42,54 @@ def run_training(build_graph_fn, train_dir, num_training_steps=None,
     task: Task number for this worker.
     num_ps_tasks: Number of parameter server tasks.
   """
-  with tf.Graph().as_default():
-    with tf.device(tf.train.replica_device_setter(num_ps_tasks)):
-      build_graph_fn()
+    with tf.Graph().as_default():
+        with tf.device(tf.train.replica_device_setter(num_ps_tasks)):
+            build_graph_fn()
 
-      global_step = tf.train.get_or_create_global_step()
-      loss = tf.get_collection('loss')[0]
-      perplexity = tf.get_collection('metrics/perplexity')[0]
-      accuracy = tf.get_collection('metrics/accuracy')[0]
-      train_op = tf.get_collection('train_op')[0]
+            global_step = tf.train.get_or_create_global_step()
+            loss = tf.get_collection('loss')[0]
+            perplexity = tf.get_collection('metrics/perplexity')[0]
+            accuracy = tf.get_collection('metrics/accuracy')[0]
+            train_op = tf.get_collection('train_op')[0]
 
-      logging_dict = {
-          'Global Step': global_step,
-          'Loss': loss,
-          'Perplexity': perplexity,
-          'Accuracy': accuracy
-      }
-      hooks = [
-          tf.train.NanTensorHook(loss),
-          tf.train.LoggingTensorHook(
-              logging_dict, every_n_iter=summary_frequency),
-          tf.train.StepCounterHook(
-              output_dir=train_dir, every_n_steps=summary_frequency)
-      ]
-      if num_training_steps:
-        hooks.append(tf.train.StopAtStepHook(num_training_steps))
+            logging_dict = {
+                'Global Step': global_step,
+                'Loss': loss,
+                'Perplexity': perplexity,
+                'Accuracy': accuracy
+            }
+            hooks = [
+                tf.train.NanTensorHook(loss),
+                tf.train.LoggingTensorHook(
+                    logging_dict, every_n_iter=summary_frequency),
+                tf.train.StepCounterHook(
+                    output_dir=train_dir, every_n_steps=summary_frequency)
+            ]
+            if num_training_steps:
+                hooks.append(tf.train.StopAtStepHook(num_training_steps))
 
-      scaffold = tf.train.Scaffold(
-          saver=tf.train.Saver(
-              max_to_keep=checkpoints_to_keep,
-              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
+            scaffold = tf.train.Scaffold(
+                saver=tf.train.Saver(
+                    max_to_keep=checkpoints_to_keep,
+                    keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
 
-      tf.logging.info('Starting training loop...')
-      contrib_training.train(
-          train_op=train_op,
-          logdir=train_dir,
-          scaffold=scaffold,
-          hooks=hooks,
-          save_checkpoint_secs=save_checkpoint_secs,
-          save_summaries_steps=summary_frequency,
-          master=master,
-          is_chief=task == 0)
-      tf.logging.info('Training complete.')
+            tf.logging.info('Starting training loop...')
+            contrib_training.train(
+                train_op=train_op,
+                logdir=train_dir,
+                scaffold=scaffold,
+                hooks=hooks,
+                save_checkpoint_secs=save_checkpoint_secs,
+                save_summaries_steps=summary_frequency,
+                master=master,
+                is_chief=task == 0)
+            tf.logging.info('Training complete.')
 
 
 # TODO(adarob): Limit to a single epoch each evaluation step.
 def run_eval(build_graph_fn, train_dir, eval_dir, num_batches,
              timeout_secs=300):
-  """Runs the training loop.
+    """Runs the training loop.
 
   Args:
     build_graph_fn: A function that builds the graph ops.
@@ -103,55 +103,55 @@ def run_eval(build_graph_fn, train_dir, eval_dir, num_batches,
   Raises:
     ValueError: If `num_batches` is less than or equal to 0.
   """
-  if num_batches <= 0:
-    raise ValueError(
-        '`num_batches` must be greater than 0. Check that the batch size is '
-        'no larger than the number of records in the eval set.')
-  with tf.Graph().as_default():
-    build_graph_fn()
+    if num_batches <= 0:
+        raise ValueError(
+            '`num_batches` must be greater than 0. Check that the batch size is '
+            'no larger than the number of records in the eval set.')
+    with tf.Graph().as_default():
+        build_graph_fn()
 
-    global_step = tf.train.get_or_create_global_step()
-    loss = tf.get_collection('loss')[0]
-    perplexity = tf.get_collection('metrics/perplexity')[0]
-    accuracy = tf.get_collection('metrics/accuracy')[0]
-    eval_ops = tf.get_collection('eval_ops')
+        global_step = tf.train.get_or_create_global_step()
+        loss = tf.get_collection('loss')[0]
+        perplexity = tf.get_collection('metrics/perplexity')[0]
+        accuracy = tf.get_collection('metrics/accuracy')[0]
+        eval_ops = tf.get_collection('eval_ops')
 
-    logging_dict = {
-        'Global Step': global_step,
-        'Loss': loss,
-        'Perplexity': perplexity,
-        'Accuracy': accuracy
-    }
-    hooks = [
-        EvalLoggingTensorHook(logging_dict, every_n_iter=num_batches),
-        contrib_training.StopAfterNEvalsHook(num_batches),
-        contrib_training.SummaryAtEndHook(eval_dir),
-    ]
+        logging_dict = {
+            'Global Step': global_step,
+            'Loss': loss,
+            'Perplexity': perplexity,
+            'Accuracy': accuracy
+        }
+        hooks = [
+            EvalLoggingTensorHook(logging_dict, every_n_iter=num_batches),
+            contrib_training.StopAfterNEvalsHook(num_batches),
+            contrib_training.SummaryAtEndHook(eval_dir),
+        ]
 
-    contrib_training.evaluate_repeatedly(
-        train_dir,
-        eval_ops=eval_ops,
-        hooks=hooks,
-        eval_interval_secs=60,
-        timeout=timeout_secs)
+        contrib_training.evaluate_repeatedly(
+            train_dir,
+            eval_ops=eval_ops,
+            hooks=hooks,
+            eval_interval_secs=60,
+            timeout=timeout_secs)
 
 
 class EvalLoggingTensorHook(tf.train.LoggingTensorHook):
-  """A revised version of LoggingTensorHook to use during evaluation.
+    """A revised version of LoggingTensorHook to use during evaluation.
 
   This version supports being reset and increments `_iter_count` before run
   instead of after run.
   """
 
-  def begin(self):
-    # Reset timer.
-    self._timer.update_last_triggered_step(0)
-    super(EvalLoggingTensorHook, self).begin()
+    def begin(self):
+        # Reset timer.
+        self._timer.update_last_triggered_step(0)
+        super(EvalLoggingTensorHook, self).begin()
 
-  def before_run(self, run_context):
-    self._iter_count += 1
-    return super(EvalLoggingTensorHook, self).before_run(run_context)
+    def before_run(self, run_context):
+        self._iter_count += 1
+        return super(EvalLoggingTensorHook, self).before_run(run_context)
 
-  def after_run(self, run_context, run_values):
-    super(EvalLoggingTensorHook, self).after_run(run_context, run_values)
-    self._iter_count -= 1
+    def after_run(self, run_context, run_values):
+        super(EvalLoggingTensorHook, self).after_run(run_context, run_values)
+        self._iter_count -= 1

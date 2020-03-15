@@ -45,23 +45,23 @@ flags.DEFINE_string(
 
 
 def main(unused_argv):
-  tf.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
-  config = melody_rnn_config_flags.config_from_flags()
-  pipeline_instance = melody_rnn_pipeline.get_pipeline(
-      config, eval_ratio=FLAGS.eval_ratio)
+    config = melody_rnn_config_flags.config_from_flags()
+    pipeline_instance = melody_rnn_pipeline.get_pipeline(
+        config, eval_ratio=FLAGS.eval_ratio)
 
-  FLAGS.input = os.path.expanduser(FLAGS.input)
-  FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
-  pipeline.run_pipeline_serial(
-      pipeline_instance,
-      pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
-      FLAGS.output_dir)
+    FLAGS.input = os.path.expanduser(FLAGS.input)
+    FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
+    pipeline.run_pipeline_serial(
+        pipeline_instance,
+        pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
+        FLAGS.output_dir)
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

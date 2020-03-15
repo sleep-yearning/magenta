@@ -22,7 +22,7 @@ import tensorflow.compat.v1 as tf
 
 
 def shift_right(x):
-  """Shift the input over by one and a zero to the front.
+    """Shift the input over by one and a zero to the front.
 
   Args:
     x: The [mb, time, channels] tensor input.
@@ -30,15 +30,15 @@ def shift_right(x):
   Returns:
     x_sliced: The [mb, time, channels] tensor output.
   """
-  shape = x.get_shape().as_list()
-  x_padded = tf.pad(x, [[0, 0], [1, 0], [0, 0]])
-  x_sliced = tf.slice(x_padded, [0, 0, 0], tf.stack([-1, shape[1], -1]))
-  x_sliced.set_shape(shape)
-  return x_sliced
+    shape = x.get_shape().as_list()
+    x_padded = tf.pad(x, [[0, 0], [1, 0], [0, 0]])
+    x_sliced = tf.slice(x_padded, [0, 0, 0], tf.stack([-1, shape[1], -1]))
+    x_sliced.set_shape(shape)
+    return x_sliced
 
 
 def mul_or_none(a, b):
-  """Return the element wise multiplicative of the inputs.
+    """Return the element wise multiplicative of the inputs.
 
   If either input is None, we return None.
 
@@ -49,13 +49,13 @@ def mul_or_none(a, b):
   Returns:
     None if either input is None. Otherwise returns a * b.
   """
-  if a is None or b is None:
-    return None
-  return int(a * b)
+    if a is None or b is None:
+        return None
+    return int(a * b)
 
 
 def time_to_batch(x, block_size):
-  """Splits time dimension (i.e. dimension 1) of `x` into batches.
+    """Splits time dimension (i.e. dimension 1) of `x` into batches.
 
   Within each batch element, the `k*block_size` time steps are transposed,
   so that the `k` time steps in each output batch element are offset by
@@ -71,23 +71,23 @@ def time_to_batch(x, block_size):
   Returns:
     Tensor of shape [nb*block_size, k, n]
   """
-  shape = x.get_shape().as_list()
-  y = tf.reshape(x, [
-      shape[0], shape[1] // block_size, block_size, shape[2]
-  ])
-  y = tf.transpose(y, [0, 2, 1, 3])
-  y = tf.reshape(y, [
-      shape[0] * block_size, shape[1] // block_size, shape[2]
-  ])
-  y.set_shape([
-      mul_or_none(shape[0], block_size), mul_or_none(shape[1], 1. / block_size),
-      shape[2]
-  ])
-  return y
+    shape = x.get_shape().as_list()
+    y = tf.reshape(x, [
+        shape[0], shape[1] // block_size, block_size, shape[2]
+    ])
+    y = tf.transpose(y, [0, 2, 1, 3])
+    y = tf.reshape(y, [
+        shape[0] * block_size, shape[1] // block_size, shape[2]
+    ])
+    y.set_shape([
+        mul_or_none(shape[0], block_size), mul_or_none(shape[1], 1. / block_size),
+        shape[2]
+    ])
+    return y
 
 
 def batch_to_time(x, block_size):
-  """Inverse of `time_to_batch(x, block_size)`.
+    """Inverse of `time_to_batch(x, block_size)`.
 
   Args:
     x: Tensor of shape [nb*block_size, k, n] for some natural number k.
@@ -97,14 +97,14 @@ def batch_to_time(x, block_size):
   Returns:
     Tensor of shape [nb, k*block_size, n].
   """
-  shape = x.get_shape().as_list()
-  y = tf.reshape(x, [shape[0] // block_size, block_size, shape[1], shape[2]])
-  y = tf.transpose(y, [0, 2, 1, 3])
-  y = tf.reshape(y, [shape[0] // block_size, shape[1] * block_size, shape[2]])
-  y.set_shape([mul_or_none(shape[0], 1. / block_size),
-               mul_or_none(shape[1], block_size),
-               shape[2]])
-  return y
+    shape = x.get_shape().as_list()
+    y = tf.reshape(x, [shape[0] // block_size, block_size, shape[1], shape[2]])
+    y = tf.transpose(y, [0, 2, 1, 3])
+    y = tf.reshape(y, [shape[0] // block_size, shape[1] * block_size, shape[2]])
+    y.set_shape([mul_or_none(shape[0], 1. / block_size),
+                 mul_or_none(shape[1], block_size),
+                 shape[2]])
+    return y
 
 
 def conv1d(x,
@@ -116,7 +116,7 @@ def conv1d(x,
            kernel_initializer=tf.uniform_unit_scaling_initializer(1.0),
            biases_initializer=tf.constant_initializer(0.0),
            is_training=True):
-  """Fast 1D convolution that supports causal padding and dilation.
+    """Fast 1D convolution that supports causal padding and dilation.
 
   Args:
     x: The [mb, time, channels] float tensor that we convolve.
@@ -132,40 +132,40 @@ def conv1d(x,
   Returns:
     y: The output of the 1D convolution.
   """
-  batch_size, length, num_input_channels = x.get_shape().as_list()
-  assert length % dilation == 0
+    batch_size, length, num_input_channels = x.get_shape().as_list()
+    assert length % dilation == 0
 
-  kernel_shape = [1, filter_length, num_input_channels, num_filters]
-  strides = [1, 1, 1, 1]
-  biases_shape = [num_filters]
-  padding = 'VALID' if causal else 'SAME'
+    kernel_shape = [1, filter_length, num_input_channels, num_filters]
+    strides = [1, 1, 1, 1]
+    biases_shape = [num_filters]
+    padding = 'VALID' if causal else 'SAME'
 
-  with tf.variable_scope(name):
-    weights = tf.get_variable(
-        'W', shape=kernel_shape, initializer=kernel_initializer,
-        trainable=is_training)
-    biases = tf.get_variable(
-        'biases', shape=biases_shape, initializer=biases_initializer,
-        trainable=is_training)
+    with tf.variable_scope(name):
+        weights = tf.get_variable(
+            'W', shape=kernel_shape, initializer=kernel_initializer,
+            trainable=is_training)
+        biases = tf.get_variable(
+            'biases', shape=biases_shape, initializer=biases_initializer,
+            trainable=is_training)
 
-  x_ttb = time_to_batch(x, dilation)
-  if filter_length > 1 and causal:
-    x_ttb = tf.pad(x_ttb, [[0, 0], [filter_length - 1, 0], [0, 0]])
+    x_ttb = time_to_batch(x, dilation)
+    if filter_length > 1 and causal:
+        x_ttb = tf.pad(x_ttb, [[0, 0], [filter_length - 1, 0], [0, 0]])
 
-  x_ttb_shape = x_ttb.get_shape().as_list()
-  x_4d = tf.reshape(x_ttb, [x_ttb_shape[0], 1,
-                            x_ttb_shape[1], num_input_channels])
-  y = tf.nn.conv2d(x_4d, weights, strides, padding=padding)
-  y = tf.nn.bias_add(y, biases)
-  y_shape = y.get_shape().as_list()
-  y = tf.reshape(y, [y_shape[0], y_shape[2], num_filters])
-  y = batch_to_time(y, dilation)
-  y.set_shape([batch_size, length, num_filters])
-  return y
+    x_ttb_shape = x_ttb.get_shape().as_list()
+    x_4d = tf.reshape(x_ttb, [x_ttb_shape[0], 1,
+                              x_ttb_shape[1], num_input_channels])
+    y = tf.nn.conv2d(x_4d, weights, strides, padding=padding)
+    y = tf.nn.bias_add(y, biases)
+    y_shape = y.get_shape().as_list()
+    y = tf.reshape(y, [y_shape[0], y_shape[2], num_filters])
+    y = batch_to_time(y, dilation)
+    y.set_shape([batch_size, length, num_filters])
+    return y
 
 
 def pool1d(x, window_length, name, mode='avg', stride=None):
-  """1D pooling function that supports multiple different modes.
+    """1D pooling function that supports multiple different modes.
 
   Args:
     x: The [mb, time, channels] float tensor that we are going to pool over.
@@ -177,18 +177,18 @@ def pool1d(x, window_length, name, mode='avg', stride=None):
   Returns:
     pooled: The [mb, time // stride, channels] float tensor result of pooling.
   """
-  if mode == 'avg':
-    pool_fn = tf.nn.avg_pool
-  elif mode == 'max':
-    pool_fn = tf.nn.max_pool
+    if mode == 'avg':
+        pool_fn = tf.nn.avg_pool
+    elif mode == 'max':
+        pool_fn = tf.nn.max_pool
 
-  stride = stride or window_length
-  batch_size, length, num_channels = x.get_shape().as_list()
-  assert length % window_length == 0
-  assert length % stride == 0
+    stride = stride or window_length
+    batch_size, length, num_channels = x.get_shape().as_list()
+    assert length % window_length == 0
+    assert length % stride == 0
 
-  window_shape = [1, 1, window_length, 1]
-  strides = [1, 1, stride, 1]
-  x_4d = tf.reshape(x, [batch_size, 1, length, num_channels])
-  pooled = pool_fn(x_4d, window_shape, strides, padding='SAME', name=name)
-  return tf.reshape(pooled, [batch_size, length // stride, num_channels])
+    window_shape = [1, 1, window_length, 1]
+    strides = [1, 1, stride, 1]
+    x_4d = tf.reshape(x, [batch_size, 1, length, num_channels])
+    pooled = pool_fn(x_4d, window_shape, strides, padding='SAME', name=name)
+    return tf.reshape(pooled, [batch_size, length // stride, num_channels])

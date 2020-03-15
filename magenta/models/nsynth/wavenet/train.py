@@ -51,86 +51,86 @@ tf.app.flags.DEFINE_string("log", "INFO",
 
 
 def main(unused_argv=None):
-  tf.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
-  if FLAGS.config is None:
-    raise RuntimeError("No config name specified.")
+    if FLAGS.config is None:
+        raise RuntimeError("No config name specified.")
 
-  config = utils.get_module("wavenet." + FLAGS.config).Config(
-      FLAGS.train_path)
+    config = utils.get_module("wavenet." + FLAGS.config).Config(
+        FLAGS.train_path)
 
-  logdir = FLAGS.logdir
-  tf.logging.info("Saving to %s" % logdir)
+    logdir = FLAGS.logdir
+    tf.logging.info("Saving to %s" % logdir)
 
-  with tf.Graph().as_default():
-    total_batch_size = FLAGS.total_batch_size
-    assert total_batch_size % FLAGS.worker_replicas == 0
-    worker_batch_size = total_batch_size / FLAGS.worker_replicas
+    with tf.Graph().as_default():
+        total_batch_size = FLAGS.total_batch_size
+        assert total_batch_size % FLAGS.worker_replicas == 0
+        worker_batch_size = total_batch_size / FLAGS.worker_replicas
 
-    # Run the Reader on the CPU
-    cpu_device = "/job:localhost/replica:0/task:0/cpu:0"
-    if FLAGS.ps_tasks:
-      cpu_device = "/job:worker/cpu:0"
+        # Run the Reader on the CPU
+        cpu_device = "/job:localhost/replica:0/task:0/cpu:0"
+        if FLAGS.ps_tasks:
+            cpu_device = "/job:worker/cpu:0"
 
-    with tf.device(cpu_device):
-      inputs_dict = config.get_batch(worker_batch_size)
+        with tf.device(cpu_device):
+            inputs_dict = config.get_batch(worker_batch_size)
 
-    with tf.device(
-        tf.train.replica_device_setter(ps_tasks=FLAGS.ps_tasks,
-                                       merge_devices=True)):
-      global_step = tf.get_variable(
-          "global_step", [],
-          tf.int32,
-          initializer=tf.constant_initializer(0),
-          trainable=False)
+        with tf.device(
+                tf.train.replica_device_setter(ps_tasks=FLAGS.ps_tasks,
+                                               merge_devices=True)):
+            global_step = tf.get_variable(
+                "global_step", [],
+                tf.int32,
+                initializer=tf.constant_initializer(0),
+                trainable=False)
 
-      # pylint: disable=cell-var-from-loop
-      lr = tf.constant(config.learning_rate_schedule[0])
-      for key, value in config.learning_rate_schedule.iteritems():
-        lr = tf.cond(
-            tf.less(global_step, key), lambda: lr, lambda: tf.constant(value))
-      # pylint: enable=cell-var-from-loop
-      tf.summary.scalar("learning_rate", lr)
+            # pylint: disable=cell-var-from-loop
+            lr = tf.constant(config.learning_rate_schedule[0])
+            for key, value in config.learning_rate_schedule.iteritems():
+                lr = tf.cond(
+                    tf.less(global_step, key), lambda: lr, lambda: tf.constant(value))
+            # pylint: enable=cell-var-from-loop
+            tf.summary.scalar("learning_rate", lr)
 
-      # build the model graph
-      outputs_dict = config.build(inputs_dict, is_training=True)
-      loss = outputs_dict["loss"]
-      tf.summary.scalar("train_loss", loss)
+            # build the model graph
+            outputs_dict = config.build(inputs_dict, is_training=True)
+            loss = outputs_dict["loss"]
+            tf.summary.scalar("train_loss", loss)
 
-      worker_replicas = FLAGS.worker_replicas
-      ema = tf.train.ExponentialMovingAverage(
-          decay=0.9999, num_updates=global_step)
-      opt = tf.train.SyncReplicasOptimizer(
-          tf.train.AdamOptimizer(lr, epsilon=1e-8),
-          worker_replicas,
-          total_num_replicas=worker_replicas,
-          variable_averages=ema,
-          variables_to_average=tf.trainable_variables())
+            worker_replicas = FLAGS.worker_replicas
+            ema = tf.train.ExponentialMovingAverage(
+                decay=0.9999, num_updates=global_step)
+            opt = tf.train.SyncReplicasOptimizer(
+                tf.train.AdamOptimizer(lr, epsilon=1e-8),
+                worker_replicas,
+                total_num_replicas=worker_replicas,
+                variable_averages=ema,
+                variables_to_average=tf.trainable_variables())
 
-      train_op = opt.minimize(
-          loss,
-          global_step=global_step,
-          name="train",
-          colocate_gradients_with_ops=True)
+            train_op = opt.minimize(
+                loss,
+                global_step=global_step,
+                name="train",
+                colocate_gradients_with_ops=True)
 
-      session_config = tf.ConfigProto(allow_soft_placement=True)
+            session_config = tf.ConfigProto(allow_soft_placement=True)
 
-      is_chief = (FLAGS.task == 0)
-      local_init_op = opt.chief_init_op if is_chief else opt.local_step_init_op
+            is_chief = (FLAGS.task == 0)
+            local_init_op = opt.chief_init_op if is_chief else opt.local_step_init_op
 
-      slim.learning.train(
-          train_op=train_op,
-          logdir=logdir,
-          is_chief=is_chief,
-          master=FLAGS.master,
-          number_of_steps=config.num_iters,
-          global_step=global_step,
-          log_every_n_steps=250,
-          local_init_op=local_init_op,
-          save_interval_secs=300,
-          sync_optimizer=opt,
-          session_config=session_config,)
+            slim.learning.train(
+                train_op=train_op,
+                logdir=logdir,
+                is_chief=is_chief,
+                master=FLAGS.master,
+                number_of_steps=config.num_iters,
+                global_step=global_step,
+                log_every_n_steps=250,
+                local_init_op=local_init_op,
+                save_interval_secs=300,
+                sync_optimizer=opt,
+                session_config=session_config, )
 
 
 if __name__ == "__main__":
-  tf.app.run()
+    tf.app.run()

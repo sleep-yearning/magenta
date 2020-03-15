@@ -49,60 +49,60 @@ FLAGS = flags.FLAGS
 
 
 def build_network(content_img, style_img):
-  """Builds the neural network for image stylization."""
-  stylize_op, _, _, _ = arbitrary_image_stylization_build_model.build_model(
-      content_img,
-      style_img,
-      trainable=False,
-      is_training=False,
-      adds_losses=False)
-  return stylize_op
+    """Builds the neural network for image stylization."""
+    stylize_op, _, _, _ = arbitrary_image_stylization_build_model.build_model(
+        content_img,
+        style_img,
+        trainable=False,
+        is_training=False,
+        adds_losses=False)
+    return stylize_op
 
 
 def get_stylize_fn():
-  """Creates a tf.function for stylization."""
-  input_spec = [
-      tf.TensorSpec((None, None, None, 3), tf.float32),
-      tf.TensorSpec((None, None, None, 3), tf.float32)
-  ]
-  predict_feeds = []
-  predict_fetches = []
+    """Creates a tf.function for stylization."""
+    input_spec = [
+        tf.TensorSpec((None, None, None, 3), tf.float32),
+        tf.TensorSpec((None, None, None, 3), tf.float32)
+    ]
+    predict_feeds = []
+    predict_fetches = []
 
-  def umbrella_function(content_img, style_img):
-    predict_feeds.extend([content_img, style_img])
-    predict_result = build_network(content_img, style_img)
-    predict_fetches.extend([
-        predict_result,
-    ])
-    return predict_result
+    def umbrella_function(content_img, style_img):
+        predict_feeds.extend([content_img, style_img])
+        predict_result = build_network(content_img, style_img)
+        predict_fetches.extend([
+            predict_result,
+        ])
+        return predict_result
 
-  umbrella_wrapped = tf.compat.v1.wrap_function(umbrella_function, input_spec)
-  fn = umbrella_wrapped.prune(predict_feeds, predict_fetches)
-  return fn
+    umbrella_wrapped = tf.compat.v1.wrap_function(umbrella_function, input_spec)
+    fn = umbrella_wrapped.prune(predict_feeds, predict_fetches)
+    return fn
 
 
 def create_hub_module_object():
-  """Creates an exportable saved model object."""
-  obj = tf.train.Checkpoint()
-  obj.__call__ = get_stylize_fn()
-  obj.variables = list(obj.__call__.graph.variables)
-  # To avoid error related to reading expected variable save_counter.
-  obj.save_counter  # pylint: disable=pointless-statement
-  return obj
+    """Creates an exportable saved model object."""
+    obj = tf.train.Checkpoint()
+    obj.__call__ = get_stylize_fn()
+    obj.variables = list(obj.__call__.graph.variables)
+    # To avoid error related to reading expected variable save_counter.
+    obj.save_counter  # pylint: disable=pointless-statement
+    return obj
 
 
 def main(unused_argv=None):
-  obj = create_hub_module_object()
-  with tf.Session() as sess:
-    sess.run(tf.initialize_all_variables())
-    tf.train.Saver(obj.variables).restore(sess, FLAGS.checkpoint)
-    tf.saved_model.save(obj, FLAGS.export_path, signatures=obj.__call__)
-  tf.logging.info('Saved hub module in: %s', FLAGS.export_path)
+    obj = create_hub_module_object()
+    with tf.Session() as sess:
+        sess.run(tf.initialize_all_variables())
+        tf.train.Saver(obj.variables).restore(sess, FLAGS.checkpoint)
+        tf.saved_model.save(obj, FLAGS.export_path, signatures=obj.__call__)
+    tf.logging.info('Saved hub module in: %s', FLAGS.export_path)
 
 
 def console_entry_point():
-  tf.compat.v1.app.run(main)
+    tf.compat.v1.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()
