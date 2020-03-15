@@ -280,7 +280,7 @@ def start_sampling():
     string_temperature = temperature.get()
     try:
         float_temperature = float(string_temperature)
-        if temperature < 0 or temperature > 1:
+        if float_temperature < 0 or float_temperature > 1:
             raise ValueError
     except ValueError:
         messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
@@ -307,9 +307,9 @@ def start_sampling():
         clock = pygame.time.Clock()
         try:
             pygame.mixer.music.load(music_file)
-            print "Music file %s loaded!" % music_file
+            print("Music file %s loaded!" % music_file)
         except pygame.error:
-            print "File %s not found! (%s)" % (music_file, pygame.get_error())
+            print("File %s not found! (%s)" % (music_file, pygame.get_error()))
             return
         pygame.mixer.music.play()
         while pygame.mixer.music.get_busy():
