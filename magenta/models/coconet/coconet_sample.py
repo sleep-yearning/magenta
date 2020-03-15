@@ -42,7 +42,7 @@ def main(checkpoint, tfsample=True, strategy='igibbs', gen_batch_size="3", piece
             "Need to provide a path to checkpoint directory.")
 
     midi_file = None
-    if prime_midi_melody_fpath is not None:
+    if prime_midi_melody_fpath is not None and prime_midi_melody_fpath is not '':
         midi_file = pretty_midi.PrettyMIDI(prime_midi_melody_fpath)
     if tfsample:
         generator = TFGenerator(checkpoint)
