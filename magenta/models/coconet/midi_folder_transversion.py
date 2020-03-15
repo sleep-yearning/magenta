@@ -105,7 +105,7 @@ def main(path, grouped_instruments, p1, p2, p3):
                 print(filename)
                 converted_data.append(convert_file(pm_file, [p1, p2, p3, grouped_instruments]))
             except OSError:
-                print(filename,'could not be loaded as MIDI file')
+                print(filename, 'could not be loaded as MIDI file')
     converted_array = np.asarray(converted_data)
     num_data_points = converted_array.shape[0]
     test_set_index = int(num_data_points / 5)
