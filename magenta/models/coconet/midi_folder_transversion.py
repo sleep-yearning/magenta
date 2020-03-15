@@ -86,7 +86,7 @@ def instrument_to_column(instrument, array_length, song_row):
             print('Instrument: ', song_row, pm.program_to_instrument_name(instrument.program))
         sampling_per_second = 100
         # using times gave artifacts, padding with zeros instead
-        data = instrument.get_piano_roll(fs=sampling_per_second, times=None, include_drums=True)
+        data = instrument.get_piano_roll(fs=sampling_per_second, times=None)
         lowestloudest = np.zeros(array_length)
         for i in np.arange(data.shape[1]):
             row = data[:, i]
