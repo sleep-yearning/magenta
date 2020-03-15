@@ -1,20 +1,20 @@
-from tkinter import *
-from tkinter import ttk
-import tkinter as tk
-from tkinter.ttk import *
-from tkinter import filedialog, messagebox
-from tkinter import Tk, RIGHT, BOTH, RAISED
-from tkinter.ttk import Frame, Button, Style
-import _thread
-from magenta.models.coconet.prepare_and_train import prepare, train
-from magenta.models.coconet.prepare_and_train import main as combo
 import os
+
+import _thread
 import pathlib
-from magenta.models.coconet.coconet_sample import main as sample
 import pygame
 import pygame.midi
-import base64
-import io
+import tkinter as tk
+from tkinter import *
+from tkinter import Tk, RIGHT
+from tkinter import filedialog, messagebox
+from tkinter import ttk
+from tkinter.ttk import *
+from tkinter.ttk import Button
+
+from magenta.models.coconet.coconet_sample import main as sample
+from magenta.models.coconet.prepare_and_train import main as combo
+from magenta.models.coconet.prepare_and_train import prepare, train
 
 root = Tk()
 
@@ -79,8 +79,11 @@ size_batch_strategy.set(3)
 piece_length.set(32)
 temperature.set(0.99)
 
-base_path = str(pathlib.Path(__file__).parent.absolute())
+
 # This map contains the pre-trained models and the paths to their data as a basis for the model selection
+
+base_path = str(pathlib.Path(__file__).parent.absolute())
+
 model_map = {
     "Pokemon": os.path.join(base_path, "trained_models/"),
     "Test": os.path.join(base_path, "trained_models/"),
@@ -89,8 +92,8 @@ model_map = {
 
 # Definitions go here
 
-def check_that_folder_contains_file(folder_path, file):
-    path = os.path.join(folder_path, file)
+def check_that_folder_contains_file(folder_path, filename):
+    path = os.path.join(folder_path, filename)
     return os.path.isfile(path)
 
 
@@ -117,7 +120,6 @@ def open_train_folder():
     print(folder_path)
 
 
-
 def open_result_folder_sampling():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder to place the results in')
     sampling_folder_path.set(folder_path)
@@ -130,15 +132,16 @@ def open_sample_midi():
     sample_midi_path.set(folder_path)
     print(folder_path)
 
+
 def select_sampled_midi():
     folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", ".midi .mid")],
                                              title='Choose the midi file that you want to play')
     sampled_midi.set(folder_path)
-    #print(folder_path)
+    # print(folder_path)
 
 
 def start_preprocessing():
-    #print(is_grouped_pre.get())
+    # print(is_grouped_pre.get())
     prepare(convert_folder_path.get(), is_grouped_pre.get())
     print("Preprocessing done")
 
@@ -210,7 +213,6 @@ def start_training():
     if not check_that_folder_contains_file(train_folder_path.get(), 'TrainData.npz'):
         messagebox.showerror("Error", "There is no 'TrainData.npz' in the selected folder!")
 
-
     if architecture_int == 1:
         architecture.set("straight")
     else:
@@ -239,6 +241,7 @@ def start_training():
           num_filters=int_filters, num_layers=int_layers, num_dilation_blocks=int_db,
           num_pointwise_splits=int_pointwise, interleave_split_every_n_layers=int_interleave)
 
+
 # TODO either num_layers or dilated convs.
 
 
@@ -246,6 +249,7 @@ def really_start_training():
     add_model_to_menu()
     start_training()
     print("Training done")
+
 
 def preptrain():
     string_nepochs = nepochs.get()
@@ -256,6 +260,7 @@ def preptrain():
         return
 
     combo(train_folder_path.get(), int_nepochs, is_grouped_train.get(), title_new_train_model.get())
+
 
 def play():
     model_name = choosemodel.get()
@@ -293,10 +298,11 @@ def start_sampling():
     model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
 
     sample(checkpoint=model_checkpoint_folder_path, tfsample=tfsample.get(), strategy=choosestrategy.get(),
-            gen_batch_size=int_batches_strategy, piece_length=int_piece_length, temperature=float_temperature,
-            generation_output_dir=sampling_folder_path.get(), prime_midi_melody_fpath=sample_midi_path.get())
+           gen_batch_size=int_batches_strategy, piece_length=int_piece_length, temperature=float_temperature,
+           generation_output_dir=sampling_folder_path.get(), prime_midi_melody_fpath=sample_midi_path.get())
 
     messagebox.showinfo("Info", "Sampling done!")
+
 
 def play_midi():
     pygame.midi.init()
@@ -304,10 +310,9 @@ def play_midi():
     pygame.mixer.music.load(sampled_midi.get())
     pygame.mixer.music.play()
 
+
 root.title("Music in Machine Learning")
 root.minsize(640, 500)
-
-# root.wm_iconbitmap('icon.ico')
 
 # Create top Menu
 nb = ttk.Notebook(root)
@@ -327,6 +332,7 @@ scrollbar.config(command=canvas_f2.yview)
 nb.add(f1, text="Preprocessing")
 nb.add(f2, text="Training")
 nb.add(f3, text="Sampling")
+
 #########
 #
 # Start of Preprocessing Page
@@ -351,19 +357,6 @@ lbl_grouped.pack()
 set_is_grouped_pre = tk.Checkbutton(f1, text='preprocess grouped', var=is_grouped_pre)
 set_is_grouped_pre.pack()
 
-# Uncomment to set folder to save the results
-
-
-# lbl_frame_select_result_folder = ttk.LabelFrame(f1, text="Select a folder to save the results")
-# lbl_frame_select_result_folder.pack()
-#
-# btn_select_result_folder = ttk.Button(lbl_frame_select_result_folder, text="Select Folder",
-#                                       command=open_result_folder_npz)
-# btn_select_result_folder.pack()
-#
-# lbl_result_folder = Label(master=f1, textvariable=result_folder_path_npz)
-# lbl_result_folder.pack()
-
 lbl_convert_midis = Label(f1, text="First preprocess your midi Files to a npz File")
 lbl_convert_midis.pack()
 
@@ -381,8 +374,6 @@ progress.pack()
 # Start of Training Page
 #
 ##########
-# hyparams = Frame(f2)
-# hyparams.pack()
 
 lbl_frame_select_train_folder = ttk.LabelFrame(f2,
                                                text="If you already converted your midis, please choose the folder "
@@ -406,18 +397,6 @@ set_is_grouped_train = tk.Checkbutton(f2, text='train grouped', var=is_grouped_t
 set_is_grouped_train.pack()
 
 Separator(f2, orient=HORIZONTAL).pack(fill='x')
-# Uncomment to set folder to save the results
-
-
-# lbl_frame_select_result_folder = ttk.LabelFrame(f2, text="Select a folder to save the results")
-# lbl_frame_select_result_folder.pack()
-#
-# btn_select_result_folder = ttk.Button(lbl_frame_select_result_folder, text="Select Folder",
-#                                       command=open_result_folder_train)
-# btn_select_result_folder.pack()
-#
-# lbl_result_folder = Label(master=f2, textvariable=result_folder_path_training)
-# lbl_result_folder.pack()
 
 lbl_hyparams_training = Label(f2,
                               text="Here you can specify some parameters for your training. These parameters are "
@@ -507,13 +486,14 @@ btn_start_training = ttk.Button(f2, text="Start Training", command=really_start_
 btn_start_training.pack()
 
 lbl_start_preptrain = Label(f2,
-                           text="Start preprocessing and training in one step here:")
+                            text="Start preprocessing and training in one step here:")
 lbl_start_preptrain.pack()
 
 btn_start_preptrain = ttk.Button(f2, text="Start preprocessing and training", command=preptrain)
 btn_start_preptrain.pack()
 
 canvas_f2.config(scrollregion=canvas_f2.bbox(ALL))
+
 #########
 #
 # Start of Sampling Page
@@ -532,8 +512,6 @@ choosemodel.set(OptionList[0])
 which_model = OptionMenu(f3, choosemodel, *OptionList)
 which_model.config()
 which_model.pack()
-
-# choosemodel.trace('w', callback)
 
 lbl_choose_strategy = Label(f3, text="Choose a sampling strategy")
 lbl_choose_strategy.pack()
@@ -562,9 +540,6 @@ Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
 
 set_tfsample = tk.Checkbutton(f3, text='Run sampling in Tensorflow graph.', var=tfsample)
 set_tfsample.pack()
-
-# labelTest = Label(text="")
-# labelTest.pack()
 
 sample_batch_size = Entry(f3, textvariable=size_batch_strategy)
 sample_batch_size.pack()
@@ -613,20 +588,15 @@ lbl_frame_select_sampled_midi = ttk.LabelFrame(f3, text="Which midi do you want 
 lbl_frame_select_sampled_midi.pack()
 
 btn_select_sampled_midi = ttk.Button(lbl_frame_select_sampled_midi, text="Select Midi file",
-                                      command=select_sampled_midi)
+                                     command=select_sampled_midi)
 btn_select_sampled_midi.pack()
 
 lbl_sampled_midi = Label(master=f3, textvariable=sampled_midi)
 lbl_sampled_midi.pack()
 
-midi_play_button = Button(f3, text="play", command=(play_midi))
+midi_play_button = Button(f3, text="play", command=play_midi)
 img_play = PhotoImage(file=os.path.join(base_path, "play.png"))
 midi_play_button.config(image=img_play)
 midi_play_button.pack(padx=5, pady=10)
-
-# midi_download_button = Button(f3, text="download")
-# img_download = PhotoImage(file=os.path.join(base_path, "download.png"))
-# midi_download_button.config(image=img_download)
-# midi_download_button.pack(padx=5, pady=10, side=LEFT)
 
 root.mainloop()
