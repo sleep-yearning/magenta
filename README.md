@@ -41,7 +41,7 @@ If you run into problems with this package, you can try and install a copy of ou
 ## Using CocoNet GUI
 
 The easiest way to interface with CocoNet is to download a small selection of files from the 
-[usage-api](https://github.com/sleep-yearning/magenta/usage-api.zip) branch. Once downloaded, you can start those files in the [coconet environment where magenta is installed.](#installation) 
+[usage-api](https://github.com/sleep-yearning/magenta/archive/usage-api.zip) branch. Once downloaded, you can start those files in the [coconet environment where magenta is installed.](#installation) 
 
 From the GUI you can either select your folder of midi files to train on, or generate new midi files from already trained models.
 
