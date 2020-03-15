@@ -35,8 +35,8 @@ import pretty_midi
 import tensorflow.compat.v1 as tf
 
 
-def main(checkpoint, tfsample, strategy, gen_batch_size, piece_length,
-         temperature, generation_output_dir, prime_midi_melody_fpath=None):
+def main(checkpoint="", tfsample=True, strategy='bach_upsampling', gen_batch_size="3", piece_length="32",
+         temperature=0.99, generation_output_dir=None, prime_midi_melody_fpath=None):
     if checkpoint is None or not checkpoint:
         raise ValueError(
             "Need to provide a path to checkpoint directory.")

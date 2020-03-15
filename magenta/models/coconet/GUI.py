@@ -7,9 +7,12 @@ from tkinter import Tk, RIGHT, BOTH, RAISED
 from tkinter.ttk import Frame, Button, Style
 import _thread
 from prepare_and_train import prepare, train
+from prepare_and_train import main as combo
 import os
 import pathlib
 from coconet_sample import main as sample
+import pygame
+import base64
 
 root = Tk()
 
@@ -24,9 +27,13 @@ sample_midi_path = StringVar()
 title_new_train_model = StringVar()
 nepochs = StringVar()
 model_checkpoint_folder_path = StringVar()
+sampled_midi = StringVar()
 
-is_grouped = BooleanVar()
-is_grouped.set(True)
+is_grouped_pre = BooleanVar()
+is_grouped_pre.set(True)
+
+is_grouped_train = BooleanVar()
+is_grouped_train.set(True)
 
 # Hyperparams for Training
 use_residual = BooleanVar()
@@ -73,14 +80,12 @@ temperature.set(0.99)
 base_path = str(pathlib.Path(__file__).parent.absolute())
 # This map contains the pre-trained models and the paths to their data as a basis for the model selection
 model_map = {
-    "Abba": os.path.join(base_path, "trained_models/ABBA"),  # TODO put real paths in here
-    "Bach": os.path.join(base_path, "trained_models/Bach"),
-    "Sonic": os.path.join(base_path, "trained_models/Sonic")
+    "Pokemon": os.path.join(base_path, "trained_models/"),
+    "Test": os.path.join(base_path, "trained_models/"),
+    "Sonic": os.path.join(base_path, "trained_models/")
 }
 
-
 # Definitions go here
-
 
 def check_that_folder_contains_file(folder_path, file):
     path = os.path.join(folder_path, file)
@@ -103,14 +108,12 @@ def open_result_folder_npz():
 
 def open_train_folder():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder containing npz file')
+    train_folder_path.set(os.path.join(folder_path, ''))
+    if not result_folder_path_training.get():
+        result_folder_path_training.set(folder_path)
 
-    if check_that_folder_contains_file(folder_path, 'TrainData.npz'):
-        train_folder_path.set(folder_path)
-        if not result_folder_path_training.get():
-            result_folder_path_training.set(folder_path)
-        print(folder_path)
-    else:
-        messagebox.showerror("Error", "There is no 'TrainData.npz' in the selected folder!")
+    print(folder_path)
+
 
 
 def open_result_folder_sampling():
@@ -125,15 +128,21 @@ def open_sample_midi():
     sample_midi_path.set(folder_path)
     print(folder_path)
 
+def select_sampled_midi():
+    folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", "*.mid")],
+                                             title='Choose the midi file that you want to play')
+    sampled_midi.set(folder_path)
+    print(folder_path)
 
-def start_converting():
-    print(is_grouped.get())
-    prepare(convert_folder_path.get(), is_grouped.get())
-    print("Converting done")
+
+def start_preprocessing():
+    #print(is_grouped_pre.get())
+    prepare(convert_folder_path.get(), is_grouped_pre.get())
+    print("Preprocessing done")
 
 
 def convert_in_background():
-    _thread.start_new_thread(start_converting, ())
+    _thread.start_new_thread(start_preprocessing, ())
 
 
 def stop_it():
@@ -196,6 +205,10 @@ def start_training():
         messagebox.showerror("Error", "Pointwise Splits must be a number!")
         return
 
+    if not check_that_folder_contains_file(train_folder_path.get(), 'TrainData.npz'):
+        messagebox.showerror("Error", "There is no 'TrainData.npz' in the selected folder!")
+
+
     if architecture_int == 1:
         architecture.set("straight")
     else:
@@ -204,7 +217,7 @@ def start_training():
     print('architecture='.format(architecture.get()))
     print("Folder={}".format(train_folder_path.get()))
     print("epochs={}".format(int_nepochs))
-    print("isgrouped={}".format(is_grouped.get()))
+    print("isgrouped={}".format(is_grouped_train.get()))
     print("use_residual={}".format(use_residual.get()))
     print("use_sep_conv={}".format(use_sep_conv.get()))
     print("dilate_time_only={}".format(dilate_time_only.get()))
@@ -216,7 +229,7 @@ def start_training():
     print("int_pointwise={}".format(int_pointwise))
     print("int_interleave={}".format(int_interleave))
 
-    train(train_folder_path.get(), int_nepochs, is_grouped.get(), title_new_train_model.get(),
+    train(train_folder_path.get(), int_nepochs, is_grouped_train.get(), title_new_train_model.get(),
           architecture=architecture.get(),
           use_residual=use_residual.get(),
           use_sep_conv=use_sep_conv.get(), dilate_time_only=dilate_time_only.get(),
@@ -224,26 +237,23 @@ def start_training():
           num_filters=int_filters, num_layers=int_layers, num_dilation_blocks=int_db,
           num_pointwise_splits=int_pointwise, interleave_split_every_n_layers=int_interleave)
 
-
 # TODO either num_layers or dilated convs.
 
 
 def really_start_training():
     add_model_to_menu()
     start_training()
+    print("Training done")
 
+def preptrain():
+    string_nepochs = nepochs.get()
+    try:
+        int_nepochs = int(string_nepochs)
+    except ValueError:
+        messagebox.showerror("Error", "Nepochs must be a number!")
+        return
 
-def set_group_true():
-    is_grouped.set(True)
-
-
-def set_group_false():
-    is_grouped.set(False)
-
-
-def callback(*args):
-    labelTest.configure(text="The selected item is {}".format(choosemodel.get()))
-
+    combo(train_folder_path.get(), int_nepochs, is_grouped_train.get(), title_new_train_model.get())
 
 def play():
     model_name = choosemodel.get()
@@ -260,9 +270,9 @@ def start_sampling():
         messagebox.showerror("Error", "Batch size must be a number!")
         return
 
-    string_piecelength = piece_length.get()
+    string_piece_length = piece_length.get()
     try:
-        int_piecelength = int(string_piecelength)
+        int_piece_length = int(string_piece_length)
     except ValueError:
         messagebox.showerror("Error", "Piecelength must be a number!")
         return
@@ -270,16 +280,40 @@ def start_sampling():
     string_temperature = temperature.get()
     try:
         float_temperature = float(string_temperature)
-        float_temperature > 0
-        float_temperature < 1
+        0 < temperature < 1
     except ValueError:
         messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
         return
 
-    sample(checkpoint=model_checkpoint_folder_path, tfsample=tfsample.get(), strategy=choosestrategy.get(),
-           gen_batch_size=int_batches_strategy, piece_length=int_piecelength, temperature=float_temperature,
-           generation_output_dir=sampling_folder_path, prime_midi_melody_fpath=sample_midi_path)
+   # if temperature < 0 or temperature > 1:
+    #    raise ValueError: messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
+     #   return
 
+    model_name = choosemodel.get()
+    model_folder_path = model_map[model_name]
+    model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
+
+    sample(checkpoint=model_checkpoint_folder_path, tfsample=tfsample.get(), strategy=choosestrategy.get(),
+            gen_batch_size=int_batches_strategy, piece_length=int_piece_length, temperature=float_temperature,
+            generation_output_dir=sampling_folder_path, prime_midi_melody_fpath=sample_midi_path.get())
+    print("Sampling done") #TODO make this user output
+
+    def play_music(music_file):
+        """
+        stream music with mixer.music module in blocking manner
+        this will stream the sound from disk while playing
+        """
+        clock = pygame.time.Clock()
+        try:
+            pygame.mixer.music.load(music_file)
+            print "Music file %s loaded!" % music_file
+        except pygame.error:
+            print "File %s not found! (%s)" % (music_file, pygame.get_error())
+            return
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            # check if playback has finished
+            clock.tick(30)
 
 root.title("Music in Machine Learning")
 root.minsize(640, 500)
@@ -325,10 +359,8 @@ lbl_grouped = Label(f1,
                          "most frequently?")
 lbl_grouped.pack()
 
-yes = Button(f1, text="Yes", command=set_group_true)
-yes.pack(pady=0)
-no = Button(f1, text="No", command=set_group_false)
-no.pack(pady=0)
+set_is_grouped_pre = tk.Checkbutton(f1, text='preprocess grouped', var=is_grouped_pre)
+set_is_grouped_pre.pack()
 
 # Uncomment to set folder to save the results
 
@@ -351,8 +383,6 @@ btn_start_converting.pack()
 
 btn_stop_converting = ttk.Button(f1, text="Stop preprocessing", command=stop_it)
 btn_stop_converting.pack()
-
-# TODO Button for Preprocessing + Training
 
 progress = ttk.Progressbar(f1, orient=HORIZONTAL, length=200)
 progress.pack()
@@ -383,10 +413,8 @@ lbl_grouped = Label(f2,
                          "most frequently?")
 lbl_grouped.pack()
 
-yes = Button(f2, text="Yes", command=set_group_true)
-yes.pack()
-no = Button(f2, text="No", command=set_group_false)
-no.pack()
+set_is_grouped_train = tk.Checkbutton(f2, text='train grouped', var=is_grouped_train)
+set_is_grouped_train.pack()
 
 Separator(f2, orient=HORIZONTAL).pack(fill='x')
 # Uncomment to set folder to save the results
@@ -489,6 +517,13 @@ lbl_start_training.pack()
 btn_start_training = ttk.Button(f2, text="Start Training", command=really_start_training)
 btn_start_training.pack()
 
+lbl_start_preptrain = Label(f2,
+                           text="Start preprocessing and training in one step here:")
+lbl_start_preptrain.pack()
+
+btn_start_preptrain = ttk.Button(f2, text="Start preprocessing and training", command=preptrain)
+btn_start_preptrain.pack()
+
 canvas_f2.config(scrollregion=canvas_f2.bbox(ALL))
 #########
 #
@@ -517,6 +552,7 @@ lbl_choose_strategy.pack()
 OptionList_strategy = [
     "Choose a strategy",
     'bach_upsampling',
+    'scratch_upsampling',
     'revoice',
     'harmonization',
     'transition',
@@ -533,11 +569,30 @@ which_strategy = OptionMenu(f3, choosestrategy, *OptionList_strategy)
 which_strategy.config()
 which_strategy.pack()
 
+Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
+
 set_tfsample = tk.Checkbutton(f3, text='Run sampling in Tensorflow graph.', var=tfsample)
 set_tfsample.pack()
 
 # labelTest = Label(text="")
 # labelTest.pack()
+
+sample_batch_size = Entry(f3, textvariable=size_batch_strategy)
+sample_batch_size.pack()
+
+lbl_sample_piece_length = Label(f3, text="Please enter piecelength")
+lbl_sample_piece_length.pack()
+
+sample_piece_length = Entry(f3, textvariable=piece_length)
+sample_piece_length.pack()
+
+lbl_sample_temperature = Label(f3, text="Please enter temperature")
+lbl_sample_temperature.pack()
+
+sample_temperature = Entry(f3, textvariable=temperature)
+sample_temperature.pack()
+
+Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
 
 lbl_frame_select_sample_midi = ttk.LabelFrame(f3, text="Select a midi file to sample from")
 lbl_frame_select_sample_midi.pack()
@@ -558,19 +613,31 @@ btn_select_result_folder.pack()
 lbl_result_folder = Label(master=f3, textvariable=sampling_folder_path)
 lbl_result_folder.pack()
 
+Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
+
 btn_start_sample = ttk.Button(f3, text="Start Sampling", command=start_sampling)
 btn_start_sample.pack()
 
 base_path = str(pathlib.Path(__file__).parent.absolute())
 
-midi_play_button = Button(f3, text="play", command=play)
+lbl_frame_select_sampled_midi = ttk.LabelFrame(f3, text="Which midi do you want to play?")
+lbl_frame_select_sampled_midi.pack()
+
+btn_select_sampled_midi = ttk.Button(lbl_frame_select_result_folder, text="Select Midi file",
+                                      command=select_sampled_midi)
+btn_select_sampled_midi.pack()
+
+lbl_sampled_midi = Label(master=f3, textvariable=sampled_midi)
+lbl_sampled_midi.pack()
+
+midi_play_button = Button(f3, text="play", command=(lambda: play_music(sampled_midi.get())))
 img_play = PhotoImage(file=os.path.join(base_path, "play.png"))
 midi_play_button.config(image=img_play)
-midi_play_button.pack(padx=5, pady=10, side=LEFT)
+midi_play_button.pack(padx=5, pady=10)
 
-midi_download_button = Button(f3, text="download")
-img_download = PhotoImage(file=os.path.join(base_path, "download.png"))
-midi_download_button.config(image=img_download)
-midi_download_button.pack(padx=5, pady=10, side=LEFT)
+# midi_download_button = Button(f3, text="download")
+# img_download = PhotoImage(file=os.path.join(base_path, "download.png"))
+# midi_download_button.config(image=img_download)
+# midi_download_button.pack(padx=5, pady=10, side=LEFT)
 
 root.mainloop()
