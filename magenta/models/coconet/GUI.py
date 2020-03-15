@@ -12,7 +12,9 @@ import os
 import pathlib
 from magenta.models.coconet.coconet_sample import main as sample
 import pygame
+import pygame.midi
 import base64
+import io
 
 root = Tk()
 
@@ -123,16 +125,16 @@ def open_result_folder_sampling():
 
 
 def open_sample_midi():
-    folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", "*.mid")],
+    folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", ".midi .mid")],
                                              title='Choose the midi file to sample from')
     sample_midi_path.set(folder_path)
     print(folder_path)
 
 def select_sampled_midi():
-    folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", "*.mid")],
+    folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", ".midi .mid")],
                                              title='Choose the midi file that you want to play')
     sampled_midi.set(folder_path)
-    print(folder_path)
+    #print(folder_path)
 
 
 def start_preprocessing():
@@ -286,35 +288,21 @@ def start_sampling():
         messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
         return
 
-    #if temperature < 0 or temperature > 1:
-    #   raise ValueError: messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
-    #   return
-
     model_name = choosemodel.get()
     model_folder_path = model_map[model_name]
     model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
 
     sample(checkpoint=model_checkpoint_folder_path, tfsample=tfsample.get(), strategy=choosestrategy.get(),
             gen_batch_size=int_batches_strategy, piece_length=int_piece_length, temperature=float_temperature,
-            generation_output_dir=sampling_folder_path, prime_midi_melody_fpath=sample_midi_path.get())
-    print("Sampling done") #TODO make this user output
+            generation_output_dir=sampling_folder_path.get(), prime_midi_melody_fpath=sample_midi_path.get())
 
-    def play_music(music_file):
-        """
-        stream music with mixer.music module in blocking manner
-        this will stream the sound from disk while playing
-        """
-        clock = pygame.time.Clock()
-        try:
-            pygame.mixer.music.load(music_file)
-            print("Music file %s loaded!" % music_file)
-        except pygame.error:
-            print("File %s not found! (%s)" % (music_file, pygame.get_error()))
-            return
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            # check if playback has finished
-            clock.tick(30)
+    messagebox.showinfo("Info", "Sampling done!")
+
+def play_midi():
+    pygame.midi.init()
+    pygame.mixer.init()
+    pygame.mixer.music.load(sampled_midi.get())
+    pygame.mixer.music.play()
 
 root.title("Music in Machine Learning")
 root.minsize(640, 500)
@@ -598,7 +586,7 @@ Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
 lbl_frame_select_sample_midi = ttk.LabelFrame(f3, text="Select a midi file to sample from")
 lbl_frame_select_sample_midi.pack()
 
-btn_select_sample_midi = ttk.Button(lbl_frame_select_sample_midi, text="Select Folder", command=open_sample_midi)
+btn_select_sample_midi = ttk.Button(lbl_frame_select_sample_midi, text="Select File", command=open_sample_midi)
 btn_select_sample_midi.pack()
 
 lbl_sample_midi = Label(master=f3, textvariable=sample_midi_path)
@@ -619,19 +607,19 @@ Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
 btn_start_sample = ttk.Button(f3, text="Start Sampling", command=start_sampling)
 btn_start_sample.pack()
 
-base_path = str(pathlib.Path(__file__).parent.absolute())
+Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
 
 lbl_frame_select_sampled_midi = ttk.LabelFrame(f3, text="Which midi do you want to play?")
 lbl_frame_select_sampled_midi.pack()
 
-btn_select_sampled_midi = ttk.Button(lbl_frame_select_result_folder, text="Select Midi file",
+btn_select_sampled_midi = ttk.Button(lbl_frame_select_sampled_midi, text="Select Midi file",
                                       command=select_sampled_midi)
 btn_select_sampled_midi.pack()
 
 lbl_sampled_midi = Label(master=f3, textvariable=sampled_midi)
 lbl_sampled_midi.pack()
 
-midi_play_button = Button(f3, text="play", command=(lambda: play_music(sampled_midi.get())))
+midi_play_button = Button(f3, text="play", command=(play_midi))
 img_play = PhotoImage(file=os.path.join(base_path, "play.png"))
 midi_play_button.config(image=img_play)
 midi_play_button.pack(padx=5, pady=10)
