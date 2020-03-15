@@ -47,13 +47,15 @@ class PianorollEncoderDecoder(object):
     # Oboe, English horn, clarinet, bassoon, sounds better on timidity.
 
     def __init__(self,
-                 programs=[69, 70, 72, 71],
+                 programs=None,
                  shortest_duration=0.125,
                  min_pitch=36,
                  max_pitch=81,
                  separate_instruments=True,
                  num_instruments=None,
                  quantization_level=None):
+        if programs is None:
+            programs = [69, 70, 72, 71]
         assert num_instruments is not None
         self.shortest_duration = shortest_duration
         self.min_pitch = min_pitch

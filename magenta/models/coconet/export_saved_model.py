@@ -22,28 +22,32 @@ from magenta.models.coconet import lib_saved_model
 from magenta.models.coconet import lib_tfsampling
 import tensorflow.compat.v1 as tf
 
+
 def main(checkpoint, destination, use_tf_sampling):
-  model = None
-  if use_tf_sampling:
-    model = lib_tfsampling.CoconetSampleGraph(checkpoint)
-    model.instantiate_sess_and_restore_checkpoint()
-  else:
-    model = lib_graph.load_checkpoint(checkpoint)
-  tf.logging.info('Loaded graph.')
-  lib_saved_model.export_saved_model(model, destination,
-                                     [tf.saved_model.tag_constants.SERVING],
-                                     use_tf_sampling)
-  tf.logging.info('Exported SavedModel to %s.', dest)
+    model = None
+    if use_tf_sampling:
+        model = lib_tfsampling.CoconetSampleGraph(checkpoint)
+        model.instantiate_sess_and_restore_checkpoint()
+    else:
+        model = lib_graph.load_checkpoint(checkpoint)
+    tf.logging.info('Loaded graph.')
+    lib_saved_model.export_saved_model(model, destination,
+                                       [tf.saved_model.tag_constants.SERVING],
+                                       use_tf_sampling)
+    tf.logging.info('Exported SavedModel to %s.', destination)
+
 
 if __name__ == '__main__':
-  import argparse
-  parser = argparse.ArgumentParser()
+    import argparse
 
-  parser.add_argument('checkpoint', help='Path to the checkpoint to export.',
-                      default=None)
-  parser.add_argument('destination', help='Path to export SavedModel.', 
-                      default=None)
-  parser.add_argument('--use_tf_sampling', help='Whether to export with'
-                      'sampling in a TF while loop.' default=True)
-  args=parser.parse_args()
-  main(args.checkpoint, args.destination, args.use_tf_sampling)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('checkpoint', help='Path to the checkpoint to export.',
+                        default=None)
+    parser.add_argument('destination', help='Path to export SavedModel.',
+                        default=None)
+    parser.add_argument('--use_tf_sampling', help='Whether to export with'
+                                                  'sampling in a TF while loop.',
+                        default=True)
+    args = parser.parse_args()
+    main(args.checkpoint, args.destination, args.use_tf_sampling)
