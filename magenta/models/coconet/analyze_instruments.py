@@ -2,6 +2,7 @@ import numpy as np
 import os
 import pretty_midi as pm
 from magenta.models.coconet.instrument_groups import groups
+from mido.midifiles.meta import KeySignatureError
 
 
 # finds the most common (groups of) instruments for a given
@@ -13,7 +14,7 @@ def main(folder, grouped):
     for filename in os.listdir(folder):
         if filename.lower().endswith('.mid'):
             try:
-                mid = pm.PrettyMIDI(folder + filename, clip=True)
+                mid = pm.PrettyMIDI(folder + filename)
                 for instrument in mid.instruments:
                     # get drumkit definitions separately
                     if instrument.is_drum:
@@ -28,7 +29,9 @@ def main(folder, grouped):
                         else:
                             programs[instrument.program] = 1
             except OSError:
-                print(filename, 'could not be loaded as MIDI')
+                print(filename, 'could not be loaded as MIDI - skipped.')
+            except KeySignatureError:
+                print(filename, 'has bad key values - skipped.')
 
     # for grouped analysis: sum groups score into 
     # its strongest contributor

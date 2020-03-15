@@ -3,6 +3,7 @@ import math
 import os
 import pretty_midi as pm
 from magenta.models.coconet.instrument_groups import groups
+from mido.midifiles.meta import KeySignatureError
 
 
 # selects instruments to use and converts single file into 4 note-arrays
@@ -101,11 +102,13 @@ def main(path, grouped_instruments, p1, p2, p3):
     for filename in os.listdir(path):
         if filename.lower().endswith('.mid'):
             try:
-                pm_file = pm.PrettyMIDI(os.path.join(path, filename), clip=True)
+                pm_file = pm.PrettyMIDI(os.path.join(path, filename))
                 print(filename)
                 converted_data.append(convert_file(pm_file, [p1, p2, p3, grouped_instruments]))
             except OSError:
-                print(filename, 'could not be loaded as MIDI file')
+                print(filename, 'could not be loaded as MIDI file - skipped.')
+            except KeySignatureError:
+                print(filename, 'has bad key values - skipped.')
     converted_array = np.asarray(converted_data)
     num_data_points = converted_array.shape[0]
     test_set_index = int(num_data_points / 5)
