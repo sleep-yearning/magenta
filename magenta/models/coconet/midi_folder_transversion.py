@@ -13,7 +13,7 @@ def convert_file(pm_file, interpret_programs):
     # get total length of song times samplerate
     array_length = int(math.ceil(length * 100))
 
-    rhythm_instruments = []        
+    rhythm_instruments = []
     instruments1 = []
     instruments2 = []
     instruments3 = []
@@ -100,22 +100,26 @@ def main(path, grouped_instruments, p1, p2, p3):
     converted_data = []
     for filename in os.listdir(path):
         if filename.lower().endswith('.mid'):
-            pm_file = pm.PrettyMIDI(os.path.join(path, filename), clip=True)
-            print(filename)
-            converted_data.append(convert_file(pm_file, [p1, p2, p3, grouped_instruments]))
+            try:
+                pm_file = pm.PrettyMIDI(os.path.join(path, filename), clip=True)
+                print(filename)
+                converted_data.append(convert_file(pm_file, [p1, p2, p3, grouped_instruments]))
+            except OSError:
+                print(filename,'could not be loaded as MIDI file')
     converted_array = np.asarray(converted_data)
-    num_data_points=converted_array.shape[0]
-    test_set_index=int(num_data_points/5)
-    valid_set_index=int(test_set_index*4)
+    num_data_points = converted_array.shape[0]
+    test_set_index = int(num_data_points / 5)
+    valid_set_index = int(test_set_index * 4)
     np.savez(os.path.join(path, 'TrainData.npz'),
-             test=converted_array[0:test_set_index], 
+             test=converted_array[0:test_set_index],
              train=converted_array[test_set_index:valid_set_index],
              valid=converted_array[valid_set_index:num_data_points])
     return converted_array
 
+
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('path', default=None, help='Path to Midi folder to be converted')
     parser.add_argument('--grouped', action='store_true', help='Groups instruments by type')
