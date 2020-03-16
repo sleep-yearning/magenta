@@ -273,12 +273,6 @@ def preptrain():
     combo(train_folder_path.get(), int_nepochs, is_grouped_train.get(), title_new_train_model.get())
 
 
-# def play():
-#     model_name = choosemodel.get()
-#     model_folder_path = model_map[model_name]
-#     model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
-#     print(model_checkpoint_folder_path)
-
 # start sampling by checking the right input types first,
 # afterwards checking if using a pretrained model or an own model
 def start_sampling():
@@ -305,7 +299,7 @@ def start_sampling():
         messagebox.showerror("Error", "Temperature size must be a number between 0 and 1!")
         return
 
-    if own_checkpoint_path != "":
+    if own_checkpoint_path.get() != '':
         checkpoint = own_checkpoint_path.get()
     else:
         model_name = choosemodel.get()
@@ -389,9 +383,6 @@ lbl_do_preptrain = Label(f1,
                          text="If you want to preprocess and train your data in "
                               "one step you can do it in the >>Training<< Tab")
 lbl_do_preptrain.pack()
-
-# progress = ttk.Progressbar(f1, orient=HORIZONTAL, length=200)
-# progress.pack()
 
 #########
 #
