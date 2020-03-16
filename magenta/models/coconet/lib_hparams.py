@@ -100,7 +100,7 @@ class Hyperparameters(object):
         # Runtime configs.
         run_dir=None,
         log_process=True,
-        save_model_secs=30,
+        save_model_secs=300,
         run_id='',
         # Sampling info
         program1=69,
