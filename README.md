@@ -45,7 +45,7 @@ The easiest way to interface with CocoNet is to download a small selection of fi
 ```bash
 python /coconet/GUI
 ```
-From the GUI you can either select your folder of midi files to train on, or generate new midi files from already trained models.
+From the GUI you can either select your folder of midi files to train on, or generate new midi files from already trained models. We put some selected MIDI folders into /coconet/train_data/, which is also part of the usage-api download.
 
 If you don't want to use the GUI, just call the python files with their needed/optional arguments.
 For example:
