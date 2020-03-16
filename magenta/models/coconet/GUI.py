@@ -70,10 +70,10 @@ interleavesplit.set(2)
 # Hyparams for Sampling
 choosemodel = StringVar()
 choosestrategy = StringVar()
-tfsample = BooleanVar()
 size_batch_strategy = StringVar()
 piece_length = StringVar()
 temperature = StringVar()
+tfsample = BooleanVar()
 
 # default values for sampling
 tfsample.set(True)
@@ -96,78 +96,72 @@ model_map = {
 
 # Definitions go here
 
+#To check if train folder contains TrainData.npz
 def check_that_folder_contains_file(folder_path, filename):
     path = os.path.join(folder_path, filename)
     return os.path.isfile(path)
 
-
+#Set folder for preprocessing
 def open_converting_folder():
     folder_path = (filedialog.askdirectory(parent=root, title='Choose a folder containing midi files') + '/')
     convert_folder_path.set(folder_path)
-    if not result_folder_path_npz.get():
-        result_folder_path_npz.set(folder_path)
+    result_folder_path_npz.set(folder_path)
     print(convert_folder_path)
 
-
-def open_result_folder_npz():
-    folder_path = filedialog.askdirectory(parent=root, title='Choose a folder to place the results in')
-    result_folder_path_npz.set(folder_path)
-    print(folder_path)
-
-
+#Set folder for training
 def open_train_folder():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder containing npz file')
     train_folder_path.set(os.path.join(folder_path, ''))
     if not result_folder_path_training.get():
         result_folder_path_training.set(folder_path)
-
     print(folder_path)
 
-
+#Set folder for sampling
 def open_result_folder_sampling():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder to place the results in')
     sampling_folder_path.set(folder_path)
     print(folder_path)
 
+#Set folder with own pretrained model
 def open_own_checkpoint():
     folder_path = filedialog.askdirectory(parent=root, title='Choose a folder with your own Checkpoint')
     own_checkpoint_path.set(folder_path)
     print(folder_path)
 
+#Choose midi to sample from
 def open_sample_midi():
     folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", ".midi .mid")],
                                              title='Choose the midi file to sample from')
     sample_midi_path.set(folder_path)
     print(folder_path)
 
-
+#Select a generated midi to play
 def select_sampled_midi():
     folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", ".midi .mid")],
                                              title='Choose the midi file that you want to play')
     sampled_midi.set(folder_path)
     # print(folder_path)
 
-
+#start Preprocessing
 def start_preprocessing():
-    # print(is_grouped_pre.get())
     prepare(convert_folder_path.get(), is_grouped_pre.get())
     print("Preprocessing done")
 
-
+#Use Preprocessing with multithreading to make the GUI still usable
 def convert_in_background():
     _thread.start_new_thread(start_preprocessing, ())
 
-
+#Stop Button
 def stop_it():
     root.destroy()
 
-
+#Add the Pretrained Model to the sample page
 def add_model_to_menu():
     val = title_new_train_model.get()
     which_model['menu'].add_command(label=val, command=tk._setit(choosemodel, val))
-    model_map[val] = train_folder_path.get()  # TODO Pfad korrigieren
+    model_map[val] = train_folder_path.get()
 
-
+#Start training by checking the right type of hyperparameters first.
 def start_training():
     string_nepochs = nepochs.get()
     try:
@@ -226,20 +220,20 @@ def start_training():
     else:
         architecture.set("dilated")
 
-    print('architecture='.format(architecture.get()))
-    print("Folder={}".format(train_folder_path.get()))
-    print("epochs={}".format(int_nepochs))
-    print("isgrouped={}".format(is_grouped_train.get()))
-    print("use_residual={}".format(use_residual.get()))
-    print("use_sep_conv={}".format(use_sep_conv.get()))
-    print("dilate_time_only={}".format(dilate_time_only.get()))
-    print("repeat_last_dilation_level={}".format(repeat_last_dilation_level.get()))
-    print("size_batch.get()={}".format(int_batches))
-    print("int_filters={}".format(int_filters))
-    print("int_layers={}".format(int_layers))
-    print("int_db={}".format(int_db))
-    print("int_pointwise={}".format(int_pointwise))
-    print("int_interleave={}".format(int_interleave))
+    # print('architecture='.format(architecture.get()))
+    # print("Folder={}".format(train_folder_path.get()))
+    # print("epochs={}".format(int_nepochs))
+    # print("isgrouped={}".format(is_grouped_train.get()))
+    # print("use_residual={}".format(use_residual.get()))
+    # print("use_sep_conv={}".format(use_sep_conv.get()))
+    # print("dilate_time_only={}".format(dilate_time_only.get()))
+    # print("repeat_last_dilation_level={}".format(repeat_last_dilation_level.get()))
+    # print("size_batch.get()={}".format(int_batches))
+    # print("int_filters={}".format(int_filters))
+    # print("int_layers={}".format(int_layers))
+    # print("int_db={}".format(int_db))
+    # print("int_pointwise={}".format(int_pointwise))
+    # print("int_interleave={}".format(int_interleave))
 
     train(train_folder_path.get(), int_nepochs, is_grouped_train.get(), title_new_train_model.get(),
           architecture=architecture.get(),
@@ -249,16 +243,13 @@ def start_training():
           num_filters=int_filters, num_layers=int_layers, num_dilation_blocks=int_db,
           num_pointwise_splits=int_pointwise, interleave_split_every_n_layers=int_interleave)
 
-
-# TODO either num_layers or dilated convs.
-
-
+#combine adding model to sample page and start training for Button command
 def really_start_training():
     add_model_to_menu()
     start_training()
     print("Training done")
 
-
+#Run Preprocessing and training in one step
 def preptrain():
     string_nepochs = nepochs.get()
     try:
@@ -269,14 +260,13 @@ def preptrain():
 
     combo(train_folder_path.get(), int_nepochs, is_grouped_train.get(), title_new_train_model.get())
 
+# def play():
+#     model_name = choosemodel.get()
+#     model_folder_path = model_map[model_name]
+#     model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
+#     print(model_checkpoint_folder_path)
 
-def play():
-    model_name = choosemodel.get()
-    model_folder_path = model_map[model_name]
-    model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
-    print(model_checkpoint_folder_path)  # TODO use this
-
-
+#start sampling by checking the right input types first, afterwards checking if using a pretrained model or an own model
 def start_sampling():
     string_batches_strategy = size_batch_strategy.get()
     try:
@@ -316,7 +306,7 @@ def start_sampling():
 
     messagebox.showinfo("Info", "Sampling done!")
 
-
+#play a midi file
 def play_midi():
     pygame.midi.init()
     pygame.mixer.init()
@@ -378,6 +368,10 @@ btn_start_converting.pack()
 
 btn_stop_converting = ttk.Button(f1, text="Stop preprocessing", command=stop_it)
 btn_stop_converting.pack()
+
+lbl_do_preptrain = Label(f1,
+                    text="If you want to preprocess and train your data in one step you can do it in the >>Training<< Tab")
+lbl_do_preptrain.pack()
 
 #progress = ttk.Progressbar(f1, orient=HORIZONTAL, length=200)
 #progress.pack()
