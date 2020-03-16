@@ -26,6 +26,7 @@ train_folder_path = StringVar()
 result_folder_path_training = StringVar()
 result_folder_path_sampling = StringVar()
 sampling_folder_path = StringVar()
+own_checkpoint_path = StringVar()
 sample_midi_path = StringVar()
 title_new_train_model = StringVar()
 nepochs = StringVar()
@@ -126,6 +127,10 @@ def open_result_folder_sampling():
     sampling_folder_path.set(folder_path)
     print(folder_path)
 
+def open_own_checkpoint():
+    folder_path = filedialog.askdirectory(parent=root, title='Choose a folder with your own Checkpoint')
+    own_checkpoint_path.set(folder_path)
+    print(folder_path)
 
 def open_sample_midi():
     folder_path = filedialog.askopenfilename(parent=root, filetypes=[("Midi Files", ".midi .mid")],
@@ -298,7 +303,12 @@ def start_sampling():
     model_folder_path = model_map[model_name]
     model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
 
-    sample(checkpoint=model_checkpoint_folder_path, tfsample=tfsample.get(), strategy=choosestrategy.get(),
+    if own_checkpoint_path:
+        checkpoint = own_checkpoint_path.get()
+    else:
+        checkpoint = model_checkpoint_folder_path
+
+    sample(checkpoint=checkpoint, tfsample=tfsample.get(), strategy=choosestrategy.get(),
            gen_batch_size=int_batches_strategy, piece_length=int_piece_length, temperature=float_temperature,
            generation_output_dir=sampling_folder_path.get(), prime_midi_melody_fpath=sample_midi_path.get())
 
@@ -367,8 +377,8 @@ btn_start_converting.pack()
 btn_stop_converting = ttk.Button(f1, text="Stop preprocessing", command=stop_it)
 btn_stop_converting.pack()
 
-progress = ttk.Progressbar(f1, orient=HORIZONTAL, length=200)
-progress.pack()
+#progress = ttk.Progressbar(f1, orient=HORIZONTAL, length=200)
+#progress.pack()
 
 #########
 #
@@ -512,7 +522,17 @@ choosemodel.set(OptionList[0])
 
 which_model = OptionMenu(f3, choosemodel, *OptionList)
 which_model.config()
-which_model.pack()
+which_model.pack() 
+
+lbl_frame_own_checkpoint_folder = ttk.LabelFrame(f3, text="OR select a folder containint your own checkpoint")
+lbl_frame_own_checkpoint_folder.pack()
+
+btn_own_checkpoint_folder = ttk.Button(lbl_frame_own_checkpoint_folder, text="Select Folder",
+                                      command=open_own_checkpoint)
+btn_own_checkpoint_folder.pack()
+
+lbl_own_checkpoint_folder = Label(master=f3, textvariable=own_checkpoint_path)
+lbl_own_checkpoint_folder.pack()
 
 lbl_choose_strategy = Label(f3, text="Choose a sampling strategy")
 lbl_choose_strategy.pack()
@@ -537,7 +557,7 @@ which_strategy = OptionMenu(f3, choosestrategy, *OptionList_strategy)
 which_strategy.config()
 which_strategy.pack()
 
-Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
+Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=10)
 
 set_tfsample = tk.Checkbutton(f3, text='Run sampling in Tensorflow graph.', var=tfsample)
 set_tfsample.pack()
@@ -557,7 +577,7 @@ lbl_sample_temperature.pack()
 sample_temperature = Entry(f3, textvariable=temperature)
 sample_temperature.pack()
 
-Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
+Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=10)
 
 lbl_frame_select_sample_midi = ttk.LabelFrame(f3, text="Select a midi file to sample from")
 lbl_frame_select_sample_midi.pack()
@@ -578,12 +598,12 @@ btn_select_result_folder.pack()
 lbl_result_folder = Label(master=f3, textvariable=sampling_folder_path)
 lbl_result_folder.pack()
 
-Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
+Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=10)
 
 btn_start_sample = ttk.Button(f3, text="Start Sampling", command=start_sampling)
 btn_start_sample.pack()
 
-Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=15)
+Separator(f3, orient=HORIZONTAL).pack(fill='x', pady=10)
 
 lbl_frame_select_sampled_midi = ttk.LabelFrame(f3, text="Which midi do you want to play?")
 lbl_frame_select_sampled_midi.pack()
@@ -598,6 +618,6 @@ lbl_sampled_midi.pack()
 midi_play_button = Button(f3, text="play", command=play_midi)
 img_play = PhotoImage(file=os.path.join(base_path, "play.png"))
 midi_play_button.config(image=img_play)
-midi_play_button.pack(padx=5, pady=10)
+midi_play_button.pack(padx=5, pady=0)
 
 root.mainloop()
