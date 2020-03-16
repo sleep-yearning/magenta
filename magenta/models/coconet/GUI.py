@@ -305,7 +305,7 @@ def start_sampling():
     model_folder_path = model_map[model_name]
     model_checkpoint_folder_path = os.path.join(model_folder_path, model_name + '_checkpoint')
 
-    if own_checkpoint_path:
+    if own_checkpoint_path != "":
         checkpoint = own_checkpoint_path.get()
     else:
         checkpoint = model_checkpoint_folder_path
