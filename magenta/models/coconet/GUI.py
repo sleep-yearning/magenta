@@ -61,8 +61,8 @@ repeat_last_dilation_level.set(False)
 architecture_int.set(1)
 architecture_list = [('straight', 1), ('dilated', 2)]
 size_batch.set(10)
-nfilters.set(64)
-nlayers.set(32)
+nfilters.set(128)
+nlayers.set(64)
 ndilationblocks.set(1)
 npointwisesplits.set(2)
 interleavesplit.set(2)
@@ -88,8 +88,10 @@ base_path = str(pathlib.Path(__file__).parent.absolute())
 
 model_map = {
     "Pokemon": os.path.join(base_path, "trained_models/"),
-    "Test": os.path.join(base_path, "trained_models/"),
-    "Sonic": os.path.join(base_path, "trained_models/")
+    "Sonic": os.path.join(base_path, "trained_models/"),
+    "RedHotChiliPeppers": os.path.join(base_path, "trained_models/"),
+    "Beatles": os.path.join(base_path, "trained_models/"),
+    "Zelda": os.path.join(base_path, "trained_models/")
 }
 
 # Definitions go here
