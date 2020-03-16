@@ -1,0 +1,1 @@
+dilated-10-64_bs=20,corrupt=0.25,len=32,lr=0.0625,mm=orderless,nreg_conv=2,num_i=4,n_pch=96,mask_only=False,quant=0.125,rescale=True,depth_mul=1,sep=True,res=True,sconv=True,soft=True
