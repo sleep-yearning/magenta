@@ -1,4 +1,6 @@
+# author: Noah Schlegel
 # special instruments which resemble beat-giving properties but are not in the drum-channel
+# currently unused due to different meaning of pitch for these and drum channel instruments
 rhythm_in_normal_channels = [47, 112, 113, 114, 115, 116, 117, 118, 119]
 # instrument programs grouped by their -assumed- common roles in songs of an interpret
 groups = [

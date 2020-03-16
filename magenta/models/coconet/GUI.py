@@ -1,3 +1,4 @@
+# author: Tessa Lottermann
 import os
 
 import _thread

@@ -1,3 +1,4 @@
+# author: Noah Schlegel
 from magenta.models.coconet import analyze_instruments, midi_folder_transversion, coconet_train
 import tensorflow as tf
 import numpy as np

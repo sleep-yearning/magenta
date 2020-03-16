@@ -1,3 +1,4 @@
+# author: Noah Schlegel
 import numpy as np
 import os
 import pretty_midi as pm
