@@ -118,6 +118,9 @@ def main(path, grouped_instruments, p1, p2, p3):
              test=converted_array[0:test_set_index],
              train=converted_array[test_set_index:valid_set_index],
              valid=converted_array[valid_set_index:num_data_points])
+    nonzero=np.sum(np.count_nonzero(file) for file in converted_data)
+    tot = np.sum(file.size for file in converted_data)
+    print('ratio of non-zero pitch values',nonzero/tot)
     return converted_array
 
 
