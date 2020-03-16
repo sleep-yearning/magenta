@@ -358,7 +358,7 @@ if __name__ == '__main__':
     parser.add_argument('--run_dir', default=None, help='TODO')
     parser.add_argument('--log_process', default=True, help='If False, do not log any checkpoints and summary'
                                                             'statistics.')
-    parser.add_argument('--save_model_secs', default=30, help='The number of seconds between saving each checkpoint.')
+    parser.add_argument('--save_model_secs', default=300, help='The number of seconds between saving each checkpoint.')
     parser.add_argument('--run_id', default='', help='A run_id to add to directory names to avoid accidentally '
                                                      'overwriting when testing same setups.')
 
